@@ -1,15 +1,9 @@
-from enum import Enum
-
-from sqlalchemy import Column, Integer, String, Enum
+from sqlalchemy import Column, Integer, String, Enum, Boolean
 from sqlalchemy.ext.hybrid import hybrid_property
 
+from constants.platform_roles import PlatformRoles
 from extensions import BaseModel
 from project_helpers.functions.generate_password import hash_password
-
-
-class UserRole(Enum):
-    ADMIN = "ADMIN"
-    PLAYER = "PLAYER"
 
 
 class UserModel(BaseModel):
@@ -18,12 +12,15 @@ class UserModel(BaseModel):
     unhashed_password = ""
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)
-    role = Column(Enum(UserRole), nullable=False, default=UserRole.ADMIN)
+    name = Column(String(50), nullable=False)
+    email = Column(String(40), unique=True, nullable=False)
+    _password = Column(String(300), nullable=False)
+    role = Column(Enum(PlatformRoles), nullable=False, default=PlatformRoles.ADMIN)
+    isDeleted = Column(Boolean, nullable=False, default=False)
+    hasDefaultPassword = Column(Boolean, nullable=False, default=True, name="has_default_password")
+    isAvailable = Column(Boolean, default=True, server_default="True", name="is_available")
 
-    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}
+    # __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}
 
     @hybrid_property
     def password(self):

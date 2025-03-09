@@ -3,17 +3,12 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
 from sqlalchemy.orm import relationship
 
+from constants.match_state import MatchState
 from extensions import BaseModel
 
 
-class MatchState(Enum):
-    SCHEDULED = "SCHEDULED"
-    ONGOING = "ONGOING"
-    FINISHED = "FINISHED"
-
-
 class MatchModel(BaseModel):
-    __tablename__ = "match"
+    __tablename__ = "matches"
 
     id = Column(Integer, primary_key=True, index=True)
     team1Id = Column(Integer, ForeignKey("teams.id"), nullable=False)
@@ -24,5 +19,5 @@ class MatchModel(BaseModel):
     scoreTeam2 = Column(Integer, nullable=True)
     state = Column(Enum(MatchState), default=MatchState.SCHEDULED)
 
-    team1 = relationship("Team", foreign_keys=[team1Id])
-    team2 = relationship("Team", foreign_keys=[team2Id])
+    team1 = relationship("TeamModel", foreign_keys=[team1Id])
+    team2 = relationship("TeamModel", foreign_keys=[team2Id])

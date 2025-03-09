@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from app.services.background_jobs import send_notification
 
-@router.post("/matches/")
-def schedule_match(match: MatchCreate, db: Session = Depends(get_db)):
+@router.post("/matches")
+async def schedule_match(match: MatchCreate, db: Session = Depends(get_db)):
     db_match = MatchModel(date=match.date, location=match.location)
     db.add(db_match)
     db.commit()

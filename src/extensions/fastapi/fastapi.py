@@ -17,23 +17,23 @@ from project_helpers.responses import ErrorResponse
 
 
 async def http_400_handler(request: Request, exc):
-    return ErrorResponse(Error.INVALID_JSON_FORMAT, message=exc.detail)
+    return ErrorResponse(Error.INVALID_JSON_FORMAT, message=getattr(exc, "detail", None) or str(exc))
 
 
 async def http_401_handler(request: Request, exc):
-    return ErrorResponse(Error.INVALID_TOKEN, message=exc.detail)
+    return ErrorResponse(Error.INVALID_TOKEN, message=getattr(exc, "detail", None) or str(exc))
 
 
 async def http_404_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=exc.detail)
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
 
 
 async def http_422_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=exc.detail)
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
 
 
 async def http_500_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=exc.detail)
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
 
 
 api = FastAPI(
@@ -43,7 +43,7 @@ api = FastAPI(
         404: http_404_handler,
         422: http_422_handler,
         500: http_500_handler,
-    }
+    },
 )
 
 
@@ -63,11 +63,9 @@ def health():
     return "ok"
 
 
-def run_api(host, port, routers: List[APIRouter], responses: dict = None):
+def run_api(host, port, routers, responses: dict = None):
     for route in routers:
         api.include_router(route, responses=responses)
-    # uvicorn.config.LOGGING_CONFIG = None
-    # uvicorn.config.LOGGING = "logging.config.dictConfig"
-    # logger = logging.getLogger("uvicorn.access")
-    # logger.addFilter(FilterHealthCheck())
+    uvicorn.config.LOGGING_CONFIG = None
+    uvicorn.config.LOGGING = "logging.config.dictConfig"
     uvicorn.run(api, host=host, port=port, log_config=None)

@@ -8,13 +8,21 @@
 #   Date: 10/05/2023
 #
 # License description...
-from extensions.fastapi import run_api, api
-from extensions.sqlachemy.init import init_db, DBSessionMiddleware
+
+import os
+import sys
+from argparse import Namespace
+
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import text
+
+from extensions.sqlalchemy import SessionLocal
 
 try:
     import logging
     from fastapi.middleware.cors import CORSMiddleware
-    from extensions import run_api, api
+    from extensions import run_api, api, init_db, DBSessionMiddleware, SqlBaseModel
     from modules import (
         userRouter,
         matchRouter,
@@ -29,14 +37,23 @@ except Exception as e:
 
 
 def startup():
+    streamHandler = logging.StreamHandler(sys.stdout)
+
+    handlers = [
+        streamHandler
+    ]
+    logging.basicConfig(format='%(asctime)s - [%(levelname)s]: %(message)s (%(pathname)s:%(lineno)d)',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        level="INFO", handlers=handlers)
     init_db()
-    # init_scheduler(engine, starter_callback=auto_jobs_starter)
 
 
-def shutdown():
-    pass
-    # scheduler.shutdown()
-
+#     # init_scheduler(engine, starter_callback=auto_jobs_starter)
+#
+#
+# def shutdown():
+#     pass
+# scheduler.shutdown()
 
 if __name__ == "__main__":
     try:
@@ -58,7 +75,10 @@ if __name__ == "__main__":
             host="localhost",
             port=8002,
             routers=[
-
+                userRouter,
+                matchRouter,
+                teamRouter,
+                playerRouter,
             ],
             responses={
                 500: {"model": ErrorSchema},

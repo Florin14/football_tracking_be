@@ -57,7 +57,7 @@ The final result: Two balanced teams, ready to battle it out! ⚡⚽
 Clone the repo:
 
 git clone https://github.com/Florin14/football_tracking_be.git
-cd git clone https://github.com/Florin14/football_tracking_be.git
-Install dependencies:
+cd football_tracking_be
 
+Install dependencies:
 pip install -r requirements.txt

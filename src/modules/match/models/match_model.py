@@ -21,3 +21,4 @@ class MatchModel(BaseModel):
 
     team1 = relationship("TeamModel", foreign_keys=[team1Id])
     team2 = relationship("TeamModel", foreign_keys=[team2Id])
+    goals = relationship("GoalModel", back_populates="match")

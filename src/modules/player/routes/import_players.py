@@ -1,21 +1,39 @@
 import csv
+from io import TextIOWrapper, BytesIO
 
+import pandas as pd
+from fastapi import Depends
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
+from extensions import get_db
 from modules.player.models.player_model import PlayerModel
+from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-# @router.post("-import")
-# async def import_players(file: UploadFile, db: Session):
-#     contents = file.file.read().decode("utf-8").splitlines()
-#     reader = csv.DictReader(contents)
-#     players = []
-#     for row in reader:
-#         player = PlayerModel(name=row["name"], position=row["position"], rating=row["rating"])
-#         players.append(player)
-#
-#     db.add_all(players)
-#     db.commit()
-#     return {"message": "Players imported successfully"}
+@router.post("-import", response_model=ConfirmationResponse)
+async def import_players(file: UploadFile, db: Session = Depends(get_db)):
+    # decoded_file = TextIOWrapper(file.file, encoding="utf-8", errors="replace")
+    # reader = csv.DictReader(decoded_file)
+    password = "fotbal@2025"
+    contents = await file.read()
+    df = pd.read_excel(BytesIO(contents), sheet_name="Sheet1")
+
+    players = []
+    index = 0
+    for _, row in df.iterrows():
+        player = PlayerModel(
+            name=row["Name"],
+            rating=row["Value"],
+            position=row["Position"].upper(),
+            # email=row["Email"]
+            email=f"cont{index}@gmail.com",
+            password=password,
+        )
+        players.append(player)
+        index += 1
+
+    db.add_all(players)
+    db.commit()
+    return ConfirmationResponse

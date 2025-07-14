@@ -1,0 +1,43 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Fast-API",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/services/run_api.py",
+            "envFile": "${workspaceFolder}/src/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole"
+        },
+        {
+            "name": "Migration",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/services/run_migration.py",
+            "envFile": "${workspaceFolder}/src/.env",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--no-reload"
+            ],
+            "jinja": true,
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}/src",
+            "console": "internalConsole"
+        }
+    ]
+}

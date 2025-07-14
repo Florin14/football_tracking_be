@@ -1,4 +1,6 @@
 from .user import *
-from .player import *
-from .match import *
 from .team import *
+from .match import *
+# from .tournament import *
+# from .game import *
+from .player import *

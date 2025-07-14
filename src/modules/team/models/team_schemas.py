@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import Field
 
@@ -6,15 +6,24 @@ from project_helpers.schemas import BaseSchema, FilterSchema
 
 
 class TeamAdd(BaseSchema):
-    email: str = Field(..., max_length=40, example="cicada.cws@gmail.com")
-    name: str = Field(..., max_length=50, example="Gal Attila")
+    name: str = Field(..., max_length=50, example="Nordic Lions")
+    description: Optional[str] = Field(None, max_length=200, example="Professional football team")
+
+
+class TeamUpdate(BaseSchema):
+    name: Optional[str] = Field(None, max_length=50)
+    description: Optional[str] = Field(None, max_length=200)
+
+
+class AddPlayerToTeam(BaseSchema):
+    playerId: int = Field(..., example=1)
 
 
 class TeamItem(BaseSchema):
     id: int
     name: str
-    role: str
-    email: str
+    description: Optional[str] = None
+    playerCount: Optional[int] = 0
 
 
 class TeamFilter(FilterSchema):
@@ -24,8 +33,8 @@ class TeamFilter(FilterSchema):
 class TeamResponse(BaseSchema):
     id: int
     name: str
-    role: str
-    email: str
+    description: Optional[str] = None
+    players: Optional[List[dict]] = []
 
 
 class TeamListResponse(BaseSchema):

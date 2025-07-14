@@ -2,11 +2,10 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions import get_db
-from modules.user.models.user_model import UserModel
-from modules.user.models.user_schemas import UserAdd, UserResponse
+from modules.player.models.player_schemas import PlayerAdd
+from modules.user.models.user_schemas import UserResponse
 from .router import router
 from ..models.player_model import PlayerModel
-from modules.player.models.player_schemas import PlayerAdd
 
 
 @router.post("", response_model=UserResponse)

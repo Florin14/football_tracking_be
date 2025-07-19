@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, BigInteger
 from sqlalchemy.orm import relationship
 
 from constants.match_state import MatchState
@@ -10,9 +10,9 @@ from extensions import BaseModel
 class MatchModel(BaseModel):
     __tablename__ = "matches"
 
-    id = Column(Integer, primary_key=True, index=True)
-    team1Id = Column(Integer, ForeignKey("teams.id"), nullable=False)
-    team2Id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    id = Column(BigInteger, primary_key=True, index=True)
+    team1Id = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
+    team2Id = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     location = Column(String, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     scoreTeam1 = Column(Integer, nullable=True)

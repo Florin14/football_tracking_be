@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, Boolean
+from sqlalchemy import Column, Integer, String, Enum, Boolean, BigInteger
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from constants.platform_roles import PlatformRoles
@@ -11,7 +11,7 @@ class UserModel(BaseModel):
 
     unhashed_password = ""
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String(50), nullable=False)
     email = Column(String(40), unique=True, nullable=False)
     _password = Column(String(300), nullable=False)

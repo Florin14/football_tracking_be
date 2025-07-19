@@ -1,3 +1,4 @@
+
 from typing import Optional
 
 from fastapi import Depends
@@ -9,25 +10,18 @@ from modules.player.models.player_schemas import PlayerFilter, PlayerListRespons
 from .router import router
 
 
-@router.get("", response_model=PlayerListResponse)
-async def get_all_players(
+@router.get("/free-agents/", response_model=PlayerListResponse)
+async def get_free_agents(
         skip: int = 0,
         limit: int = 100,
-        teamId: Optional[int] = None,
         position: Optional[str] = None,
-        search: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    query = db.query(PlayerModel)
-
-    if teamId:
-        query = query.filter(PlayerModel.teamId == teamId)
+    """Get players without a team (free agents)"""
+    query = db.query(PlayerModel).filter(PlayerModel.teamId == None)
 
     if position:
         query = query.filter(PlayerModel.position == position)
-
-    if search:
-        query = query.filter(PlayerModel.name.ilike(f"%{search}%"))
 
     players = query.offset(skip).limit(limit).all()
 
@@ -39,8 +33,7 @@ async def get_all_players(
             "email": player.email,
             "position": player.position.value if player.position else None,
             "rating": player.rating,
-            "teamName": player.team.name if player.team else None
+            "teamName": None
         })
 
     return PlayerListResponse(data=player_items)
-

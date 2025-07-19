@@ -1,3 +1,3 @@
 from fastapi import APIRouter
 
-router = APIRouter(prefix='/match', tags=['Match'])
+router = APIRouter(prefix='/matches', tags=['Match'])

@@ -28,6 +28,7 @@ try:
         matchRouter,
         teamRouter,
         playerRouter,
+        tournamentRouter,
     )
     from project_helpers.schemas import ErrorSchema
 
@@ -79,6 +80,7 @@ if __name__ == "__main__":
                 matchRouter,
                 teamRouter,
                 playerRouter,
+                tournamentRouter,
             ],
             responses={
                 500: {"model": ErrorSchema},

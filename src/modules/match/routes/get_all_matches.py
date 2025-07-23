@@ -12,7 +12,7 @@ from modules.match.models import (
 from .router import router
 
 
-@router.get("", response_model=MatchListResponse)
+@router.get("/", response_model=MatchListResponse)
 async def get_matches(
         skip: int = 0,
         limit: int = 100,

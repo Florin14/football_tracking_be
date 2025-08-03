@@ -1,9 +1,16 @@
-# src/services/run_api.py
+import logging
+import sys
 
+import uvicorn
+from fastapi import FastAPI
 from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 
+from extensions.sqlalchemy import init_db, DBSessionMiddleware
+from modules import userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter
 from project_helpers.error import Error
 from project_helpers.responses import ErrorResponse
+from project_helpers.schemas import ErrorSchema
 
 
 async def http_400_handler(request: Request, exc):
@@ -25,15 +32,6 @@ async def http_422_handler(request: Request, exc):
 async def http_500_handler(request: Request, exc):
     return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
 
-
-import logging
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-
-from extensions.sqlalchemy import init_db, DBSessionMiddleware
-from modules import userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter
-from project_helpers.schemas import ErrorSchema
 
 # ─── 1) Create the app ─────────────────────────────────────────────────────────
 api = FastAPI(
@@ -84,7 +82,6 @@ for router in (userRouter, matchRouter, teamRouter, playerRouter, tournamentRout
     api.include_router(router, responses=common_responses)
 
 
-
 # ─── 7) Optional CLI for local dev ────────────────────────────────────────────
 def main(port: int = 8002):
     uvicorn.run(api, host="0.0.0.0", port=port)
@@ -92,7 +89,6 @@ def main(port: int = 8002):
 
 if __name__ == "__main__":
     # allow `python run_api.py` or `python run_api.py 8002`
-    import sys
 
     port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8002
     main(port)

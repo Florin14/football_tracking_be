@@ -66,6 +66,7 @@ if __name__ == "__main__":
             allow_origins=[
                 "*",
                 "http://localhost:3000",
+                "https://deploy-football-tracking-fe.onrender.com/",
             ],
             allow_credentials=True,
             allow_methods=["*"],
@@ -73,7 +74,7 @@ if __name__ == "__main__":
         )
 
         run_api(
-            host="localhost",
+            host="0.0.0.0",
             port=8002,
             routers=[
                 userRouter,

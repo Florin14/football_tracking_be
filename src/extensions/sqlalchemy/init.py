@@ -12,10 +12,11 @@ from fastapi import Request
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from starlette.middleware.base import BaseHTTPMiddleware
-import project_helpers.config as config
+
 from .base_model import BaseModel
 
-engine = create_engine("postgresql://postgres:1234@localhost:5432/football_tracking_be")
+engine = create_engine(
+    "postgresql://neondb_owner:npg_Q4EtB8GzUZcn@ep-young-surf-a2r3du4u-pooler.eu-central-1.aws.neon.tech/football_tracking_be?sslmode=require&channel_binding=require")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -44,7 +45,3 @@ class DBSessionMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         request.state.db.close()
         return response
-
-
-
-

@@ -1,5 +1,6 @@
 import logging
 import sys
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
@@ -60,8 +61,9 @@ api.add_middleware(
 
 
 # ─── 4) Startup event (you can keep on_event or switch to lifespan) ───────────
-@api.on_event("startup")
-def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup logic
     logging.basicConfig(
         format="%(asctime)s - [%(levelname)s]: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
@@ -69,6 +71,7 @@ def on_startup():
         handlers=[logging.StreamHandler(sys.stdout)],
     )
     init_db()
+    yield
 
 
 # ─── 5) Include routers ──────────────────────────────────────────────────────
@@ -83,12 +86,10 @@ for router in (userRouter, matchRouter, teamRouter, playerRouter, tournamentRout
 
 
 # ─── 7) Optional CLI for local dev ────────────────────────────────────────────
-def main(port: int = 8002):
-    uvicorn.run(api, host="0.0.0.0", port=port)
+def main():
+    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8002
+    uvicorn.run("services.run_api:api", host="0.0.0.0", port=port, reload=True, app_dir="src")
 
 
 if __name__ == "__main__":
-    # allow `python run_api.py` or `python run_api.py 8002`
-
-    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8002
-    main(port)
+    main()

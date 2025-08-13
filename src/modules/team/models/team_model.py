@@ -13,5 +13,7 @@ class TeamModel(BaseModel):
     description = Column(String, nullable=True)
     isDefault = Column(Boolean, default=False)
     players = relationship("PlayerModel", back_populates="team")
-    tournamentId = Column(BigInteger, ForeignKey("tournaments.id"))
-    tournament = relationship("TournamentModel")
+    leagueId = Column(BigInteger, ForeignKey("leagues.id"))
+    league = relationship("LeagueModel")
+
+

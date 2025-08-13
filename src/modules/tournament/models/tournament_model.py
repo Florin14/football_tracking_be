@@ -11,5 +11,5 @@ class TournamentModel(BaseModel):
     name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
     isDefault = Column(Boolean, default=False, name="is_default")
-    startDate = Column(Date, nullable=True, name="start_date")
-    endDate = Column(Date, nullable=True, name="end_date")
+    leagues = relationship("LeagueModel", back_populates="tournament")
+

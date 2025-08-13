@@ -1,5 +1,5 @@
-from typing import Optional, List
 from datetime import datetime
+from typing import Optional, List
 
 from pydantic import Field
 
@@ -65,3 +65,13 @@ class MatchFilter(FilterSchema):
 
 class MatchListResponse(BaseSchema):
     data: List[MatchItem] = []
+
+
+class ObjectItem(BaseSchema):
+    id: int
+    name: str
+
+
+class MatchResourcesResponse(BaseSchema):
+    teams: List[ObjectItem] = []
+    leagues: List[ObjectItem] = []

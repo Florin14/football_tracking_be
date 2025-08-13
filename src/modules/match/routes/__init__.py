@@ -8,3 +8,4 @@ from .update_match import *
 from .update_match_score import *
 from .finish_match import *
 from .get_all_matches import *
+from .get_match_resources import *

@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from pydantic import Field, validator
 
+from modules.player.models.player_schemas import PlayerResponse
 from project_helpers.functions import process_and_convert_image_to_base64
 from project_helpers.schemas import BaseSchema, FilterSchema
 
@@ -43,8 +44,7 @@ class TeamItem(BaseSchema):
     name: str
     description: Optional[str] = None
     playerCount: Optional[int] = 0
-    logo: Optional[bytes] = Field(None, example="")
-
+    logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):
@@ -62,10 +62,25 @@ class TeamFilter(FilterSchema):
 class TeamResponse(BaseSchema):
     id: int
     name: str
-    logo: Optional[bytes] = Field(None, example="")
-
     description: Optional[str] = None
     players: Optional[List[dict]] = []
+    logo: Optional[bytes] = Field(None, example="")
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
+
+
+class NordicTeamResponse(BaseSchema):
+    id: int
+    name: str
+    description: Optional[str] = None
+    players: Optional[List[PlayerResponse]] = []
+    logo: Optional[bytes] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):

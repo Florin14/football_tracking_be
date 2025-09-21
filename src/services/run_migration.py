@@ -66,8 +66,8 @@ def create_default_tournament(db_session):
         if not existingLeague:
             # Create Nordic Lions team
             allTimeLeague = LeagueModel(
-                name="DIVIZIA B",
-                description="The default team for the Nordic Lions football club",
+                name="DIVIZIA B2",
+                description="ATS Cluj Tournament 2025-2026",
                 isDefault=True,  # Assuming you want to mark it as default
                 tournamentId=allTimeTournament.id if allTimeTournament else existingTournament.id if existingTournament else None,
             )

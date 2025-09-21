@@ -7,10 +7,11 @@ from .router import router
 
 
 @router.post("/", response_model=TeamResponse)
-async def add_team(team_data: TeamAdd, db: Session = Depends(get_db)):
+async def add_team(data: TeamAdd, db: Session = Depends(get_db)):
     team = TeamModel(
-        name=team_data.name,
-        description=team_data.description
+        name=data.name,
+        description=data.description,
+        logo=data.logo,
     )
     db.add(team)
     db.commit()
@@ -19,6 +20,7 @@ async def add_team(team_data: TeamAdd, db: Session = Depends(get_db)):
     return TeamResponse(
         id=team.id,
         name=team.name,
+        logo=team.logo,
         description=team.description,
         players=[]
     )

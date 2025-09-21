@@ -1,16 +1,25 @@
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, validator
 
+from project_helpers.functions import process_and_convert_image_to_base64
 from project_helpers.schemas import BaseSchema, FilterSchema
 
 
 class PlayerAdd(BaseSchema):
     name: str = Field(..., max_length=50, example="John Doe")
-    email: str = Field(..., max_length=40, example="john.doe@example.com")
-    password: str = Field(..., min_length=6, example="password123")
+    email: Optional[str] = Field(..., max_length=100, example="john.doe@example.com")
     position: str = Field(..., example="FORWARD")  # Should match PlayerPositions enum
     rating: Optional[int] = Field(None, ge=0, le=100, example=85)
+    avatar: Optional[bytes] = Field(None)
+
+    @validator("avatar", pre=False, always=True)
+    def encode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return process_and_convert_image_to_base64(value, 316)
+        return value
 
 
 class PlayerUpdate(BaseSchema):
@@ -18,15 +27,33 @@ class PlayerUpdate(BaseSchema):
     email: Optional[str] = Field(None, max_length=40)
     position: Optional[str] = None
     rating: Optional[int] = Field(None, ge=0, le=100)
+    avatar: Optional[bytes] = Field(None)
+
+    @validator("avatar", pre=False, always=True)
+    def encode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return process_and_convert_image_to_base64(value, 316)
+        return value
 
 
 class PlayerItem(BaseSchema):
     id: int
     name: str
-    email: str
+    email: Optional[str] = None
     position: Optional[str] = None
     rating: Optional[int] = None
-    teamName: Optional[str] = None
+    # teamName: Optional[str] = None
+    avatar: Optional[bytes] = Field(None, example="")
+
+    @validator("avatar", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 
 class PlayerFilter(FilterSchema):
@@ -41,8 +68,17 @@ class PlayerResponse(BaseSchema):
     email: str
     position: Optional[str] = None
     rating: Optional[int] = None
-    teamId: Optional[int] = None
-    teamName: Optional[str] = None
+    # teamId: Optional[int] = None
+    # teamName: Optional[str] = None
+    avatar: Optional[bytes] = Field(None, example="")
+
+    @validator("avatar", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 
 class PlayerListResponse(BaseSchema):

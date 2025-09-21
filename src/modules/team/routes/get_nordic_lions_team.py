@@ -9,7 +9,6 @@ from .router import router
 
 @router.get("/nordic-lions", response_model=TeamResponse)
 async def get_nordic_lions_team(db: Session = Depends(get_db)):
-    """Get the Nordic Lions team (default team)"""
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(
         TeamModel.isDefault.is_(True)
     ).first()
@@ -32,6 +31,8 @@ async def get_nordic_lions_team(db: Session = Depends(get_db)):
                 "id": player.id,
                 "name": player.name,
                 "email": player.email,
+                "avatar": player.avatar,
+                "shirtNumber": player.shirtNumber,
                 "position": player.position.value if player.position else None,
                 "rating": player.rating
             })
@@ -40,5 +41,6 @@ async def get_nordic_lions_team(db: Session = Depends(get_db)):
         id=team.id,
         name=team.name,
         description=team.description,
-        players=players
+        players=players,
+        logo=team.logo,
     )

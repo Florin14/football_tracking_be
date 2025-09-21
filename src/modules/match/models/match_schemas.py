@@ -71,7 +71,12 @@ class ObjectItem(BaseSchema):
     id: int
     name: str
 
+class TeamItem(BaseSchema):
+    id: int
+    name: str
+    isDefault: bool
+    location: Optional[str] = None
 
 class MatchResourcesResponse(BaseSchema):
-    teams: List[ObjectItem] = []
+    teams: List[TeamItem] = []
     leagues: List[ObjectItem] = []

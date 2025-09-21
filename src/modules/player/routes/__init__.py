@@ -1,5 +1,5 @@
 from .router import router as playerRouter
-from .add_player import *
+from .add_nordic_lions_player import *
 from .delete_player import *
 from .get_all_players import *
 from .get_free_agents_players import *

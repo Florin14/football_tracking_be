@@ -8,8 +8,8 @@
 #
 # load_dotenv()
 #
-# GOOGLE_CLIENT_ID="REDACTED_GOOGLE_CLIENT_ID"
-# GOOGLE_CLIENT_SECRET="REDACTED_GOOGLE_CLIENT_SECRET"
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
 # SCOPE = "https://mail.google.com/"
 # AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 # TOKEN_URL = "https://oauth2.googleapis.com/token"

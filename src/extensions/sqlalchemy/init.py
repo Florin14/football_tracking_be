@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .base_model import BaseModel
 
 engine = create_engine(
-    "postgresql://neondb_owner:npg_Q4EtB8GzUZcn@ep-young-surf-a2r3du4u-pooler.eu-central-1.aws.neon.tech/football_tracking_be?sslmode=require&channel_binding=require")
+    "REDACTED_DATABASE_URL")
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 

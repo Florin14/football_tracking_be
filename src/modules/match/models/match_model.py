@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Enum, BigInteger
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 
 from constants.match_state import MatchState
@@ -13,7 +14,7 @@ class MatchModel(BaseModel):
     id = Column(BigInteger, primary_key=True, index=True)
     team1Id = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     team2Id = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
-    location = Column(String, nullable=False)
+    _location = Column(String, nullable=False)
     timestamp = Column(DateTime, nullable=False, default=datetime.utcnow)
     scoreTeam1 = Column(Integer, nullable=True)
     scoreTeam2 = Column(Integer, nullable=True)
@@ -22,3 +23,11 @@ class MatchModel(BaseModel):
     team1 = relationship("TeamModel", foreign_keys=[team1Id])
     team2 = relationship("TeamModel", foreign_keys=[team2Id])
     goals = relationship("GoalModel", back_populates="match")
+
+
+    @hybrid_property
+    def location(self):
+        if self._location:
+            return self._location
+        else:
+            return self.team1.location

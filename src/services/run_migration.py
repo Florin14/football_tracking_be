@@ -87,7 +87,7 @@ session.execute(text("DROP TABLE IF EXISTS alembic_version;"))
 
 session.commit()
 alembicConfig.set_main_option("sqlalchemy.url",
-                              "postgresql://neondb_owner:npg_Q4EtB8GzUZcn@ep-young-surf-a2r3du4u-pooler.eu-central-1.aws.neon.tech/football_tracking_be?sslmode=require&channel_binding=require")
+                              "REDACTED_DATABASE_URL")
 alembicConfig.set_main_option("script_location", "extensions/migrations")
 isExist = os.path.exists("extensions/migrations/versions")
 if not isExist:

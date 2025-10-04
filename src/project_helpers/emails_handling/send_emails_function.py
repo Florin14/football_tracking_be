@@ -25,14 +25,16 @@ GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 TOKEN_URL = "https://oauth2.googleapis.com/token"
-if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):
-    missing = [k for k, v in {
-        "GMAIL_SENDER": GMAIL_SENDER,
-        "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
-        "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
-        "GOOGLE_REFRESH_TOKEN": GOOGLE_REFRESH_TOKEN,
-    }.items() if not v]
-    raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+def validate_config():
+
+    if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):
+        missing = [k for k, v in {
+            "GMAIL_SENDER": GMAIL_SENDER,
+            "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
+            "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
+            "GOOGLE_REFRESH_TOKEN": GOOGLE_REFRESH_TOKEN,
+        }.items() if not v]
+        raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
 
 FROM_NAME = os.getenv("FROM_NAME", "Match Notifier")
 
@@ -129,6 +131,7 @@ def get_access_token() -> str:
 # ----------------- SMTP Send (XOAUTH2) -----------------
 async def send_via_gmail_oauth2(msg: EmailMessage):
     # Consolidate recipients (To, Cc, Bcc)
+    validate_config()
     recipients = []
     for key in ("To", "Cc", "Bcc"):
         if msg.get(key):

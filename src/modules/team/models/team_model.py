@@ -10,8 +10,11 @@ class TeamModel(BaseModel):
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     logo = Column(LargeBinary, nullable=True)
+    location = Column(String, nullable=True)
     description = Column(String, nullable=True)
     isDefault = Column(Boolean, default=False)
     players = relationship("PlayerModel", back_populates="team")
-    tournamentId = Column(BigInteger, ForeignKey("tournaments.id"))
-    tournament = relationship("TournamentModel")
+    leagueId = Column(BigInteger, ForeignKey("leagues.id"))
+    league = relationship("LeagueModel")
+
+

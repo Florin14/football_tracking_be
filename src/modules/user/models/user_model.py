@@ -13,7 +13,7 @@ class UserModel(BaseModel):
 
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String(50), nullable=False)
-    email = Column(String(40), unique=True, nullable=False)
+    email = Column(String(40), unique=True, nullable=True)
     _password = Column(String(300), nullable=False)
     role = Column(Enum(PlatformRoles), nullable=False, default=PlatformRoles.ADMIN)
     isDeleted = Column(Boolean, nullable=False, default=False)

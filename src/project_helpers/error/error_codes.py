@@ -1,13 +1,3 @@
-# Id: error_codes.py 202305 11/05/2023
-#
-# backend
-# Copyright (c) 2011-2013 IntegraSoft S.R.L. All rights reserved.
-#
-# Author: cicada 
-#   Rev: 202305
-#   Date: 11/05/2023
-#
-# License description...
 from enum import Enum
 from ..schemas import ErrorSchema
 
@@ -48,27 +38,10 @@ class Error(Enum):
 
     DB_INSERT_ERROR = ErrorSchema(code='E0101', message="Failed to insert object into the database", level='error')
     DB_ACCESS_ERROR = ErrorSchema(code='E0102', message="Failed to access the database", level='error')
-    DB_MODEL_INSTANCE_ALREADY_EXISTS = ErrorSchema(code='E0103', message="Database model instance already exists",
-                                                   level='info')
-    DB_MODEL_INSTANCE_DOES_NOT_EXISTS = ErrorSchema(code='E0104', message="Database model does not exist", level='info')
-    DB_COLUMN_VALUE_TOO_LONG = ErrorSchema(code='E0105', message="Database model column value too long",
-                                           level='warning')
-    DB_UNIQUE_COLUMN_VALUE = ErrorSchema(code='E0106', message="Database model column value must be unique",
-                                         level='info')
-    DB_FOREIGN_KEY_VIOLATION = ErrorSchema(code='E0107',
-                                           message="Database model can't update or delete until it has a relationship",
-                                           level='warning')
-    DB_INVALID_TEXT_REPRESENTATION = ErrorSchema(code='E0108',
-                                                 message="Database model column value format is not correct",
-                                                 level='info')
-    POSITION_DECREASE_ERROR = ErrorSchema(code='E0109',
-                                                 message="Cannot decrease available positions, you must put a higher value then it was initial",
-                                                 level='error')
-    DOCUMENT_NOT_FOUND = ErrorSchema(code='E0110', message='Document not found', level='info')
+    DB_MODEL_INSTANCE_DOES_NOT_EXISTS = ErrorSchema(code='E0103', message="Database model does not exist", level='info')
 
-    JOB_FUNCTION_NOT_FOUND = ErrorSchema(code='E0301',
-                                         message= "Job function not found. Please implement the job function here -> jobs/manual_start",
-                                         level='info')
+    TEAM_INSTANCE_NOT_FOUND = ErrorSchema(code='E0104', message="Team not found", level='info')
+
     UNKNOWN = ErrorSchema(code='E9999', message="Unknown error!", level='error')
 
     def print(self):

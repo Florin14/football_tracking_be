@@ -4,31 +4,33 @@ from sqlalchemy.orm import Session
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerResponse, PlayerUpdate
+from project_helpers.dependencies import GetInstanceFromPath
 from .router import router
 
 
 @router.put("/{id}", response_model=PlayerResponse)
-async def update_player(playerId: int, playerData: PlayerUpdate, db: Session = Depends(get_db)):
-    """Update a player"""
-    player = db.query(PlayerModel).filter(PlayerModel.id == playerId).first()
+async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
+                        db: Session = Depends(get_db)):
+    if data.name:
+        player.name = data.name
 
-    if playerData.name:
-        player.name = playerData.name
+        # if data.email:
+        #     # Check if new email already exists (excluding current player)
+        #     existing_player = db.query(PlayerModel).filter(
+        #         PlayerModel.email == data.email,
+        #         PlayerModel.id != playerId
+        #     ).first()
 
-    if playerData.email:
-        # Check if new email already exists (excluding current player)
-        existing_player = db.query(PlayerModel).filter(
-            PlayerModel.email == playerData.email,
-            PlayerModel.id != playerId
-        ).first()
+        player.email = data.email
 
-        player.email = playerData.email
+    if data.position:
+        player.position = data.position
 
-    if playerData.position:
-        player.position = playerData.position
+    if data.avatar:
+        player.avatar = data.avatar
 
-    if playerData.rating is not None:
-        player.rating = playerData.rating
+    if data.rating is not None:
+        player.rating = data.rating
 
     db.commit()
     db.refresh(player)
@@ -39,6 +41,7 @@ async def update_player(playerId: int, playerData: PlayerUpdate, db: Session = D
         email=player.email,
         position=player.position if player.position else None,
         rating=player.rating,
-        teamId=player.teamId,
-        teamName=player.team.name if player.team else None
+        avatar=player.avatar,
+        # teamId=player.teamId,
+        # teamName=player.team.name if player.team else None
     )

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, String, LargeBinary, Enum, BigInteger
+from sqlalchemy import Column, Integer, ForeignKey, LargeBinary, Enum, BigInteger
 from sqlalchemy.orm import relationship
 
 from constants.platform_roles import PlatformRoles
@@ -13,8 +13,9 @@ class PlayerModel(UserModel):
     id = Column(BigInteger, ForeignKey("users.id"), primary_key=True)
     position = Column(Enum(PlayerPositions), nullable=False, default=PlayerPositions.DEFENDER)
     rating = Column(Integer, nullable=True)
+    shirtNumber = Column("shirt_number", Integer, nullable=True)
     avatar = Column(LargeBinary, nullable=True)
-    teamId = Column(BigInteger, ForeignKey("teams.id"))
+    teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     team = relationship(TeamModel)
 
     __mapper_args__ = {

@@ -15,7 +15,6 @@ async def get_teams(
         search: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    """Get all teams with optional search"""
     query = db.query(TeamModel).options(joinedload(TeamModel.players))
 
     if search:
@@ -23,13 +22,15 @@ async def get_teams(
 
     teams = query.offset(skip).limit(limit).all()
 
-    team_items = []
+    teamItems = []
     for team in teams:
-        team_items.append({
+        teamItems.append({
             "id": team.id,
             "name": team.name,
             "description": team.description,
+            "location": team.location,
+            "logo": team.logo,
             "playerCount": len(team.players) if team.players else 0
         })
 
-    return TeamListResponse(data=team_items)
+    return TeamListResponse(data=teamItems)

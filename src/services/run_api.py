@@ -1,95 +1,95 @@
-# Id: fast_api.py 202305 10/05/2023
-#
-# backend
-# Copyright (c) 2011-2013 IntegraSoft S.R.L. All rights reserved.
-#
-# Author: cicada
-#   Rev: 202305
-#   Date: 10/05/2023
-#
-# License description...
-
-import os
+import logging
 import sys
-from argparse import Namespace
+from contextlib import asynccontextmanager
 
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import text
+import uvicorn
+from fastapi import FastAPI
+from fastapi import Request
+from fastapi.middleware.cors import CORSMiddleware
 
-from extensions.sqlalchemy import SessionLocal
+from extensions.sqlalchemy import init_db, DBSessionMiddleware
+from modules import userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter
+from project_helpers.error import Error
+from project_helpers.responses import ErrorResponse
+from project_helpers.schemas import ErrorSchema
 
-try:
-    import logging
-    from fastapi.middleware.cors import CORSMiddleware
-    from extensions import run_api, api, init_db, DBSessionMiddleware, SqlBaseModel
-    from modules import (
-        userRouter,
-        matchRouter,
-        teamRouter,
-        playerRouter,
-        tournamentRouter,
+
+async def http_400_handler(request: Request, exc):
+    return ErrorResponse(Error.INVALID_JSON_FORMAT, message=getattr(exc, "detail", None) or str(exc))
+
+
+async def http_401_handler(request: Request, exc):
+    return ErrorResponse(Error.INVALID_TOKEN, message=getattr(exc, "detail", None) or str(exc))
+
+
+async def http_404_handler(request: Request, exc):
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+
+
+async def http_422_handler(request: Request, exc):
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+
+
+async def http_500_handler(request: Request, exc):
+    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+
+
+# ─── 1) Create the app ─────────────────────────────────────────────────────────
+api = FastAPI(
+    exception_handlers={
+        400: http_400_handler,
+        401: http_401_handler,
+        404: http_404_handler,
+        422: http_422_handler,
+        500: http_500_handler,
+    },
+    title="Football Tracking API",
+    version="0.1.0",
+)
+
+# ─── 2) Install your DBSessionMiddleware at import time ────────────────────────
+api.add_middleware(DBSessionMiddleware)
+
+# ─── 3) CORS ─────────────────────────────────────────────────────────────────
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*", "http://localhost:3000", "https://deploy-football-tracking-fe.onrender.com/"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ─── 4) Startup event (you can keep on_event or switch to lifespan) ───────────
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # startup logic
+    logging.basicConfig(
+        format="%(asctime)s - [%(levelname)s]: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        level=logging.INFO,
+        handlers=[logging.StreamHandler(sys.stdout)],
     )
-    from project_helpers.schemas import ErrorSchema
-
-except Exception as e:
-    logging.error(str(e))
-    exit(1)
-
-
-def startup():
-    streamHandler = logging.StreamHandler(sys.stdout)
-
-    handlers = [
-        streamHandler
-    ]
-    logging.basicConfig(format='%(asctime)s - [%(levelname)s]: %(message)s (%(pathname)s:%(lineno)d)',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        level="INFO", handlers=handlers)
     init_db()
+    yield
 
 
-#     # init_scheduler(engine, starter_callback=auto_jobs_starter)
-#
-#
-# def shutdown():
-#     pass
-# scheduler.shutdown()
+# ─── 5) Include routers ──────────────────────────────────────────────────────
+common_responses = {
+    500: {"model": ErrorSchema},
+    401: {"model": ErrorSchema},
+    422: {"model": ErrorSchema},
+    404: {"model": ErrorSchema},
+}
+for router in (userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter):
+    api.include_router(router, responses=common_responses)
+
+
+# ─── 7) Optional CLI for local dev ────────────────────────────────────────────
+def main():
+    port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8002
+    uvicorn.run("services.run_api:api", host="0.0.0.0", port=port, reload=True, app_dir="src")
+
 
 if __name__ == "__main__":
-    try:
-        api.add_event_handler("startup", startup)
-        api.add_event_handler("shutdown", startup)
-        api.add_middleware(DBSessionMiddleware)
-        api.add_middleware(
-            CORSMiddleware,
-            allow_origins=[
-                "*",
-                "http://localhost:3000",
-                "https://deploy-football-tracking-fe.onrender.com/",
-            ],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
-        run_api(
-            host="0.0.0.0",
-            port=8002,
-            routers=[
-                userRouter,
-                matchRouter,
-                teamRouter,
-                playerRouter,
-                tournamentRouter,
-            ],
-            responses={
-                500: {"model": ErrorSchema},
-                401: {"model": ErrorSchema},
-                422: {"model": ErrorSchema},
-                404: {"model": ErrorSchema},
-            },
-        )
-    except Exception as e:
-        logging.error(str(e))
-        exit(1)
+    main()

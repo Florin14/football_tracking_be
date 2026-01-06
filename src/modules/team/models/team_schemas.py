@@ -64,7 +64,7 @@ class TeamResponse(BaseSchema):
     name: str
     description: Optional[str] = None
     players: Optional[List[dict]] = []
-    logo: Optional[bytes] = Field(None, example="")
+    logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):

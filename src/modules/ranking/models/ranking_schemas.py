@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
 
@@ -19,11 +19,32 @@ class AddTeamToRanking(BaseSchema):
     playerId: int = Field(..., example=1)
 
 
-class RankingItem(BaseSchema):
+class TeamItem(BaseSchema):
     id: int
     name: str
-    description: Optional[str] = None
-    playerCount: Optional[int] = 0
+    isDefault: bool
+    logo: Optional[str] = Field(None, example="")
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
+
+
+class RankingItem(BaseSchema):
+    id: int
+    team: TeamItem
+    points: int
+    gamesPlayed: int
+    goalsScored: int
+    goalsConceded: int
+    gamesWon: int
+    gamesTied: int
+    gamesLost: int
+    form: str
 
 
 class RankingFilter(FilterSchema):

@@ -20,7 +20,7 @@ class UserModel(BaseModel):
     hasDefaultPassword = Column(Boolean, nullable=False, default=True, name="has_default_password")
     isAvailable = Column(Boolean, default=True, server_default="True", name="is_available")
 
-    # __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}
+    __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}
 
     @hybrid_property
     def password(self):

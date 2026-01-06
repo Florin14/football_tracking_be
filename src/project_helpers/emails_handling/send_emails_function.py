@@ -24,7 +24,7 @@ GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-TOKEN_URL = "https://oauth2.googleapis.com/token"
+TOKEN_URL = "https://oauth2  .googleapis.com/token"
 def validate_config():
 
     if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):

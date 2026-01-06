@@ -14,7 +14,7 @@ class TeamModel(BaseModel):
     description = Column(String, nullable=True)
     isDefault = Column(Boolean, default=False)
     players = relationship("PlayerModel", back_populates="team")
-    leagueId = Column(BigInteger, ForeignKey("leagues.id"))
+    leagueId = Column(BigInteger, ForeignKey("leagues.id"), nullable=False)
     league = relationship("LeagueModel")
 
 

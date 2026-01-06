@@ -1,35 +1,28 @@
-from typing import Optional
-
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
 from modules.ranking.models import RankingModel, RankingListResponse
+from modules.team.models.team_model import (TeamModel)
 from .router import router
 
 
 @router.get("/", response_model=RankingListResponse)
 async def get_all_rankings(
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    """Get all teams with optional search"""
-    query = db.query(RankingModel)
+    gd = (RankingModel.goalsScored - RankingModel.goalsConceded)
 
-    if search:
-        query = query.filter(RankingModel.name.ilike(f"%{search}%"))
+    rankings_query = (
+        db.query(RankingModel)
+        .join(RankingModel.team)
+        .options(joinedload(RankingModel.team))
+        .order_by(
+            RankingModel.points.desc(),
+            gd.desc(),
+            RankingModel.goalsScored.desc(),
+            TeamModel.name.asc()
+        )
+    )
 
-    teams = query.offset(skip).limit(limit).all()
-
-    team_items = []
-    for team in teams:
-        team_items.append({
-            "id": team.id,
-            "name": team.name,
-            "description": team.description,
-            "playerCount": len(team.players) if team.players else 0
-        })
-
-    return RankingListResponse(data=team_items)
+    return RankingListResponse(data=rankings_query.all())

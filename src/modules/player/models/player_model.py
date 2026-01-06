@@ -17,6 +17,8 @@ class PlayerModel(UserModel):
     avatar = Column(LargeBinary, nullable=True)
     teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     team = relationship(TeamModel)
+    notifications = relationship("NotificationModel", back_populates="player")
+
 
     __mapper_args__ = {
         "polymorphic_identity": PlatformRoles.PLAYER,

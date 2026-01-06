@@ -1,4 +1,3 @@
-from .event import *
 from .match_model import *
 from .match_schemas import *
 from .goal_model import *

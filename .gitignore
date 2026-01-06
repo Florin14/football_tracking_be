@@ -3,3 +3,4 @@
 .venv
 /src/extensions/migrations/
 /src/services/.env
+.env

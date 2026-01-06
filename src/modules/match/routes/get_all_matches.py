@@ -20,7 +20,6 @@ async def get_matches(
         state: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    """Get all matches with optional filters"""
     query = db.query(MatchModel).options(
         joinedload(MatchModel.team1),
         joinedload(MatchModel.team2)

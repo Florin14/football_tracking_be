@@ -5,19 +5,24 @@
             "name": "Python: Fast-API",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/src/services/run_api.py",
-            "envFile": "${workspaceFolder}/src/.env",
+            "module": "uvicorn",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
             "args": [
-                "run",
-                "--no-debugger",
-                "--no-reload"
+                "services.run_api:api",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                "--reload",
+                "--app-dir",
+                "src"
             ],
             "jinja": true,
             "justMyCode": false,
-            "cwd": "${workspaceFolder}/src",
+            "cwd": "${workspaceFolder}",
             "console": "internalConsole"
         },
         {
@@ -25,15 +30,10 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/services/run_migration.py",
-            "envFile": "${workspaceFolder}/src/.env",
+            "envFile": "${workspaceFolder}/.env",
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/src"
             },
-            "args": [
-                "run",
-                "--no-debugger",
-                "--no-reload"
-            ],
             "jinja": true,
             "justMyCode": false,
             "cwd": "${workspaceFolder}/src",

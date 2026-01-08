@@ -1,5 +1,6 @@
-import os
+﻿import os
 from argparse import Namespace
+from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
@@ -11,9 +12,13 @@ from extensions.sqlalchemy.init import DATABASE_URL
 from modules import TournamentModel, LeagueModel
 from modules.team.models import TeamModel
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+MIGRATIONS_DIR = BASE_DIR / "extensions" / "migrations"
+ALEMBIC_INI = MIGRATIONS_DIR / "alembic.ini"
+VERSIONS_DIR = MIGRATIONS_DIR / "versions"
 target_metadata = SqlBaseModel.metadata
 alembicConfig = Config(
-    "extensions/migrations/alembic.ini",
+    str(ALEMBIC_INI),
     cmd_opts=Namespace(autogenerate=True, ignore_unknown_revisions=True, x=None)
 )
 
@@ -89,10 +94,10 @@ session.execute(text("DROP TABLE IF EXISTS alembic_version;"))
 session.commit()
 alembicConfig.set_main_option("sqlalchemy.url",
                               DATABASE_URL)
-alembicConfig.set_main_option("script_location", "extensions/migrations")
-isExist = os.path.exists("extensions/migrations/versions")
+alembicConfig.set_main_option("script_location", str(MIGRATIONS_DIR))
+isExist = VERSIONS_DIR.exists()
 if not isExist:
-    os.makedirs("extensions/migrations/versions")
+    VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
 command.stamp(alembicConfig, revision="head")
 command.revision(alembicConfig, autogenerate=True)
 command.upgrade(alembicConfig, revision="head")
@@ -102,3 +107,4 @@ create_default_tournament(session)
 
 session.close()
 exit(0)
+

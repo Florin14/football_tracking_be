@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from extensions import SqlBaseModel
 from extensions.sqlalchemy import SessionLocal
+from extensions.sqlalchemy.init import DATABASE_URL
 from modules import TournamentModel, LeagueModel
 from modules.team.models import TeamModel
 
@@ -87,7 +88,7 @@ session.execute(text("DROP TABLE IF EXISTS alembic_version;"))
 
 session.commit()
 alembicConfig.set_main_option("sqlalchemy.url",
-                              "REDACTED_DATABASE_URL")
+                              DATABASE_URL)
 alembicConfig.set_main_option("script_location", "extensions/migrations")
 isExist = os.path.exists("extensions/migrations/versions")
 if not isExist:

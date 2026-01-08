@@ -1,4 +1,5 @@
-import logging
+﻿import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 
@@ -34,33 +35,13 @@ async def http_500_handler(request: Request, exc):
     return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
 
 
-# ─── 1) Create the app ─────────────────────────────────────────────────────────
-api = FastAPI(
-    exception_handlers={
-        400: http_400_handler,
-        401: http_401_handler,
-        404: http_404_handler,
-        422: http_422_handler,
-        500: http_500_handler,
-    },
-    title="Football Tracking API",
-    version="0.1.0",
-)
-
-# ─── 2) Install your DBSessionMiddleware at import time ────────────────────────
-api.add_middleware(DBSessionMiddleware)
-
-# ─── 3) CORS ─────────────────────────────────────────────────────────────────
-api.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*", "http://localhost:3000", "https://deploy-football-tracking-fe.onrender.com/"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def parse_allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", "*").strip()
+    if raw == "*":
+        return ["*"]
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
-# ─── 4) Startup event (you can keep on_event or switch to lifespan) ───────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup logic
@@ -74,7 +55,39 @@ async def lifespan(app: FastAPI):
     yield
 
 
-# ─── 5) Include routers ──────────────────────────────────────────────────────
+# â”€â”€â”€ 1) Create the app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+api = FastAPI(
+    exception_handlers={
+        400: http_400_handler,
+        401: http_401_handler,
+        404: http_404_handler,
+        422: http_422_handler,
+        500: http_500_handler,
+    },
+    title="Football Tracking API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+# â”€â”€â”€ 2) Install your DBSessionMiddleware at import time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+api.add_middleware(DBSessionMiddleware)
+
+# â”€â”€â”€ 3) CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=parse_allowed_origins(),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@api.get("/health")
+def health():
+    return {"status": "ok"}
+
+
+# â”€â”€â”€ 4) Startup event (you can keep on_event or switch to lifespan) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€â”€ 5) Include routers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 common_responses = {
     500: {"model": ErrorSchema},
     401: {"model": ErrorSchema},
@@ -85,7 +98,7 @@ for router in (userRouter, matchRouter, teamRouter, playerRouter, tournamentRout
     api.include_router(router, responses=common_responses)
 
 
-# ─── 7) Optional CLI for local dev ────────────────────────────────────────────
+# â”€â”€â”€ 7) Optional CLI for local dev â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8002
     uvicorn.run("services.run_api:api", host="0.0.0.0", port=port, reload=True, app_dir="src")
@@ -93,3 +106,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

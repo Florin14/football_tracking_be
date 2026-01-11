@@ -9,7 +9,7 @@ from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from extensions.sqlalchemy import init_db, DBSessionMiddleware
-from modules import authRouter, userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter
+from modules import authRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter
 from project_helpers.error import Error
 from project_helpers.responses import ErrorResponse
 from project_helpers.schemas import ErrorSchema
@@ -96,7 +96,7 @@ common_responses = {
     422: {"model": ErrorSchema},
     404: {"model": ErrorSchema},
 }
-for router in (userRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, authRouter):
+for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, authRouter):
     api.include_router(router, responses=common_responses)
 
 

@@ -10,7 +10,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .base_model import BaseModel
 
 load_dotenv(".env", override=False)
-load_dotenv(".env.local", override=True)
+app_env = os.getenv("APP_ENV", "").strip().lower()
+if app_env == "local":
+    load_dotenv(".env.local", override=True)
 
 
 def build_database_url() -> str:

@@ -7,6 +7,7 @@ from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from extensions import get_db
+from constants.platform_roles import PlatformRoles
 from modules.player.models.player_model import PlayerModel
 from project_helpers.responses import ConfirmationResponse
 from .router import router
@@ -30,6 +31,7 @@ async def import_players(file: UploadFile, db: Session = Depends(get_db)):
             # email=row["Email"]
             email=f"cont{index}@gmail.com",
             password=password,
+            role=PlatformRoles.PLAYER,
         )
         players.append(player)
         index += 1

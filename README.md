@@ -1,63 +1,44 @@
-⚽ TeamBalancer - Football Team Generator Based on Player Ratings ⚡
-Welcome to TeamBalancer, the web app that takes the hassle out of creating fair football teams! 🏆
-With the power of genetic algorithms and live performance ratings, we build two balanced squads every time — so the only thing you’ll have to worry about is your first touch! 🚀
+# TeamBalancer - Football Team Generator
 
-🎯 Project Overview
-TeamBalancer dynamically generates two football teams based on players' ratings, which are influenced by their performance in recent matches. No more debates about unfair teams — let data and smart algorithms do the heavy lifting! 💪
+TeamBalancer builds fair football teams based on player ratings and recent performance.
+It uses a genetic algorithm to create two balanced squads.
 
-Key features:
+## Features
+- Genetic algorithm optimization for fair team distribution
+- Dynamic rating system based on recent match performance
+- FastAPI backend with SQLAlchemy
+- Validation rules (goalkeeper count, defender balance, top-rated distribution)
 
-🧠 Genetic Algorithm optimization for fair team distribution
+## Tech Stack
+- Backend: Python, FastAPI, Pydantic
+- ORM / Database: SQLAlchemy, SQLite / PostgreSQL
+- AI / Algorithm: DEAP
+- Data Handling: Pandas
 
-📝 Dynamic rating system based on 5 latest match performances
-
-⚡ FastAPI + Pydantic backend (Pythonic, modern and FAST)
-
-🛢️ SQLAlchemy for seamless database operations
-
-🎯 Intelligent validation (equal defenders, 1 goalkeeper per team, and balanced top-rated players)
-
-🛠️ Tech Stack
-
-Layer	Tech
-Backend	Python, FastAPI, Pydantic
-ORM / Database	SQLAlchemy, SQLite / PostgreSQL
-AI / Algorithm	DEAP (Distributed Evolutionary Algorithms in Python)
-Data Handling	Pandas
-🧬 How It Works
-Load Player Data ➡️
-
-Read players from an Excel file: Name, Position, Rating (Value), and Recent Grades.
-
-Select Players ➡️
-
-Randomly pick 1414 players (2 goalkeepers + 10/12 others).
-
-Normalize Values ➡️
-
-Prepare players' ratings and form data for fairness.
-
-Apply Genetic Algorithm ➡️
-
-Evolve hundreds of possible combinations to find the most balanced split.
-
-Validate ➡️
-
-Each team must have:
-
-At least one Goalkeeper 🧤
-
-Equal number of Defenders 🛡️
-
-Fair distribution of high-rated players 🌟
-
-The final result: Two balanced teams, ready to battle it out! ⚡⚽
-
-📦 Installation
+## Installation
 Clone the repo:
-
+```
 git clone https://github.com/Florin14/football_tracking_be.git
 cd football_tracking_be
+```
 
 Install dependencies:
+```
 pip install -r requirements.txt
+```
+
+## Environment
+Server (default):
+- APP_ENV=production
+- DATABASE_URL=postgresql://...
+
+Local (use local DB):
+- APP_ENV=local
+- DATABASE_URL_LOCAL=postgresql://postgres:postgres@localhost:5432/football_tracking_be
+
+You can also use POSTGRESQL_LOCAL_* vars if you prefer split config.
+
+## Run
+```
+uvicorn services.run_api:api --host 0.0.0.0 --port 8000 --reload
+```

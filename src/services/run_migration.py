@@ -23,18 +23,21 @@ alembicConfig = Config(
 )
 
 
-def create_default_team(db_session):
+def create_default_team(db_session, league_id: int | None):
     """Create the default Nordic Lions team if it doesn't exist"""
     try:
         # Check if Nordic Lions team already exists
         existingTeam = db_session.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
 
         if not existingTeam:
+            if league_id is None:
+                raise RuntimeError("Default league is required to create the default team.")
             # Create Nordic Lions team
             nordic_lions = TeamModel(
                 name="Nordic Lions",
                 description="The default team for the Nordic Lions football club",
-                isDefault=True  # Assuming you want to mark it as default
+                isDefault=True,  # Assuming you want to mark it as default
+                leagueId=league_id,
             )
             db_session.add(nordic_lions)
             db_session.commit()
@@ -47,7 +50,7 @@ def create_default_team(db_session):
         db_session.rollback()
 
 
-def create_default_tournament(db_session):
+def create_default_tournament(db_session) -> int | None:
     """Create the default Nordic Lions tournament if it doesn't exist"""
     try:
         # Check if Nordic Lions team already exists
@@ -79,13 +82,17 @@ def create_default_tournament(db_session):
             )
             db_session.add(allTimeLeague)
             print(f"Created default league: {allTimeLeague.name} (ID: {allTimeLeague.id})")
+            league_id = allTimeLeague.id
         else:
             print(f"Default league already exists: {existingLeague.name} (ID: {existingLeague.id})")
+            league_id = existingLeague.id
 
         db_session.commit()
+        return league_id
     except Exception as e:
         print(f"Error creating default tournament or league: {e}")
         db_session.rollback()
+        return None
 
 
 session = SessionLocal()
@@ -102,8 +109,8 @@ command.stamp(alembicConfig, revision="head")
 command.revision(alembicConfig, autogenerate=True)
 command.upgrade(alembicConfig, revision="head")
 command.stamp(alembicConfig, revision="head")
-create_default_team(session)
-create_default_tournament(session)
+league_id = create_default_tournament(session)
+create_default_team(session, league_id)
 
 session.close()
 exit(0)

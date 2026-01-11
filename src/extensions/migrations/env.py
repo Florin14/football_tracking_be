@@ -4,6 +4,8 @@ from sqlalchemy import pool
 from alembic import context
 import modules
 import alembic_postgresql_enum
+
+from extensions.sqlalchemy.init import build_database_url
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -12,6 +14,9 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+# Ensure the URL comes from env vars instead of the placeholder in alembic.ini.
+config.set_main_option("sqlalchemy.url", build_database_url())
 
 # add your model's MetaData object here
 # for 'autogenerate' support

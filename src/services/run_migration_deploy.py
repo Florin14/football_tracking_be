@@ -13,14 +13,17 @@ MIGRATIONS_DIR = BASE_DIR / "extensions" / "migrations"
 ALEMBIC_INI = MIGRATIONS_DIR / "alembic.ini"
 
 
-def create_default_team(db_session):
+def create_default_team(db_session, league_id: int | None):
     existing_team = db_session.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
 
     if not existing_team:
+        if league_id is None:
+            raise RuntimeError("Default league is required to create the default team.")
         nordic_lions = TeamModel(
             name="Nordic Lions",
             description="The default team for the Nordic Lions football club",
-            isDefault=True
+            isDefault=True,
+            leagueId=league_id,
         )
         db_session.add(nordic_lions)
         db_session.commit()
@@ -30,7 +33,7 @@ def create_default_team(db_session):
     print(f"Default team already exists: {existing_team.name} (ID: {existing_team.id})")
 
 
-def create_default_tournament(db_session):
+def create_default_tournament(db_session) -> int | None:
     existing_tournament = db_session.query(TournamentModel).filter(TournamentModel.isDefault.is_(True)).first()
     all_time_tournament = None
 
@@ -57,10 +60,13 @@ def create_default_tournament(db_session):
         )
         db_session.add(all_time_league)
         print(f"Created default league: {all_time_league.name} (ID: {all_time_league.id})")
+        league_id = all_time_league.id
     else:
         print(f"Default league already exists: {existing_league.name} (ID: {existing_league.id})")
+        league_id = existing_league.id
 
     db_session.commit()
+    return league_id
 
 
 def run_migrations():
@@ -76,8 +82,8 @@ def main():
     run_migrations()
     session = SessionLocal()
     try:
-        create_default_team(session)
-        create_default_tournament(session)
+        league_id = create_default_tournament(session)
+        create_default_team(session, league_id)
     finally:
         session.close()
 

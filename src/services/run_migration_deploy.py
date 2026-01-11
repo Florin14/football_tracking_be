@@ -3,6 +3,7 @@ from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
+from alembic.util.exc import CommandError
 
 from extensions.sqlalchemy import SessionLocal
 from modules import TournamentModel, LeagueModel
@@ -75,7 +76,16 @@ def run_migrations():
         cmd_opts=Namespace(autogenerate=False, ignore_unknown_revisions=True, x=None)
     )
     alembic_config.set_main_option("script_location", str(MIGRATIONS_DIR))
-    command.upgrade(alembic_config, revision="head")
+    try:
+        command.upgrade(alembic_config, revision="head")
+    except CommandError as exc:
+        message = str(exc)
+        if "Can't locate revision identified by" in message:
+            # Align DB revision with current migrations without changing schema.
+            command.stamp(alembic_config, revision="head")
+            command.upgrade(alembic_config, revision="head")
+            return
+        raise
 
 
 def main():

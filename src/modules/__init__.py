@@ -7,3 +7,4 @@ from .player import *
 from .ranking import *
 from .notifications import *
 from .auth import *
+from .admin import *

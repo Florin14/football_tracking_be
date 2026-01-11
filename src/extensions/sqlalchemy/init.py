@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -10,14 +11,16 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from .base_model import BaseModel
 
 load_dotenv(".env", override=False)
-app_env = os.getenv("APP_ENV", "").strip().lower()
-if app_env == "local":
-    load_dotenv(".env.local", override=True)
+local_env_path = Path(".env.local")
+is_docker = Path("/.dockerenv").exists()
+if not is_docker and local_env_path.exists():
+    load_dotenv(local_env_path, override=True)
 
 
 def build_database_url() -> str:
     app_env = os.getenv("APP_ENV", "").strip().lower()
-    if app_env == "local":
+    is_docker = Path("/.dockerenv").exists()
+    if not is_docker and (app_env == "local" or os.getenv("DATABASE_URL_LOCAL")):
         local_url = os.getenv("DATABASE_URL_LOCAL")
         if local_url:
             return local_url

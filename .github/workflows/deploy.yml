@@ -24,6 +24,7 @@ jobs:
             git reset --hard origin/main
             cd deploy
             docker compose up -d --build
-            docker compose exec -T api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
+            docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
             docker compose ps
+
 

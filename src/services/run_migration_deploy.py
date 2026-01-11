@@ -4,6 +4,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from alembic.util.exc import CommandError
+from sqlalchemy import text
 
 from extensions.sqlalchemy import SessionLocal
 from modules import TournamentModel, LeagueModel
@@ -81,7 +82,13 @@ def run_migrations():
     except CommandError as exc:
         message = str(exc)
         if "Can't locate revision identified by" in message:
-            # Align DB revision with current migrations without changing schema.
+            # Clear unknown revisions, then align with current head without touching schema/data.
+            session = SessionLocal()
+            try:
+                session.execute(text("DELETE FROM alembic_version;"))
+                session.commit()
+            finally:
+                session.close()
             command.stamp(alembic_config, revision="head")
             command.upgrade(alembic_config, revision="head")
             return

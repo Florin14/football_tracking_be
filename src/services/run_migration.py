@@ -5,6 +5,7 @@ from pathlib import Path
 from alembic import command
 from alembic.config import Config
 from sqlalchemy import text
+from alembic.util.exc import CommandError
 
 from extensions import SqlBaseModel
 from extensions.sqlalchemy import SessionLocal
@@ -107,7 +108,17 @@ if not isExist:
     VERSIONS_DIR.mkdir(parents=True, exist_ok=True)
 command.stamp(alembicConfig, revision="head")
 command.revision(alembicConfig, autogenerate=True)
-command.upgrade(alembicConfig, revision="head")
+try:
+    command.upgrade(alembicConfig, revision="head")
+except CommandError as exc:
+    message = str(exc)
+    if "Can't locate revision identified by" in message:
+        session.execute(text("DELETE FROM alembic_version;"))
+        session.commit()
+        command.stamp(alembicConfig, revision="head")
+        command.upgrade(alembicConfig, revision="head")
+    else:
+        raise
 command.stamp(alembicConfig, revision="head")
 league_id = create_default_tournament(session)
 create_default_team(session, league_id)

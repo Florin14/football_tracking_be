@@ -18,6 +18,7 @@ class PlayerModel(UserModel):
     teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     team = relationship(TeamModel)
     notifications = relationship("NotificationModel", back_populates="player")
+    attendance = relationship("AttendanceModel", back_populates="player")
 
 
     __mapper_args__ = {

@@ -8,8 +8,9 @@ from fastapi import FastAPI
 from fastapi import Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from extensions.sqlalchemy import init_db, DBSessionMiddleware
-from modules import authRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter
+from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
+from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter
+from modules.attendance.events import backfill_attendance_for_existing_scopes
 from project_helpers.error import Error
 from project_helpers.responses import ErrorResponse
 from project_helpers.schemas import ErrorSchema
@@ -52,6 +53,11 @@ async def lifespan(app: FastAPI):
         handlers=[logging.StreamHandler(sys.stdout)],
     )
     init_db()
+    db = SessionLocal()
+    try:
+        backfill_attendance_for_existing_scopes(db)
+    finally:
+        db.close()
     yield
 
 
@@ -96,7 +102,7 @@ common_responses = {
     422: {"model": ErrorSchema},
     404: {"model": ErrorSchema},
 }
-for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, authRouter):
+for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter):
     api.include_router(router, responses=common_responses)
 
 

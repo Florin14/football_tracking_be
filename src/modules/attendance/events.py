@@ -47,7 +47,7 @@ def _insert_attendance_for_players(
             attendance_table.c.playerId,
             attendance_table.c.teamId,
             attendance_table.c.status,
-            attendance_table.c.recordedAt,
+            attendance_table.c.recorded_at,
         ],
         select_stmt,
     )

@@ -26,7 +26,21 @@
             "console": "internalConsole"
         },
         {
-            "name": "Migration",
+            "name": "Migration Local",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/services/run_migration.py",
+            "envFile": "${workspaceFolder}/.env.local",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src"
+            },
+            "jinja": true,
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole"
+        },
+        {
+            "name": "Migration Server",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/services/run_migration.py",

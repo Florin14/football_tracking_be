@@ -25,24 +25,24 @@ alembicConfig = Config(
 
 
 def create_default_team(db_session, league_id: int | None):
-    """Create the default Nordic Lions team if it doesn't exist"""
+    """Create the default Base Camp team if it doesn't exist"""
     try:
-        # Check if Nordic Lions team already exists
+        # Check if Base Camp team already exists
         existingTeam = db_session.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
 
         if not existingTeam:
             if league_id is None:
                 raise RuntimeError("Default league is required to create the default team.")
-            # Create Nordic Lions team
-            nordic_lions = TeamModel(
-                name="Nordic Lions",
-                description="The default team for the Nordic Lions football club",
+            # Create Base Camp team
+            base_camp = TeamModel(
+                name="Base Camp",
+                description="The default team for the Base Camp football club",
                 isDefault=True,  # Assuming you want to mark it as default
                 leagueId=league_id,
             )
-            db_session.add(nordic_lions)
+            db_session.add(base_camp)
             db_session.commit()
-            print(f"Created default team: {nordic_lions.name} (ID: {nordic_lions.id})")
+            print(f"Created default team: {base_camp.name} (ID: {base_camp.id})")
         else:
             print(f"Default team already exists: {existingTeam.name} (ID: {existingTeam.id})")
 
@@ -52,16 +52,16 @@ def create_default_team(db_session, league_id: int | None):
 
 
 def create_default_tournament(db_session) -> int | None:
-    """Create the default Nordic Lions tournament if it doesn't exist"""
+    """Create the default Base Camp tournament if it doesn't exist"""
     try:
-        # Check if Nordic Lions team already exists
+        # Check if Base Camp tournament already exists
         existingTournament = db_session.query(TournamentModel).filter(TournamentModel.isDefault.is_(True)).first()
         allTimeTournament = None
         if not existingTournament:
-            # Create Nordic Lions team
+            # Create Base Camp tournament
             allTimeTournament = TournamentModel(
                 name="CAMPIONATUL FIRMELOR ATS",
-                description="The default tournament of Nordic Lions football club",
+                description="The default tournament of Base Camp football club",
                 isDefault=True  # Assuming you want to mark it as default
             )
             db_session.add(allTimeTournament)
@@ -74,14 +74,15 @@ def create_default_tournament(db_session) -> int | None:
         existingLeague = db_session.query(LeagueModel).filter(LeagueModel.isDefault.is_(True)).first()
 
         if not existingLeague:
-            # Create Nordic Lions team
+            # Create Base Camp league
             allTimeLeague = LeagueModel(
-                name="DIVIZIA B2",
+                name="DIVIZIA B1 2025-2026",
                 description="ATS Cluj Tournament 2025-2026",
                 isDefault=True,  # Assuming you want to mark it as default
                 tournamentId=allTimeTournament.id if allTimeTournament else existingTournament.id if existingTournament else None,
             )
             db_session.add(allTimeLeague)
+            db_session.flush()
             print(f"Created default league: {allTimeLeague.name} (ID: {allTimeLeague.id})")
             league_id = allTimeLeague.id
         else:
@@ -125,4 +126,3 @@ create_default_team(session, league_id)
 
 session.close()
 exit(0)
-

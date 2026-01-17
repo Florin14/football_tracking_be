@@ -8,7 +8,7 @@ from project_helpers.schemas import BaseSchema, FilterSchema
 
 
 class TeamAdd(BaseSchema):
-    name: str = Field(..., max_length=50, example="Nordic Lions")
+    name: str = Field(..., max_length=50, example="Base Camp")
     description: Optional[str] = Field(None, max_length=200, example="Professional football team")
     logo: Optional[bytes] = Field(None)
 
@@ -75,7 +75,7 @@ class TeamResponse(BaseSchema):
         return value
 
 
-class NordicTeamResponse(BaseSchema):
+class BaseCampTeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None

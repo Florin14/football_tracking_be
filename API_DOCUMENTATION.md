@@ -6,7 +6,7 @@ This document describes all the API endpoints available in the football tracking
 
 ## Default Team
 
-- **Nordic Lions**: A default team that gets automatically created during database migration/initialization.
+- **Base Camp**: A default team that gets automatically created during database migration/initialization.
 
 ## Team Management Endpoints
 
@@ -64,10 +64,10 @@ This document describes all the API endpoints available in the football tracking
 - **DELETE** `/team/{team_id}/players/{player_id}`
 - **Response**: `ConfirmationResponse`
 
-#### 7. Get Nordic Lions Team
+#### 7. Get Base Camp Team
 
-- **GET** `/team/nordic-lions`
-- **Response**: `TeamResponse` for the default Nordic Lions team (creates it if doesn't exist)
+- **GET** `/team/base-camp`
+- **Response**: `TeamResponse` for the default Base Camp team (creates it if doesn't exist)
 
 #### 8. Delete Team
 
@@ -251,22 +251,22 @@ Available player positions (from `PlayerPositions` enum):
 3. **Match Scheduling**: Schedule matches between teams with date/time and location
 4. **Score Tracking**: Update match scores with detailed goal information
 5. **Goal Tracking**: Mandatory player specification when updating scores for your team
-6. **Default Team**: Automatic Nordic Lions team creation
+6. **Default Team**: Automatic Base Camp team creation
 7. **Free Agent System**: Track players not assigned to any team
 8. **Match States**: Track match progression from scheduled to finished
 
 ## Usage Examples
 
-### Creating a Match and Updating Score for Nordic Lions
+### Creating a Match and Updating Score for Base Camp
 
 1. Create the match: `POST /match/` with team IDs
 2. During the match, add goals: `POST /match/{match_id}/score` with player details
 3. Finish the match: `POST /match/{match_id}/finish`
 
-### Adding a Player to Nordic Lions Team
+### Adding a Player to Base Camp Team
 
-1. Get Nordic Lions team: `GET /team/nordic-lions`
+1. Get Base Camp team: `GET /team/base-camp`
 2. Create or find the player: `POST /player/` or `GET /player/free-agents/`
-3. Add player to team: `POST /team/{nordic_lions_id}/players`
+3. Add player to team: `POST /team/{base_camp_id}/players`
 
 This system provides comprehensive football match tracking with emphasis on detailed goal tracking and team management.

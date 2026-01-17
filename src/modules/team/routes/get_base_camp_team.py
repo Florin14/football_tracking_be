@@ -7,8 +7,8 @@ from modules.team.models import TeamModel, TeamResponse
 from .router import router
 
 
-@router.get("/nordic-lions", response_model=TeamResponse)
-async def get_nordic_lions_team(db: Session = Depends(get_db)):
+@router.get("/base-camp", response_model=TeamResponse)
+async def get_base_camp_team(db: Session = Depends(get_db)):
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(
         TeamModel.isDefault.is_(True)
     ).first()
@@ -16,8 +16,8 @@ async def get_nordic_lions_team(db: Session = Depends(get_db)):
     if not team:
         # Create the team if it doesn't exist
         team = TeamModel(
-            name="Nordic Lions",
-            description="The default team for the Nordic Lions football club",
+            name="FC Base Camp",
+            description="The default team for the Base Camp football club",
             isDefault=True  # Assuming you want to mark it as default
         )
         db.add(team)

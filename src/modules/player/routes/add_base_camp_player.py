@@ -12,8 +12,8 @@ from .router import router
 from ..models.player_model import PlayerModel
 
 
-@router.post("/nordic-lions", response_model=PlayerResponse)
-async def add_nordic_lions_player(data: PlayerAdd, db: Session = Depends(get_db)):
+@router.post("/base-camp", response_model=PlayerResponse)
+async def add_base_camp_player(data: PlayerAdd, db: Session = Depends(get_db)):
     password = "fotbal@2025"
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if team is None:

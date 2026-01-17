@@ -21,15 +21,15 @@ def create_default_team(db_session, league_id: int | None):
     if not existing_team:
         if league_id is None:
             raise RuntimeError("Default league is required to create the default team.")
-        nordic_lions = TeamModel(
-            name="Nordic Lions",
-            description="The default team for the Nordic Lions football club",
+        base_camp = TeamModel(
+            name="FC Base Camp",
+            description="The default team for the Base Camp football club",
             isDefault=True,
             leagueId=league_id,
         )
-        db_session.add(nordic_lions)
+        db_session.add(base_camp)
         db_session.commit()
-        print(f"Created default team: {nordic_lions.name} (ID: {nordic_lions.id})")
+        print(f"Created default team: {base_camp.name} (ID: {base_camp.id})")
         return
 
     print(f"Default team already exists: {existing_team.name} (ID: {existing_team.id})")
@@ -42,7 +42,7 @@ def create_default_tournament(db_session) -> int | None:
     if not existing_tournament:
         all_time_tournament = TournamentModel(
             name="CAMPIONATUL FIRMELOR ATS",
-            description="The default tournament of Nordic Lions football club",
+            description="The default tournament of Base Camp football club",
             isDefault=True
         )
         db_session.add(all_time_tournament)
@@ -55,12 +55,13 @@ def create_default_tournament(db_session) -> int | None:
 
     if not existing_league:
         all_time_league = LeagueModel(
-            name="DIVIZIA B2",
+            name="DIVIZIA B1 2025-2026",
             description="ATS Cluj Tournament 2025-2026",
             isDefault=True,
             tournamentId=all_time_tournament.id if all_time_tournament else existing_tournament.id if existing_tournament else None,
         )
         db_session.add(all_time_league)
+        db_session.flush()
         print(f"Created default league: {all_time_league.name} (ID: {all_time_league.id})")
         league_id = all_time_league.id
     else:

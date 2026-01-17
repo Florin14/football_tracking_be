@@ -6,7 +6,7 @@ from project_helpers.schemas import BaseSchema, FilterSchema
 
 
 class TournamentAdd(BaseSchema):
-    name: str = Field(..., max_length=50, example="Nordic Lions")
+    name: str = Field(..., max_length=50, example="Base Camp")
     description: Optional[str] = Field(None, max_length=200, example="Tournament")
 
 
@@ -16,7 +16,7 @@ class TournamentUpdate(BaseSchema):
 
 
 class AddTeamToTournament(BaseSchema):
-    playerId: int = Field(..., example=1)
+    teamId: int = Field(..., example=1)
 
 
 class TournamentItem(BaseSchema):

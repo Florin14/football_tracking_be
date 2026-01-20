@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Boolean, Column, Date, String, ForeignKey, BigInteger, UniqueConstraint, text
+from sqlalchemy import Boolean, Column, Date, String, ForeignKey, Integer, BigInteger, UniqueConstraint, text
 from sqlalchemy.orm import relationship
 
 from extensions import BaseModel
@@ -20,6 +20,7 @@ class LeagueModel(BaseModel):
     isDefault = Column(Boolean, default=False, name="is_default")
     startDate = Column(Date, nullable=True, name="start_date")
     endDate = Column(Date, nullable=True, name="end_date")
+    relevanceOrder = Column(Integer, nullable=True, name="relevance_order")
     season = Column(
         String(9),
         nullable=False,

@@ -1,0 +1,253 @@
+from fastapi import Depends, HTTPException, status
+from sqlalchemy import func
+from sqlalchemy.orm import Session, joinedload
+
+from extensions.sqlalchemy import get_db
+from modules.match.models.match_model import MatchModel
+from modules.team.models import TeamModel
+from modules.tournament.models.tournament_group_model import TournamentGroupModel
+from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel
+from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
+from modules.tournament.models.tournament_model import TournamentModel
+from modules.tournament.models.tournament_schemas import (
+    TournamentGroupAdd,
+    TournamentGroupTeamsUpdate,
+    TournamentKnockoutMatchAdd,
+    TournamentStructureResponse,
+)
+
+from .router import router
+
+
+def _validate_teams_belong_to_tournament(
+    db: Session,
+    tournament_id: int,
+    team_ids: list[int],
+) -> list[TeamModel]:
+    if not team_ids:
+        return []
+
+    teams = (
+        db.query(TeamModel)
+        .options(joinedload(TeamModel.league))
+        .filter(TeamModel.id.in_(team_ids))
+        .all()
+    )
+
+    if len(teams) != len(set(team_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="One or more teams not found",
+        )
+
+    invalid = [
+        team for team in teams
+        if not team.league or team.league.tournamentId != tournament_id
+    ]
+    if invalid:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="One or more teams do not belong to this tournament",
+        )
+
+    return teams
+
+
+@router.get("/{tournament_id}/structure", response_model=TournamentStructureResponse)
+async def get_tournament_structure(tournament_id: int, db: Session = Depends(get_db)):
+    tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament with ID {tournament_id} not found",
+        )
+
+    groups = (
+        db.query(TournamentGroupModel)
+        .options(
+            joinedload(TournamentGroupModel.teams)
+            .joinedload(TournamentGroupTeamModel.team)
+            .joinedload(TeamModel.players)
+        )
+        .filter(TournamentGroupModel.tournamentId == tournament_id)
+        .order_by(
+            TournamentGroupModel.order.is_(None),
+            TournamentGroupModel.order,
+            func.lower(TournamentGroupModel.name),
+        )
+        .all()
+    )
+
+    group_items = []
+    for group in groups:
+        team_items = []
+        for group_team in group.teams:
+            team = group_team.team
+            team_items.append({
+                "id": team.id,
+                "name": team.name,
+                "description": team.description,
+                "logo": team.logo,
+                "playerCount": len(team.players) if team.players else 0,
+            })
+        group_items.append({
+            "id": group.id,
+            "name": group.name,
+            "order": group.order,
+            "teams": team_items,
+        })
+
+    knockout_matches = (
+        db.query(TournamentKnockoutMatchModel)
+        .options(joinedload(TournamentKnockoutMatchModel.match))
+        .filter(TournamentKnockoutMatchModel.tournamentId == tournament_id)
+        .order_by(
+            TournamentKnockoutMatchModel.order.is_(None),
+            TournamentKnockoutMatchModel.order,
+            TournamentKnockoutMatchModel.id,
+        )
+        .all()
+    )
+
+    knockout_items = []
+    for knockout in knockout_matches:
+        match = knockout.match
+        if not match:
+            continue
+        knockout_items.append({
+            "id": knockout.id,
+            "matchId": match.id,
+            "round": knockout.round,
+            "order": knockout.order,
+            "team1Id": match.team1Id,
+            "team2Id": match.team2Id,
+            "scoreTeam1": match.scoreTeam1,
+            "scoreTeam2": match.scoreTeam2,
+            "state": match.state.value if hasattr(match.state, "value") else str(match.state),
+            "timestamp": match.timestamp,
+        })
+
+    return TournamentStructureResponse(
+        tournamentId=tournament.id,
+        formatType=tournament.formatType,
+        groupCount=tournament.groupCount,
+        teamsPerGroup=tournament.teamsPerGroup,
+        hasKnockout=tournament.hasKnockout,
+        groups=group_items,
+        knockoutMatches=knockout_items,
+    )
+
+
+@router.post("/{tournament_id}/groups", response_model=TournamentStructureResponse)
+async def add_tournament_group(
+    tournament_id: int,
+    data: TournamentGroupAdd,
+    db: Session = Depends(get_db),
+):
+    tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament with ID {tournament_id} not found",
+        )
+
+    order_value = data.order
+    if order_value is None:
+        max_order = (
+            db.query(func.max(TournamentGroupModel.order))
+            .filter(TournamentGroupModel.tournamentId == tournament_id)
+            .scalar()
+        )
+        order_value = (max_order or 0) + 1
+
+    _validate_teams_belong_to_tournament(db, tournament_id, data.teamIds)
+
+    group = TournamentGroupModel(
+        name=data.name,
+        order=order_value,
+        tournamentId=tournament_id,
+    )
+    db.add(group)
+    db.flush()
+
+    if data.teamIds:
+        for team_id in data.teamIds:
+            db.add(TournamentGroupTeamModel(groupId=group.id, teamId=team_id))
+
+    db.commit()
+
+    return await get_tournament_structure(tournament_id, db)
+
+
+@router.put("/groups/{group_id}/teams", response_model=TournamentStructureResponse)
+async def update_group_teams(
+    group_id: int,
+    data: TournamentGroupTeamsUpdate,
+    db: Session = Depends(get_db),
+):
+    group = db.query(TournamentGroupModel).filter(TournamentGroupModel.id == group_id).first()
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Group with ID {group_id} not found",
+        )
+
+    _validate_teams_belong_to_tournament(db, group.tournamentId, data.teamIds)
+
+    db.query(TournamentGroupTeamModel).filter(TournamentGroupTeamModel.groupId == group_id).delete()
+    for team_id in data.teamIds:
+        db.add(TournamentGroupTeamModel(groupId=group_id, teamId=team_id))
+
+    db.commit()
+
+    return await get_tournament_structure(group.tournamentId, db)
+
+
+@router.post("/{tournament_id}/knockout-matches", response_model=TournamentStructureResponse)
+async def add_knockout_match(
+    tournament_id: int,
+    data: TournamentKnockoutMatchAdd,
+    db: Session = Depends(get_db),
+):
+    tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament with ID {tournament_id} not found",
+        )
+
+    match = (
+        db.query(MatchModel)
+        .options(
+            joinedload(MatchModel.team1).joinedload(TeamModel.league),
+            joinedload(MatchModel.team2).joinedload(TeamModel.league),
+        )
+        .filter(MatchModel.id == data.matchId)
+        .first()
+    )
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Match with ID {data.matchId} not found",
+        )
+
+    if (
+        not match.team1 or not match.team1.league
+        or not match.team2 or not match.team2.league
+        or match.team1.league.tournamentId != tournament_id
+        or match.team2.league.tournamentId != tournament_id
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Match teams do not belong to this tournament",
+        )
+
+    db.add(TournamentKnockoutMatchModel(
+        tournamentId=tournament_id,
+        matchId=data.matchId,
+        round=data.round,
+        order=data.order,
+    ))
+    db.commit()
+
+    return await get_tournament_structure(tournament_id, db)

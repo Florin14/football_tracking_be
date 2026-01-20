@@ -1,35 +1,39 @@
 from typing import Optional
 
 from fastapi import Depends
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
-from modules.team.models import TeamModel, TeamListResponse
+from modules.tournament.models.tournament_model import TournamentModel
+from modules.tournament.models.tournament_schemas import TournamentListResponse
+
 from .router import router
 
 
-@router.get("/", response_model=TeamListResponse)
-async def get_teams(
+@router.get("/", response_model=TournamentListResponse)
+async def get_tournaments(
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    """Get all teams with optional search"""
-    query = db.query(TeamModel).options(joinedload(TeamModel.players))
+    query = db.query(TournamentModel)
 
     if search:
-        query = query.filter(TeamModel.name.ilike(f"%{search}%"))
+        query = query.filter(TournamentModel.name.ilike(f"%{search}%"))
 
-    teams = query.offset(skip).limit(limit).all()
+    tournaments = query.offset(skip).limit(limit).all()
 
-    team_items = []
-    for team in teams:
-        team_items.append({
-            "id": team.id,
-            "name": team.name,
-            "description": team.description,
-            "playerCount": len(team.players) if team.players else 0
+    tournament_items = []
+    for tournament in tournaments:
+        tournament_items.append({
+            "id": tournament.id,
+            "name": tournament.name,
+            "description": tournament.description,
+            "formatType": tournament.formatType,
+            "groupCount": tournament.groupCount,
+            "teamsPerGroup": tournament.teamsPerGroup,
+            "hasKnockout": tournament.hasKnockout,
         })
 
-    return TeamListResponse(data=team_items)
+    return TournamentListResponse(data=tournament_items)

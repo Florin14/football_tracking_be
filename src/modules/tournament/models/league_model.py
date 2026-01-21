@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import Boolean, Column, Date, String, ForeignKey, Integer, BigInteger, UniqueConstraint, text
+from sqlalchemy import Boolean, Column, Date, String, ForeignKey, Integer, BigInteger, UniqueConstraint, text, event, func, select
 from sqlalchemy.orm import relationship
 
 from extensions import BaseModel
@@ -32,3 +32,22 @@ class LeagueModel(BaseModel):
     tournament = relationship("TournamentModel")
 
     __table_args__ = (UniqueConstraint(name, tournamentId),)
+
+
+@event.listens_for(LeagueModel, "before_insert")
+def set_default_relevance_order(mapper, connection, target):
+    _ensure_relevance_order(connection, target)
+
+
+@event.listens_for(LeagueModel, "before_update")
+def ensure_relevance_order_on_update(mapper, connection, target):
+    _ensure_relevance_order(connection, target)
+
+
+def _ensure_relevance_order(connection, target):
+    if target.relevanceOrder is not None:
+        return
+
+    max_order_query = select(func.max(LeagueModel.relevanceOrder))
+    max_order = connection.execute(max_order_query).scalar()
+    target.relevanceOrder = (max_order or 0) + 1

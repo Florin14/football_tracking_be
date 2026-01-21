@@ -160,6 +160,19 @@ api = FastAPI(
 )
 
 AuthJWT.load_config(_get_jwt_config)
+_allowed_origins = parse_allowed_origins()
+
+
+@api.middleware("http")
+async def force_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    origin = request.headers.get("origin")
+    if origin:
+        if "*" in _allowed_origins or origin in _allowed_origins:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+    return response
 
 # â”€â”€â”€ 2) Install your DBSessionMiddleware at import time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 api.add_middleware(DBSessionMiddleware)
@@ -169,7 +182,7 @@ api.add_middleware(DBSessionMiddleware)
 # â”€â”€â”€ 3) CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=parse_allowed_origins(),
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

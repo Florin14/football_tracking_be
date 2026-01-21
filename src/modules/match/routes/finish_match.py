@@ -6,6 +6,7 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel
 )
+from modules.ranking.services import recalculate_match_rankings
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -34,6 +35,7 @@ async def finish_match(match_id: int, db: Session = Depends(get_db)):
     if match.scoreTeam2 is None:
         match.scoreTeam2 = 0
 
+    recalculate_match_rankings(db, match)
     db.commit()
 
     return ConfirmationResponse(

@@ -1,0 +1,1 @@
+from .ranking_service import recalculate_match_rankings

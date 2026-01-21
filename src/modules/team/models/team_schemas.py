@@ -46,6 +46,12 @@ class TeamItem(BaseSchema):
     description: Optional[str] = None
     playerCount: Optional[int] = 0
     logo: Optional[str] = Field(None, example="")
+    points: Optional[int] = 0
+    goalsFor: Optional[int] = 0
+    goalsAgainst: Optional[int] = 0
+    wins: Optional[int] = 0
+    draws: Optional[int] = 0
+    losses: Optional[int] = 0
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):

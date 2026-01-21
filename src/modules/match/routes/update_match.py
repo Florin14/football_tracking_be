@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
@@ -9,22 +9,24 @@ from modules.match.models import (
 from modules.ranking.services import recalculate_match_rankings
 from modules.player.models import PlayerModel
 from modules.team.models import TeamModel
+from project_helpers.dependencies import GetInstanceFromPath
 from .router import router
 
 
-@router.put("/{match_id}", response_model=MatchResponse)
-async def update_match(match_id: int, match_data: MatchUpdate, db: Session = Depends(get_db)):
-    """Update match details (location, timestamp, scores, state)"""
-    match = db.query(MatchModel).options(
-        joinedload(MatchModel.team1),
-        joinedload(MatchModel.team2)
-    ).filter(MatchModel.id == match_id).first()
+def _get_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+):
+    return GetInstanceFromPath(MatchModel)(match_id, db)
 
-    if not match:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Match not found"
-        )
+
+@router.put("/{match_id}", response_model=MatchResponse)
+async def update_match(
+    match_data: MatchUpdate,
+    match: MatchModel = Depends(_get_match),
+    db: Session = Depends(get_db),
+):
+    """Update match details (location, timestamp, scores, state)"""
 
     if match_data.location:
         match.location = match_data.location

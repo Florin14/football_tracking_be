@@ -1,24 +1,25 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
 from modules.training.models import TrainingSessionModel, TrainingSessionResponse, TrainingSessionUpdate
+from project_helpers.dependencies import GetInstanceFromPath
 from .router import router
+
+
+def _get_training_session(
+    training_session_id: int,
+    db: Session = Depends(get_db),
+):
+    return GetInstanceFromPath(TrainingSessionModel)(training_session_id, db)
 
 
 @router.put("/{training_session_id}", response_model=TrainingSessionResponse)
 async def update_training_session(
-    training_session_id: int,
     data: TrainingSessionUpdate,
+    session: TrainingSessionModel = Depends(_get_training_session),
     db: Session = Depends(get_db),
 ):
-    session = db.query(TrainingSessionModel).filter(TrainingSessionModel.id == training_session_id).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Training session with ID {training_session_id} not found",
-        )
-
     if data.timestamp is not None:
         session.timestamp = data.timestamp
     if data.location is not None:

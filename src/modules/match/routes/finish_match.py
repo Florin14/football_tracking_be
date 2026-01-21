@@ -7,20 +7,24 @@ from modules.match.models import (
     MatchModel
 )
 from modules.ranking.services import recalculate_match_rankings
+from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.post("/{match_id}/finish", response_model=ConfirmationResponse)
-async def finish_match(match_id: int, db: Session = Depends(get_db)):
-    """Mark a match as finished"""
-    match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
-    if not match:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Match not found"
-        )
+def _get_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+):
+    return GetInstanceFromPath(MatchModel)(match_id, db)
 
+
+@router.post("/{match_id}/finish", response_model=ConfirmationResponse)
+async def finish_match(
+    match: MatchModel = Depends(_get_match),
+    db: Session = Depends(get_db),
+):
+    """Mark a match as finished"""
     if match.state == MatchState.FINISHED:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -26,10 +26,6 @@ async def add_team(data: TeamAdd, db: Session = Depends(get_db)):
     db.add(team)
     db.flush()
 
-    exists = db.query(RankingModel).filter_by(teamId=team.id, leagueId=team.leagueId).first()
-    if not exists:
-        db.add(RankingModel(teamId=team.id, leagueId=team.leagueId))
-
     db.commit()
     db.refresh(team)
 

@@ -1,38 +1,92 @@
 import logging
-from typing import List
 import uvicorn
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError, ProgrammingError, SQLAlchemyError
 from project_helpers.error import Error
+from project_helpers.exceptions import ErrorException
 from project_helpers.responses import ErrorResponse
 
 
-async def http_400_handler(request: Request, exc):
-    return ErrorResponse(Error.INVALID_JSON_FORMAT, message=getattr(exc, "detail", None) or str(exc))
+def _safe_exc_message(exc: Exception) -> str:
+    if hasattr(exc, "detail") and getattr(exc, "detail"):
+        return str(getattr(exc, "detail"))
+    return str(exc) if str(exc) else exc.__class__.__name__
 
 
-async def http_401_handler(request: Request, exc):
-    return ErrorResponse(Error.INVALID_TOKEN, message=getattr(exc, "detail", None) or str(exc))
+def _validation_fields(exc: RequestValidationError) -> list[str]:
+    fields: list[str] = []
+    for err in exc.errors():
+        loc = ".".join(str(p) for p in err.get("loc", []) if p is not None)
+        msg = err.get("msg")
+        if loc and msg:
+            fields.append(f"{loc}: {msg}")
+        elif loc:
+            fields.append(loc)
+        elif msg:
+            fields.append(msg)
+    return fields
 
 
-async def http_404_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+async def error_exception_handler(request: Request, exc: ErrorException):
+    return ErrorResponse(
+        exc.error,
+        statusCode=getattr(exc, "statusCode", 500),
+        message=getattr(exc, "message", None),
+        fields=getattr(exc, "fields", None),
+    )
 
 
-async def http_422_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+async def http_exception_handler(request: Request, exc: HTTPException):
+    status_code = exc.status_code or 500
+    if status_code == 400:
+        error = Error.INVALID_JSON_FORMAT
+    elif status_code == 401:
+        error = Error.INVALID_TOKEN
+    elif status_code == 422:
+        error = Error.INVALID_QUERY_FORMAT
+    else:
+        error = Error.SERVER_ERROR
+    return ErrorResponse(error, statusCode=status_code, message=_safe_exc_message(exc))
 
 
-async def http_500_handler(request: Request, exc):
-    return ErrorResponse(Error.SERVER_ERROR, message=getattr(exc, "detail", None) or str(exc))
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return ErrorResponse(
+        Error.INVALID_QUERY_FORMAT,
+        statusCode=422,
+        message="Validation error",
+        fields=_validation_fields(exc),
+    )
+
+
+async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError):
+    message = _safe_exc_message(exc)
+    if isinstance(exc, DBAPIError) and getattr(exc, "orig", None):
+        message = _safe_exc_message(exc.orig)
+    if isinstance(exc, IntegrityError):
+        error = Error.DB_INSERT_ERROR
+    elif isinstance(exc, DataError):
+        error = Error.DB_INSERT_ERROR
+    elif isinstance(exc, (OperationalError, ProgrammingError, DBAPIError)):
+        error = Error.DB_ACCESS_ERROR
+    else:
+        error = Error.DB_ACCESS_ERROR
+    logging.exception("SQLAlchemy error during request")
+    return ErrorResponse(error, statusCode=500, message=message)
+
+
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logging.exception("Unhandled exception during request")
+    return ErrorResponse(Error.SERVER_ERROR, statusCode=500, message=_safe_exc_message(exc))
 
 
 api = FastAPI(
     exception_handlers={
-        400: http_400_handler,
-        401: http_401_handler,
-        404: http_404_handler,
-        422: http_422_handler,
-        500: http_500_handler,
+        ErrorException: error_exception_handler,
+        HTTPException: http_exception_handler,
+        RequestValidationError: validation_exception_handler,
+        SQLAlchemyError: sqlalchemy_exception_handler,
+        Exception: unhandled_exception_handler,
     },
 )
 

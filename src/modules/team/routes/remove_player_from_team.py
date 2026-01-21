@@ -4,29 +4,22 @@ from sqlalchemy.orm import Session
 from extensions.sqlalchemy import get_db
 from modules.player.models import PlayerModel
 from modules.team.models import TeamModel
+from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
 @router.delete("/{id}/players/{player_id}", response_model=ConfirmationResponse)
 async def remove_player_from_team(
-        id: int,
         player_id: int,
+        team: TeamModel = Depends(GetInstanceFromPath(TeamModel)),
         db: Session = Depends(get_db)
 ):
     """Remove a player from a team"""
-    # Check if team exists
-    team = db.query(TeamModel).filter(TeamModel.id == id).first()
-    if not team:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Team not found"
-        )
-
     # Check if player exists and is in this team
     player = db.query(PlayerModel).filter(
         PlayerModel.id == player_id,
-        PlayerModel.teamId == id
+        PlayerModel.teamId == team.id
     ).first()
     if not player:
         raise HTTPException(

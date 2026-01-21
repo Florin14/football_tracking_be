@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel, TeamListResponse
 from modules.tournament.models.league_model import LeagueModel
 from .router import router
@@ -20,7 +21,15 @@ async def get_teams(
         excludeTournamentId: Optional[int] = None,
         db: Session = Depends(get_db)
 ):
-    query = db.query(TeamModel).options(joinedload(TeamModel.players))
+    query = (
+        db.query(TeamModel, RankingModel)
+        .outerjoin(
+            RankingModel,
+            (RankingModel.teamId == TeamModel.id)
+            & (RankingModel.leagueId == TeamModel.leagueId),
+        )
+        .options(joinedload(TeamModel.players))
+    )
 
     if search:
         query = query.filter(TeamModel.name.ilike(f"%{search}%"))
@@ -38,14 +47,20 @@ async def get_teams(
     teams = query.offset(skip).limit(limit).all()
 
     teamItems = []
-    for team in teams:
+    for team, ranking in teams:
         teamItems.append({
             "id": team.id,
             "name": team.name,
             "description": team.description,
             "location": team.location,
             "logo": team.logo,
-            "playerCount": len(team.players) if team.players else 0
+            "playerCount": len(team.players) if team.players else 0,
+            "points": ranking.points if ranking else 0,
+            "goalsFor": ranking.goalsScored if ranking else 0,
+            "goalsAgainst": ranking.goalsConceded if ranking else 0,
+            "wins": ranking.gamesWon if ranking else 0,
+            "draws": ranking.gamesTied if ranking else 0,
+            "losses": ranking.gamesLost if ranking else 0,
         })
 
     return TeamListResponse(data=teamItems)

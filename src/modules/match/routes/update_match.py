@@ -1,28 +1,32 @@
 from fastapi import Depends, HTTPException, status
-from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
-    MatchModel, MatchUpdate, MatchResponse
+    MatchModel, MatchUpdate, MatchResponse, GoalModel
 )
+from modules.ranking.services import recalculate_match_rankings
+from modules.player.models import PlayerModel
+from modules.team.models import TeamModel
+from project_helpers.dependencies import GetInstanceFromPath
 from .router import router
 
 
-@router.put("/{match_id}", response_model=MatchResponse)
-async def update_match(match_id: int, match_data: MatchUpdate, db: Session = Depends(get_db)):
-    """Update match details (location, timestamp, scores, state)"""
-    match = db.query(MatchModel).options(
-        joinedload(MatchModel.team1),
-        joinedload(MatchModel.team2)
-    ).filter(MatchModel.id == match_id).first()
+def _get_match(
+    match_id: int,
+    db: Session = Depends(get_db),
+):
+    return GetInstanceFromPath(MatchModel)(match_id, db)
 
-    if not match:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Match not found"
-        )
+
+@router.put("/{match_id}", response_model=MatchResponse)
+async def update_match(
+    match_data: MatchUpdate,
+    match: MatchModel = Depends(_get_match),
+    db: Session = Depends(get_db),
+):
+    """Update match details (location, timestamp, scores, state)"""
 
     if match_data.location:
         match.location = match_data.location
@@ -36,6 +40,67 @@ async def update_match(match_id: int, match_data: MatchUpdate, db: Session = Dep
     if match_data.scoreTeam2 is not None:
         match.scoreTeam2 = match_data.scoreTeam2
 
+    if match_data.goals is not None:
+        for goal in match_data.goals:
+            player = db.query(PlayerModel).filter(PlayerModel.id == goal.playerId).first()
+            if not player:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Player with ID {goal.playerId} not found"
+                )
+
+            team = db.query(TeamModel).filter(TeamModel.id == goal.teamId).first()
+            if not team:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Team with ID {goal.teamId} not found"
+                )
+
+            if goal.teamId not in [match.team1Id, match.team2Id]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Team {team.name} is not participating in this match"
+                )
+
+            if player.teamId != goal.teamId:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Player {player.name} does not belong to team {team.name}"
+                )
+
+        db.query(GoalModel).filter(GoalModel.matchId == match.id).delete()
+
+        team1_goals = 0
+        team2_goals = 0
+        for goal in match_data.goals:
+            db.add(GoalModel(
+                matchId=match.id,
+                playerId=goal.playerId,
+                teamId=goal.teamId,
+                minute=goal.minute,
+                description=goal.description
+            ))
+            if goal.teamId == match.team1Id:
+                team1_goals += 1
+            elif goal.teamId == match.team2Id:
+                team2_goals += 1
+
+        if match_data.scoreTeam1 is not None and match_data.scoreTeam1 != team1_goals:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Score for team1 does not match provided goals"
+            )
+        if match_data.scoreTeam2 is not None and match_data.scoreTeam2 != team2_goals:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Score for team2 does not match provided goals"
+            )
+
+        if match_data.scoreTeam1 is None:
+            match.scoreTeam1 = team1_goals
+        if match_data.scoreTeam2 is None:
+            match.scoreTeam2 = team2_goals
+
     if match_data.state:
         try:
             match.state = MatchState(match_data.state.upper())
@@ -45,6 +110,7 @@ async def update_match(match_id: int, match_data: MatchUpdate, db: Session = Dep
                 detail="Invalid match state"
             )
 
+    recalculate_match_rankings(db, match)
     db.commit()
     db.refresh(match)
 

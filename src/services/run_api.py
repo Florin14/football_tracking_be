@@ -12,6 +12,7 @@ from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalErr
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
 from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
+from modules.user.models.user_model import UserModel
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from project_helpers.responses import ErrorResponse
@@ -97,6 +98,20 @@ def parse_allowed_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _ensure_default_admin_user(db: SessionLocal) -> None:
+    default_email = "admin@gmail.com"
+    exists = db.query(UserModel).filter(UserModel.email == default_email).first()
+    if exists:
+        return
+    admin = UserModel(
+        name="Admin",
+        email=default_email,
+        password="parola1234",
+    )
+    db.add(admin)
+    db.commit()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # startup logic
@@ -110,6 +125,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         backfill_attendance_for_existing_scopes(db)
+        _ensure_default_admin_user(db)
     finally:
         db.close()
     yield

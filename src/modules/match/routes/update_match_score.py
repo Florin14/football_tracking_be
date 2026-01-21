@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException, status
-from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from constants.match_state import MatchState
@@ -7,6 +6,7 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, GoalModel, ScoreUpdate
 )
+from modules.ranking.services import recalculate_match_rankings
 from modules.player.models import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
@@ -69,9 +69,10 @@ async def update_match_score(
     if match.state == MatchState.SCHEDULED:
         match.state = MatchState.FINISHED
 
+    recalculate_match_rankings(db, match)
     db.commit()
 
     return ConfirmationResponse(
         success=True,
-        message=f"Successfully added {len(score_data.goals)} goal(s) to the match"
+        message=f"Successfully added {len(data.goals)} goal(s) to the match"
     )

@@ -12,6 +12,11 @@ class MatchAdd(BaseSchema):
     location: Optional[str] = Field(None, min_length=1, example="Stadium Arena")
     timestamp: datetime = Field(..., example="2024-12-25T15:00:00")
 
+class GoalAdd(BaseSchema):
+    playerId: int = Field(..., example=1)
+    teamId: int = Field(..., example=1)
+    minute: Optional[int] = Field(None, example=45)
+    description: Optional[str] = Field(None, max_length=200, example="Header from corner kick")
 
 class MatchUpdate(BaseSchema):
     location: Optional[str] = Field(None, min_length=1)
@@ -19,13 +24,7 @@ class MatchUpdate(BaseSchema):
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     state: Optional[str] = None
-
-
-class GoalAdd(BaseSchema):
-    playerId: int = Field(..., example=1)
-    teamId: int = Field(..., example=1)
-    minute: Optional[int] = Field(None, example=45)
-    description: Optional[str] = Field(None, max_length=200, example="Header from corner kick")
+    goals: Optional[List[GoalAdd]] = None
 
 
 class ScoreUpdate(BaseSchema):

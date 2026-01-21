@@ -9,10 +9,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError, ProgrammingError, SQLAlchemyError
 
+from extensions.auth_jwt import AuthJWT
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
 from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
 from modules.user.models.user_model import UserModel
+from modules.admin.models.admin_model import AdminModel
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from project_helpers.responses import ErrorResponse
@@ -98,12 +100,24 @@ def parse_allowed_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
+    token_location = os.getenv("AUTHJWT_TOKEN_LOCATION")
+    if token_location:
+        locations = [item.strip() for item in token_location.split(",") if item.strip()]
+    else:
+        locations = None
+    return [
+        ("AUTHJWT_SECRET_KEY", os.getenv("AUTHJWT_SECRET_KEY")),
+        ("AUTHJWT_TOKEN_LOCATION", locations),
+    ]
+
+
 def _ensure_default_admin_user(db: SessionLocal) -> None:
     default_email = "admin@gmail.com"
     exists = db.query(UserModel).filter(UserModel.email == default_email).first()
     if exists:
         return
-    admin = UserModel(
+    admin = AdminModel(
         name="Admin",
         email=default_email,
         password="parola1234",
@@ -144,6 +158,8 @@ api = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+AuthJWT.load_config(_get_jwt_config)
 
 # â”€â”€â”€ 2) Install your DBSessionMiddleware at import time â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 api.add_middleware(DBSessionMiddleware)

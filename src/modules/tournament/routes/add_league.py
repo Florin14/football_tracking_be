@@ -25,11 +25,7 @@ async def add_league(
 
     relevance_order = data.relevanceOrder
     if relevance_order is None:
-        max_order = (
-            db.query(func.max(LeagueModel.relevanceOrder))
-            .filter(LeagueModel.tournamentId == tournament_id)
-            .scalar()
-        )
+        max_order = db.query(func.max(LeagueModel.relevanceOrder)).scalar()
         relevance_order = (max_order or 0) + 1
 
     league = LeagueModel(

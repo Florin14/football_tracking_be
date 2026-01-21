@@ -79,6 +79,7 @@ def create_default_tournament(db_session) -> int | None:
                 name="DIVIZIA B1 2025-2026",
                 description="ATS Cluj Tournament 2025-2026",
                 isDefault=True,  # Assuming you want to mark it as default
+                relevanceOrder=1,
                 tournamentId=allTimeTournament.id if allTimeTournament else existingTournament.id if existingTournament else None,
             )
             db_session.add(allTimeLeague)

@@ -97,8 +97,14 @@ class LeagueTeamsAssignRequest(BaseSchema):
     teamIds: List[int] = []
 
 
+class LeagueReorderItem(BaseSchema):
+    leagueId: int
+    relevanceOrder: Optional[int] = None
+
+
 class LeagueReorderRequest(BaseSchema):
-    leagueIds: List[int] = []
+    leagueIds: Optional[List[int]] = None
+    leagues: List[LeagueReorderItem] = Field(default_factory=list)
 
 
 class TournamentResourceItem(BaseSchema):

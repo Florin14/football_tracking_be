@@ -3,18 +3,66 @@ from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
 from modules.tournament.models.league_model import LeagueModel
-from modules.tournament.models.tournament_schemas import LeagueReorderRequest, LeaguesListResponse
+from modules.tournament.models.tournament_schemas import (
+    LeagueReorderItem,
+    LeagueReorderRequest,
+    LeaguesListResponse,
+)
 
 from .router import router
 
 
-@router.put("/{tournament_id}/leagues/reorder", response_model=LeaguesListResponse)
+def _assign_relevance_order(entries: list[LeagueReorderItem], league_by_id: dict[int, LeagueModel]):
+    explicit_orders = {
+        entry.leagueId: entry.relevanceOrder
+        for entry in entries
+        if entry.relevanceOrder is not None
+    }
+
+    order_values = list(explicit_orders.values())
+    if len(order_values) != len(set(order_values)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Relevance order values must be unique within each tournament",
+        )
+
+    if any(order <= 0 for order in order_values):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Relevance order values must be greater than zero",
+        )
+
+    used_orders = set(order_values)
+    next_order = 1
+    for entry in entries:
+        league = league_by_id[entry.leagueId]
+        if entry.relevanceOrder is not None:
+            league.relevanceOrder = entry.relevanceOrder
+        else:
+            while next_order in used_orders:
+                next_order += 1
+            league.relevanceOrder = next_order
+            used_orders.add(next_order)
+            next_order += 1
+
+
+@router.put("/leagues/reorder", response_model=LeaguesListResponse)
 async def reorder_leagues(
-    tournament_id: int,
     data: LeagueReorderRequest,
     db: Session = Depends(get_db),
 ):
-    if len(set(data.leagueIds)) != len(data.leagueIds):
+    league_entries: list[LeagueReorderItem] = data.leagues.copy()
+    if not league_entries and data.leagueIds:
+        league_entries = [LeagueReorderItem(leagueId=league_id) for league_id in data.leagueIds]
+
+    if not league_entries:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one league entry is required",
+        )
+
+    league_ids = [entry.leagueId for entry in league_entries]
+    if len(set(league_ids)) != len(league_ids):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="League IDs must be unique",
@@ -22,38 +70,43 @@ async def reorder_leagues(
 
     leagues = (
         db.query(LeagueModel)
-        .filter(
-            LeagueModel.id.in_(data.leagueIds),
-            LeagueModel.tournamentId == tournament_id,
-        )
+        .filter(LeagueModel.id.in_(league_ids))
         .all()
     )
 
-    if len(leagues) != len(data.leagueIds):
+    if len(leagues) != len(league_ids):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="One or more leagues not found for this tournament",
+            detail="One or more leagues not found",
         )
 
     league_by_id = {league.id: league for league in leagues}
-    for index, league_id in enumerate(data.leagueIds, start=1):
-        league_by_id[league_id].relevanceOrder = index
+    entries_by_tournament: dict[int, list[LeagueReorderItem]] = {}
+    for entry in league_entries:
+        tournament_id = league_by_id[entry.leagueId].tournamentId
+        entries_by_tournament.setdefault(tournament_id, []).append(entry)
+
+    for entries in entries_by_tournament.values():
+        _assign_relevance_order(entries, league_by_id)
 
     db.commit()
 
+    tournament_ids = list(entries_by_tournament.keys())
     ordered_leagues = (
         db.query(LeagueModel)
-        .filter(LeagueModel.tournamentId == tournament_id)
-        .order_by(LeagueModel.relevanceOrder.is_(None), LeagueModel.relevanceOrder)
+        .filter(LeagueModel.tournamentId.in_(tournament_ids))
+        .order_by(LeagueModel.tournamentId, LeagueModel.relevanceOrder.is_(None), LeagueModel.relevanceOrder)
         .all()
     )
 
-    leagues_items = []
-    for league in ordered_leagues:
-        leagues_items.append({
-            "id": league.id,
-            "name": league.name,
-            "relevanceOrder": league.relevanceOrder,
-        })
-
-    return LeaguesListResponse(data=leagues_items)
+    return LeaguesListResponse(
+        data=[
+            {
+                "id": league.id,
+                "name": league.name,
+                "relevanceOrder": league.relevanceOrder,
+                "tournamentId": league.tournamentId,
+            }
+            for league in ordered_leagues
+        ]
+    )

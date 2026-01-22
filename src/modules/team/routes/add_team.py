@@ -5,6 +5,7 @@ from extensions.sqlalchemy import get_db
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel, TeamAdd, TeamResponse
 from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 from .router import router
 
 
@@ -21,10 +22,14 @@ async def add_team(data: TeamAdd, db: Session = Depends(get_db)):
         name=data.name,
         description=data.description,
         logo=data.logo,
-        leagueId=data.leagueId,
     )
     db.add(team)
     db.flush()
+
+    db.add(LeagueTeamModel(leagueId=league.id, teamId=team.id))
+    exists = db.query(RankingModel).filter_by(teamId=team.id, leagueId=league.id).first()
+    if not exists:
+        db.add(RankingModel(teamId=team.id, leagueId=league.id))
 
     db.commit()
     db.refresh(team)

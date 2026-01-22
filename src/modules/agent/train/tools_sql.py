@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session, aliased
 from modules.match.models.goal_model import GoalModel
 from modules.match.models.match_model import MatchModel
 from modules.ranking.models.ranking_model import RankingModel
-from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 # Cache (bonus)
 from .cache import cache_get, cache_set
@@ -22,18 +21,13 @@ def get_player_goals(db: Session, player_id: int, season: str | None = None, lea
 
     q = select(func.count()).select_from(GoalModel).where(GoalModel.playerId == player_id)
     if season or league_id:
-        # alăturăm MatchModel pentru a filtra după ligă și (implicit) sezon prin LeagueModel
+        # join MatchModel to filter by league/season via MatchModel.leagueId
         q = q.join(MatchModel, MatchModel.id == GoalModel.matchId)
         if league_id:
-            # MatchModel nu are leagueId coloană directă; folosim echipa 1
-            T1 = aliased(TeamModel)
-            q = q.join(T1, T1.id == MatchModel.team1Id).where(T1.leagueId == league_id)
+            q = q.where(MatchModel.leagueId == league_id)
         if season:
-            # filtrăm prin LeagueModel (sezonul este pe ligă). Dacă vrei ligă specifică + sezon, rezolvăm league_id deja.
             L1 = aliased(LeagueModel)
-            T1 = aliased(TeamModel)
-            q = q.join(T1, T1.id == MatchModel.team1Id)
-            q = q.join(L1, L1.id == T1.leagueId).where(L1.season == season)
+            q = q.join(L1, L1.id == MatchModel.leagueId).where(L1.season == season)
 
     total = int(db.execute(q).scalar_one())
     scope = f"sezon {season}" if season else "all-time"
@@ -73,3 +67,4 @@ def get_team_points(db: Session, league_id: int, team_id: int):
         .where(RankingModel.leagueId == league_id, RankingModel.teamId == team_id)
     ).first()
     return int(row.points) if row else None
+

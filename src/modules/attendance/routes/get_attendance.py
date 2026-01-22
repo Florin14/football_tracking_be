@@ -10,7 +10,6 @@ from extensions.sqlalchemy import get_db
 from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
-from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from .attendance_grouping import build_grouped_attendance
 from .router import router
@@ -70,8 +69,7 @@ async def get_attendance(
 
     if tournament_id:
         query = query.outerjoin(MatchModel, AttendanceModel.matchId == MatchModel.id)
-        query = query.outerjoin(TeamModel, MatchModel.team1Id == TeamModel.id)
-        query = query.outerjoin(LeagueModel, TeamModel.leagueId == LeagueModel.id)
+        query = query.outerjoin(LeagueModel, MatchModel.leagueId == LeagueModel.id)
         query = query.filter(
             or_(
                 AttendanceModel.tournamentId == tournament_id,

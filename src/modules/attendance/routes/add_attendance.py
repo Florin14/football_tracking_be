@@ -14,6 +14,7 @@ from modules.team.models import TeamModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.training.models import TrainingSessionModel
 from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 from .router import router
 
 
@@ -29,6 +30,7 @@ async def upsert_attendance(data: AttendanceUpsert, db: Session = Depends(get_db
 
     match = None
     tournament = None
+    league = None
     training_session = None
 
     if scope == AttendanceScope.MATCH:
@@ -95,8 +97,16 @@ async def upsert_attendance(data: AttendanceUpsert, db: Session = Depends(get_db
             )
 
     if scope == AttendanceScope.TOURNAMENT:
-        league = db.query(LeagueModel).filter(LeagueModel.id == team.leagueId).first()
-        if not league or league.tournamentId != tournament.id:
+        league = (
+            db.query(LeagueModel)
+            .join(LeagueTeamModel, LeagueTeamModel.leagueId == LeagueModel.id)
+            .filter(
+                LeagueTeamModel.teamId == team.id,
+                LeagueModel.tournamentId == tournament.id,
+            )
+            .first()
+        )
+        if not league:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Team {team.name} is not part of this tournament"
@@ -165,6 +175,8 @@ async def upsert_attendance(data: AttendanceUpsert, db: Session = Depends(get_db
             tournament_id = league.tournamentId if league else None
     if scope == AttendanceScope.TOURNAMENT and tournament:
         tournament_id = tournament.id
+        if league:
+            league_id = league.id
 
     return AttendanceResponse(
         id=attendance.id,

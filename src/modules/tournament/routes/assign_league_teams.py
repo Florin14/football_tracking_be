@@ -5,6 +5,7 @@ from extensions.sqlalchemy import get_db
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_schemas import LeagueTeamsAssignRequest, LeagueTeamsResponse
 
 from .router import router
@@ -36,7 +37,7 @@ async def assign_league_teams(
 
     teams = (
         db.query(TeamModel)
-        .options(joinedload(TeamModel.players), joinedload(TeamModel.league))
+        .options(joinedload(TeamModel.players))
         .filter(TeamModel.id.in_(data.teamIds))
         .all()
     )
@@ -46,13 +47,22 @@ async def assign_league_teams(
             detail="One or more teams not found",
         )
 
-    already_in_league = []
-    already_in_tournament = []
-    for team in teams:
-        if team.leagueId == league_id:
-            already_in_league.append(team.id)
-        elif team.league and team.league.tournamentId == tournament_id:
-            already_in_tournament.append(team.id)
+    existing_memberships = (
+        db.query(LeagueTeamModel)
+        .join(LeagueModel, LeagueModel.id == LeagueTeamModel.leagueId)
+        .filter(LeagueTeamModel.teamId.in_(data.teamIds))
+        .all()
+    )
+    already_in_league = [
+        membership.teamId
+        for membership in existing_memberships
+        if membership.leagueId == league_id
+    ]
+    already_in_tournament = [
+        membership.teamId
+        for membership in existing_memberships
+        if membership.leagueId != league_id and membership.league.tournamentId == tournament_id
+    ]
 
     if already_in_league or already_in_tournament:
         detail = {"message": "Some teams already belong to this league or tournament"}
@@ -63,8 +73,7 @@ async def assign_league_teams(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
 
     for team in teams:
-        team.leagueId = league_id
-
+        db.add(LeagueTeamModel(leagueId=league_id, teamId=team.id))
         exists = db.query(RankingModel).filter_by(teamId=team.id, leagueId=league_id).first()
         if not exists:
             db.add(RankingModel(teamId=team.id, leagueId=league_id))

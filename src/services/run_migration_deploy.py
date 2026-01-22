@@ -9,6 +9,7 @@ from sqlalchemy import text
 from extensions.sqlalchemy import SessionLocal
 from modules import TournamentModel, LeagueModel
 from modules.team.models import TeamModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 MIGRATIONS_DIR = BASE_DIR / "extensions" / "migrations"
@@ -25,9 +26,10 @@ def create_default_team(db_session, league_id: int | None):
             name="FC Base Camp",
             description="The default team for the Base Camp football club",
             isDefault=True,
-            leagueId=league_id,
         )
         db_session.add(base_camp)
+        db_session.flush()
+        db_session.add(LeagueTeamModel(leagueId=league_id, teamId=base_camp.id))
         db_session.commit()
         print(f"Created default team: {base_camp.name} (ID: {base_camp.id})")
         return

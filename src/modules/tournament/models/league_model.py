@@ -27,7 +27,12 @@ class LeagueModel(BaseModel):
         default=season_default,
         server_default=text("to_char(current_date, 'YYYY') || '-' || to_char(current_date + interval '1 year', 'YYYY')")
     )
-    teams = relationship("TeamModel", back_populates="league")
+    leagueTeams = relationship(
+        "LeagueTeamModel",
+        back_populates="league",
+        cascade="all, delete-orphan",
+    )
+    teams = relationship("TeamModel", secondary="league_teams", viewonly=True)
     tournamentId = Column(BigInteger, ForeignKey("tournaments.id"), nullable=False, name="tournament_id")
     tournament = relationship("TournamentModel")
 

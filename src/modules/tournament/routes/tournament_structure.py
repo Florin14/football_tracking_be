@@ -9,6 +9,8 @@ from modules.tournament.models.tournament_group_model import TournamentGroupMode
 from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
 from modules.tournament.models.tournament_model import TournamentModel
+from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_schemas import (
     TournamentGroupAdd,
     TournamentGroupTeamsUpdate,
@@ -27,12 +29,7 @@ def _validate_teams_belong_to_tournament(
     if not team_ids:
         return []
 
-    teams = (
-        db.query(TeamModel)
-        .options(joinedload(TeamModel.league))
-        .filter(TeamModel.id.in_(team_ids))
-        .all()
-    )
+    teams = db.query(TeamModel).filter(TeamModel.id.in_(team_ids)).all()
 
     if len(teams) != len(set(team_ids)):
         raise HTTPException(
@@ -40,11 +37,17 @@ def _validate_teams_belong_to_tournament(
             detail="One or more teams not found",
         )
 
-    invalid = [
-        team for team in teams
-        if not team.league or team.league.tournamentId != tournament_id
-    ]
-    if invalid:
+    memberships = (
+        db.query(LeagueTeamModel.teamId)
+        .join(LeagueModel, LeagueModel.id == LeagueTeamModel.leagueId)
+        .filter(
+            LeagueTeamModel.teamId.in_(team_ids),
+            LeagueModel.tournamentId == tournament_id,
+        )
+        .all()
+    )
+    valid_team_ids = {team_id for (team_id,) in memberships}
+    if valid_team_ids != set(team_ids):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="One or more teams do not belong to this tournament",
@@ -218,10 +221,6 @@ async def add_knockout_match(
 
     match = (
         db.query(MatchModel)
-        .options(
-            joinedload(MatchModel.team1).joinedload(TeamModel.league),
-            joinedload(MatchModel.team2).joinedload(TeamModel.league),
-        )
         .filter(MatchModel.id == data.matchId)
         .first()
     )
@@ -231,12 +230,16 @@ async def add_knockout_match(
             detail=f"Match with ID {data.matchId} not found",
         )
 
-    if (
-        not match.team1 or not match.team1.league
-        or not match.team2 or not match.team2.league
-        or match.team1.league.tournamentId != tournament_id
-        or match.team2.league.tournamentId != tournament_id
-    ):
+    memberships = (
+        db.query(LeagueTeamModel.teamId)
+        .join(LeagueModel, LeagueModel.id == LeagueTeamModel.leagueId)
+        .filter(
+            LeagueTeamModel.teamId.in_([match.team1Id, match.team2Id]),
+            LeagueModel.tournamentId == tournament_id,
+        )
+        .all()
+    )
+    if len({team_id for (team_id,) in memberships}) != 2:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Match teams do not belong to this tournament",

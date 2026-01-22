@@ -139,10 +139,77 @@ class TournamentGroupItem(BaseSchema):
     teams: List[TeamItem] = []
 
 
+class TournamentGroupsAutoAssignRequest(BaseSchema):
+    groupCount: Optional[int] = None
+    teamsPerGroup: Optional[int] = None
+    shuffleTeams: bool = True
+    replaceExisting: bool = False
+
+
+class TournamentGroupScheduleRequest(BaseSchema):
+    startTimestamp: datetime
+    intervalMinutes: int = Field(90, ge=1)
+    randomize: bool = True
+    avoidConsecutive: bool = True
+    replaceExisting: bool = False
+
+
+class TournamentGroupMatchItem(BaseSchema):
+    id: int
+    groupId: int
+    matchId: int
+    round: Optional[int] = None
+    order: Optional[int] = None
+    team1Id: int
+    team2Id: int
+    scoreTeam1: Optional[int] = None
+    scoreTeam2: Optional[int] = None
+    state: str
+    timestamp: datetime
+
+
+class TournamentGroupMatchesResponse(BaseSchema):
+    groups: List[TournamentGroupItem] = []
+    matches: List[TournamentGroupMatchItem] = []
+
+
+class TournamentGroupStandingsItem(BaseSchema):
+    groupId: int
+    groupName: str
+    teams: List[TeamItem] = []
+
+
+class TournamentGroupStandingsResponse(BaseSchema):
+    groups: List[TournamentGroupStandingsItem] = []
+
+
 class TournamentKnockoutMatchAdd(BaseSchema):
     matchId: int = Field(..., example=1)
     round: Optional[str] = Field(None, max_length=50, example="Quarterfinal")
     order: Optional[int] = Field(None, example=1)
+
+
+class TournamentKnockoutMatchCreate(BaseSchema):
+    team1Id: int
+    team2Id: int
+    round: Optional[str] = Field(None, max_length=50, example="Quarterfinal")
+    order: Optional[int] = Field(None, example=1)
+    timestamp: datetime
+    location: Optional[str] = None
+
+
+class TournamentKnockoutBulkCreateRequest(BaseSchema):
+    matches: List[TournamentKnockoutMatchCreate] = []
+    replaceExisting: bool = False
+
+
+class TournamentKnockoutAutoRequest(BaseSchema):
+    qualifiersPerGroup: int = Field(..., ge=1, example=2)
+    round: Optional[str] = Field(None, max_length=50, example="Quarterfinal")
+    startTimestamp: datetime
+    intervalMinutes: int = Field(90, ge=1)
+    pairingStrategy: str = Field("cross", example="cross")
+    replaceExisting: bool = False
 
 
 class TournamentKnockoutMatchItem(BaseSchema):

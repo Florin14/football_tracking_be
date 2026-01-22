@@ -5,6 +5,7 @@ from extensions.sqlalchemy import get_db
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_schemas import LeagueTeamsResponse
 
 from .router import router
@@ -26,8 +27,9 @@ async def get_league_teams(league_id: int, db: Session = Depends(get_db)):
             (RankingModel.teamId == TeamModel.id)
             & (RankingModel.leagueId == league_id),
         )
+        .join(LeagueTeamModel, LeagueTeamModel.teamId == TeamModel.id)
         .options(joinedload(TeamModel.players))
-        .filter(TeamModel.leagueId == league_id)
+        .filter(LeagueTeamModel.leagueId == league_id)
         .order_by(TeamModel.name)
         .all()
     )

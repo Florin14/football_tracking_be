@@ -1,20 +1,20 @@
 from sqlalchemy import and_, event, exists, insert, literal, select
 
 from modules.ranking.models.ranking_model import RankingModel
-from modules.team.models.team_model import TeamModel
+from modules.tournament.models.league_team_model import LeagueTeamModel
 
 
-@event.listens_for(TeamModel, "after_insert")
+@event.listens_for(LeagueTeamModel, "after_insert")
 def create_ranking_for_team(mapper, connection, target):
     rankings_table = RankingModel.__table__
 
     exists_conditions = and_(
-        rankings_table.c.team_id == target.id,
+        rankings_table.c.team_id == target.teamId,
         rankings_table.c.leagueId == target.leagueId,
     )
 
     select_stmt = select(
-        literal(target.id),
+        literal(target.teamId),
         literal(target.leagueId),
         literal(0),
         literal(0),

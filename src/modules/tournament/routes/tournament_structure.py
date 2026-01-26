@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 from extensions.sqlalchemy import get_db
 from modules.match.models.match_model import MatchModel
 from modules.team.models import TeamModel
+from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
 from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
@@ -12,7 +13,8 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_schemas import (
-    TournamentGroupAdd,
+    TournamentGroupBulkCreateRequest,
+    TournamentGroupCreateRequest,
     TournamentGroupTeamsUpdate,
     TournamentKnockoutMatchAdd,
     TournamentStructureResponse,
@@ -144,14 +146,27 @@ async def get_tournament_structure(tournament_id: int, db: Session = Depends(get
 @router.post("/{tournament_id}/groups", response_model=TournamentStructureResponse)
 async def add_tournament_group(
     tournament_id: int,
-    data: TournamentGroupAdd,
+    data: TournamentGroupCreateRequest,
     db: Session = Depends(get_db),
 ):
+    if data.groups:
+        return await add_tournament_groups_bulk(
+            tournament_id,
+            TournamentGroupBulkCreateRequest(groups=data.groups, replaceExisting=data.replaceExisting),
+            db,
+        )
+
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Tournament with ID {tournament_id} not found",
+        )
+
+    if not data.name:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="name is required",
         )
 
     order_value = data.order
@@ -179,6 +194,110 @@ async def add_tournament_group(
 
     db.commit()
 
+    return await get_tournament_structure(tournament_id, db)
+
+
+@router.post("/{tournament_id}/groups/bulk", response_model=TournamentStructureResponse)
+async def add_tournament_groups_bulk(
+    tournament_id: int,
+    data: TournamentGroupBulkCreateRequest,
+    db: Session = Depends(get_db),
+):
+    tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
+    if not tournament:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Tournament with ID {tournament_id} not found",
+        )
+
+    existing_groups = (
+        db.query(TournamentGroupModel.id)
+        .filter(TournamentGroupModel.tournamentId == tournament_id)
+        .all()
+    )
+    if existing_groups and not data.replaceExisting:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Groups already exist for this tournament",
+        )
+
+    group_count = tournament.groupCount
+    teams_per_group = tournament.teamsPerGroup
+    groups_payload = data.groups or []
+    if group_count is not None and len(groups_payload) != group_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Group count does not match tournament configuration",
+        )
+
+    all_team_ids: list[int] = []
+    for group in groups_payload:
+        if teams_per_group is not None and len(group.teamIds) != teams_per_group:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Group size does not match tournament configuration",
+            )
+        all_team_ids.extend(group.teamIds)
+
+    if len(all_team_ids) != len(set(all_team_ids)):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Team IDs must be unique across groups",
+        )
+
+    if group_count is not None and teams_per_group is not None:
+        expected_total = group_count * teams_per_group
+        if len(all_team_ids) != expected_total:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Team count does not match tournament configuration",
+            )
+
+    _validate_teams_belong_to_tournament(db, tournament_id, all_team_ids)
+
+    if data.replaceExisting:
+        group_ids = [
+            group.id
+            for group in db.query(TournamentGroupModel.id)
+            .filter(TournamentGroupModel.tournamentId == tournament_id)
+            .all()
+        ]
+        if group_ids:
+            existing_matches = (
+                db.query(TournamentGroupMatchModel)
+                .filter(TournamentGroupMatchModel.groupId.in_(group_ids))
+                .all()
+            )
+            match_ids = [item.matchId for item in existing_matches]
+            db.query(TournamentGroupMatchModel).filter(
+                TournamentGroupMatchModel.groupId.in_(group_ids)
+            ).delete(synchronize_session=False)
+            if match_ids:
+                db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
+            db.query(TournamentGroupTeamModel).filter(
+                TournamentGroupTeamModel.groupId.in_(group_ids)
+            ).delete(synchronize_session=False)
+        db.query(TournamentGroupModel).filter(
+            TournamentGroupModel.tournamentId == tournament_id
+        ).delete(synchronize_session=False)
+
+    created_groups = []
+    for index, group in enumerate(groups_payload, start=1):
+        order_value = group.order if group.order is not None else index
+        created = TournamentGroupModel(
+            name=group.name,
+            order=order_value,
+            tournamentId=tournament_id,
+        )
+        db.add(created)
+        created_groups.append((created, group.teamIds))
+    db.flush()
+
+    for group, team_ids in created_groups:
+        for team_id in team_ids:
+            db.add(TournamentGroupTeamModel(groupId=group.id, teamId=team_id))
+
+    db.commit()
     return await get_tournament_structure(tournament_id, db)
 
 

@@ -104,6 +104,7 @@ async def reorder_leagues(
             {
                 "id": league.id,
                 "name": league.name,
+                "logo": league.logo,
                 "relevanceOrder": league.relevanceOrder,
                 "tournamentId": league.tournamentId,
             }

@@ -7,6 +7,7 @@ from modules.match.models import (
     MatchModel
 )
 from modules.ranking.services import recalculate_match_rankings
+from modules.tournament.services.knockout_service import auto_advance_knockout
 from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse
 from .router import router
@@ -40,6 +41,7 @@ async def finish_match(
         match.scoreTeam2 = 0
 
     recalculate_match_rankings(db, match)
+    auto_advance_knockout(db, match)
     db.commit()
 
     return ConfirmationResponse(

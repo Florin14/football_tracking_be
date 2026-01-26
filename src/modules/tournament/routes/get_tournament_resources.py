@@ -33,6 +33,7 @@ async def get_tournament_resources(db: Session = Depends(get_db)):
             leagues_items.append({
                 "id": league.id,
                 "name": league.name,
+                "logo": league.logo,
                 "relevanceOrder": league.relevanceOrder,
                 "tournamentId": league.tournamentId,
             })

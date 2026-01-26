@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Column, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from extensions import BaseModel
@@ -15,3 +15,7 @@ class TournamentKnockoutMatchModel(BaseModel):
 
     tournament = relationship("TournamentModel", back_populates="knockoutMatches")
     match = relationship("MatchModel")
+
+    __table_args__ = (
+        UniqueConstraint("tournament_id", "round", "match_order", name="uq_knockout_tournament_round_order"),
+    )

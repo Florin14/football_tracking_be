@@ -274,7 +274,7 @@ class TournamentKnockoutAutoRequest(BaseSchema):
 class TournamentKnockoutGenerateRequest(BaseSchema):
     startTimestamp: Optional[datetime] = None
     intervalMinutes: int = Field(90, ge=1)
-    replaceExisting: bool = False
+    replaceExisting: bool = True
     leagueId: Optional[int] = None
 
 
@@ -289,6 +289,17 @@ class TournamentKnockoutMatchItem(BaseSchema):
     scoreTeam2: Optional[int] = None
     state: str
     timestamp: datetime
+
+
+class LeagueStandingsResponse(BaseSchema):
+    league: LeagueDetail
+    tournamentId: int
+    formatType: Optional[str] = None
+    groupCount: Optional[int] = None
+    teamsPerGroup: Optional[int] = None
+    hasKnockout: Optional[bool] = None
+    groups: List[TournamentGroupStandingsItem] = []
+    knockoutMatches: List[TournamentKnockoutMatchItem] = []
 
 
 class TournamentStructureResponse(BaseSchema):

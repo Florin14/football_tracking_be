@@ -3,6 +3,7 @@ from .add_tournament import *
 from .get_all_tournaments import *
 from .get_all_leagues import *
 from .get_league_teams import *
+from .get_league_standings import *
 from .reorder_leagues import *
 from .add_league import *
 from .get_tournament_resources import *

@@ -39,6 +39,7 @@ async def get_all_leagues(
         leagues_items.append({
             "id": league.id,
             "name": league.name,
+            "logo": league.logo,
             "relevanceOrder": league.relevanceOrder,
             "tournamentId": league.tournamentId,
         })

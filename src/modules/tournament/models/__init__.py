@@ -6,3 +6,4 @@ from .tournament_group_model import *
 from .tournament_group_team_model import *
 from .tournament_group_match_model import *
 from .tournament_knockout_match_model import *
+from .tournament_knockout_config_model import *

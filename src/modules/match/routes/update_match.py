@@ -7,6 +7,7 @@ from modules.match.models import (
     MatchModel, MatchUpdate, MatchResponse, GoalModel
 )
 from modules.ranking.services import recalculate_match_rankings
+from modules.tournament.services.knockout_service import auto_advance_knockout
 from modules.player.models import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
@@ -111,15 +112,14 @@ async def update_match(
             )
 
     recalculate_match_rankings(db, match)
+    auto_advance_knockout(db, match)
     db.commit()
     db.refresh(match)
 
     return MatchResponse(
         id=match.id,
-        team1Id=match.team1Id,
-        team2Id=match.team2Id,
-        team1Name=match.team1.name,
-        team2Name=match.team2.name,
+        team1=match.team1,
+        team2=match.team2,
         location=match.location,
         timestamp=match.timestamp,
         scoreTeam1=match.scoreTeam1,

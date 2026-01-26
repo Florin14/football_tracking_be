@@ -28,6 +28,7 @@ async def add_tournament(data: TournamentAdd, db: Session = Depends(get_db)):
             db.add(LeagueModel(
                 name=league_data.name,
                 description=league_data.description,
+                logo=league_data.logo,
                 startDate=league_data.startDate,
                 endDate=league_data.endDate,
                 season=league_data.season,

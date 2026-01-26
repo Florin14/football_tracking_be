@@ -1,19 +1,29 @@
 from typing import List, Optional
 from datetime import date, datetime
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
 from modules.team.models import TeamItem
+from project_helpers.functions import process_and_convert_image_to_base64
 
 
 class LeagueAdd(BaseSchema):
     name: str = Field(..., max_length=50, example="Premier League")
     description: Optional[str] = Field(None, max_length=200, example="League description")
+    logo: Optional[bytes] = Field(None)
     startDate: Optional[date] = None
     endDate: Optional[date] = None
     season: Optional[str] = Field(None, max_length=9, example="2025-2026")
     relevanceOrder: Optional[int] = None
+
+    @validator("logo", pre=False, always=True)
+    def encode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return process_and_convert_image_to_base64(value, 316)
+        return value
 
 
 class TournamentAdd(BaseSchema):
@@ -71,8 +81,17 @@ class TournamentListResponse(BaseSchema):
 class LeagueItem(BaseSchema):
     id: int
     name: str
+    logo: Optional[str] = Field(None, example="")
     relevanceOrder: Optional[int] = None
     tournamentId: Optional[int] = None
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 
 class LeaguesListResponse(BaseSchema):
@@ -83,9 +102,18 @@ class LeagueDetail(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
+    logo: Optional[str] = Field(None, example="")
     season: Optional[str] = None
     relevanceOrder: Optional[int] = None
     tournamentId: Optional[int] = None
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 
 class LeagueTeamsResponse(BaseSchema):
@@ -128,6 +156,25 @@ class TournamentGroupAdd(BaseSchema):
     teamIds: List[int] = []
 
 
+class TournamentGroupBulkItem(BaseSchema):
+    name: str = Field(..., max_length=50, example="Group A")
+    order: Optional[int] = Field(None, example=1)
+    teamIds: List[int] = []
+
+
+class TournamentGroupBulkCreateRequest(BaseSchema):
+    groups: List[TournamentGroupBulkItem] = []
+    replaceExisting: bool = False
+
+
+class TournamentGroupCreateRequest(BaseSchema):
+    name: Optional[str] = Field(None, max_length=50, example="Group A")
+    order: Optional[int] = Field(None, example=1)
+    teamIds: List[int] = []
+    groups: List[TournamentGroupBulkItem] = []
+    replaceExisting: bool = False
+
+
 class TournamentGroupTeamsUpdate(BaseSchema):
     teamIds: List[int] = []
 
@@ -152,6 +199,17 @@ class TournamentGroupScheduleRequest(BaseSchema):
     randomize: bool = True
     avoidConsecutive: bool = True
     replaceExisting: bool = False
+    leagueId: Optional[int] = None
+
+
+class TournamentGroupScheduleSimpleRequest(BaseSchema):
+    mode: str = Field("round-robin", example="round-robin")
+    avoidConsecutive: bool = True
+    startTimestamp: Optional[datetime] = None
+    intervalMinutes: int = Field(90, ge=1)
+    randomize: bool = True
+    replaceExisting: bool = False
+    leagueId: Optional[int] = None
 
 
 class TournamentGroupMatchItem(BaseSchema):
@@ -210,6 +268,14 @@ class TournamentKnockoutAutoRequest(BaseSchema):
     intervalMinutes: int = Field(90, ge=1)
     pairingStrategy: str = Field("cross", example="cross")
     replaceExisting: bool = False
+    leagueId: Optional[int] = None
+
+
+class TournamentKnockoutGenerateRequest(BaseSchema):
+    startTimestamp: Optional[datetime] = None
+    intervalMinutes: int = Field(90, ge=1)
+    replaceExisting: bool = False
+    leagueId: Optional[int] = None
 
 
 class TournamentKnockoutMatchItem(BaseSchema):
@@ -232,4 +298,27 @@ class TournamentStructureResponse(BaseSchema):
     teamsPerGroup: Optional[int] = None
     hasKnockout: Optional[bool] = None
     groups: List[TournamentGroupItem] = []
+    knockoutMatches: List[TournamentKnockoutMatchItem] = []
+
+
+class KnockoutManualPair(BaseSchema):
+    home: str
+    away: str
+
+
+class TournamentKnockoutConfig(BaseSchema):
+    qualifiersPerGroup: Optional[int] = None
+    pairingMode: Optional[str] = None
+    manualPairs: List[KnockoutManualPair] = []
+
+
+class TournamentPlanResponse(BaseSchema):
+    tournamentId: int
+    formatType: Optional[str] = None
+    groupCount: Optional[int] = None
+    teamsPerGroup: Optional[int] = None
+    hasKnockout: Optional[bool] = None
+    groups: List[TournamentGroupItem] = []
+    groupMatches: List[TournamentGroupMatchItem] = []
+    knockoutConfig: Optional[TournamentKnockoutConfig] = None
     knockoutMatches: List[TournamentKnockoutMatchItem] = []

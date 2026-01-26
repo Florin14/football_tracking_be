@@ -55,6 +55,7 @@ async def get_league_teams(league_id: int, db: Session = Depends(get_db)):
             "id": league.id,
             "name": league.name,
             "description": league.description,
+            "logo": league.logo,
             "season": league.season,
             "relevanceOrder": league.relevanceOrder,
             "tournamentId": league.tournamentId,

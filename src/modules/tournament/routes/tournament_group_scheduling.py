@@ -1,8 +1,10 @@
+import json
 import math
 import random
-from datetime import timedelta
+import re
+from datetime import datetime, timedelta
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Body, Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
@@ -20,14 +22,18 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import (
     TournamentGroupsAutoAssignRequest,
     TournamentGroupMatchesResponse,
+    TournamentGroupScheduleSimpleRequest,
     TournamentGroupScheduleRequest,
     TournamentGroupStandingsResponse,
     TournamentGroupStandingsItem,
     TournamentGroupMatchItem,
     TournamentKnockoutAutoRequest,
     TournamentKnockoutBulkCreateRequest,
+    TournamentKnockoutConfig,
+    TournamentKnockoutGenerateRequest,
     TournamentStructureResponse,
 )
+from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.routes.tournament_structure import (
     _validate_teams_belong_to_tournament,
     get_tournament_structure,
@@ -185,6 +191,77 @@ def _build_group_standings(group: TournamentGroupModel, matches: list[MatchModel
     return sorted(standings.values(), key=sort_key)
 
 
+def _normalize_pairing_mode(mode: str | None) -> str:
+    if not mode:
+        return "cross"
+    return mode.strip().lower()
+
+
+def _parse_seed_label(label: str) -> tuple[str, int]:
+    match = re.match(r"^(.+?)\s*#\s*(\d+)$", label.strip())
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid seed label: {label}",
+        )
+    group_name = match.group(1).strip()
+    rank = int(match.group(2))
+    if rank <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid seed rank in label: {label}",
+        )
+    return group_name, rank
+
+
+def _load_team_league_map(db: Session, tournament_id: int, team_ids: list[int]) -> dict[int, set[int]]:
+    if not team_ids:
+        return {}
+    rows = (
+        db.query(LeagueTeamModel.teamId, LeagueTeamModel.leagueId)
+        .join(LeagueModel, LeagueModel.id == LeagueTeamModel.leagueId)
+        .filter(
+            LeagueModel.tournamentId == tournament_id,
+            LeagueTeamModel.teamId.in_(team_ids),
+        )
+        .all()
+    )
+    team_leagues: dict[int, set[int]] = {team_id: set() for team_id in team_ids}
+    for team_id, league_id in rows:
+        team_leagues.setdefault(team_id, set()).add(league_id)
+    return team_leagues
+
+
+def _resolve_match_league_id(
+    team_leagues: dict[int, set[int]],
+    team1_id: int,
+    team2_id: int,
+    requested_league_id: int | None,
+) -> int:
+    team1_leagues = team_leagues.get(team1_id, set())
+    team2_leagues = team_leagues.get(team2_id, set())
+    if requested_league_id is not None:
+        if requested_league_id not in team1_leagues or requested_league_id not in team2_leagues:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Match teams do not belong to the selected league",
+            )
+        return requested_league_id
+
+    common = team1_leagues.intersection(team2_leagues)
+    if len(common) == 1:
+        return next(iter(common))
+    if len(common) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Match teams do not share a league. Provide leagueId.",
+        )
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Match teams share multiple leagues. Provide leagueId.",
+    )
+
+
 @router.post("/{tournament_id}/groups/auto", response_model=TournamentStructureResponse)
 async def auto_assign_groups(
     tournament_id: int,
@@ -230,9 +307,17 @@ async def auto_assign_groups(
     if existing_groups and data.replaceExisting:
         group_ids = [group.id for group in existing_groups]
         if group_ids:
+            existing_matches = (
+                db.query(TournamentGroupMatchModel)
+                .filter(TournamentGroupMatchModel.groupId.in_(group_ids))
+                .all()
+            )
+            match_ids = [item.matchId for item in existing_matches]
             db.query(TournamentGroupMatchModel).filter(
                 TournamentGroupMatchModel.groupId.in_(group_ids)
             ).delete(synchronize_session=False)
+            if match_ids:
+                db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
             db.query(TournamentGroupTeamModel).filter(
                 TournamentGroupTeamModel.groupId.in_(group_ids)
             ).delete(synchronize_session=False)
@@ -269,13 +354,29 @@ async def generate_group_schedule(
     data: TournamentGroupScheduleRequest,
     db: Session = Depends(get_db),
 ):
-    _get_tournament_or_404(db, tournament_id)
+    tournament = _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
     if not groups:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No groups found for this tournament",
         )
+    if tournament.groupCount and tournament.teamsPerGroup:
+        assigned_count = sum(len(group.teams or []) for group in groups)
+        expected_count = tournament.groupCount * tournament.teamsPerGroup
+        if assigned_count != expected_count:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Teams are not fully assigned to groups",
+            )
+    if tournament.groupCount and tournament.teamsPerGroup:
+        assigned_count = sum(len(group.teams or []) for group in groups)
+        expected_count = tournament.groupCount * tournament.teamsPerGroup
+        if assigned_count != expected_count:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Teams are not fully assigned to groups",
+            )
 
     group_ids = [group.id for group in groups]
     existing_matches = (
@@ -296,6 +397,21 @@ async def generate_group_schedule(
         if match_ids:
             db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
 
+    team_ids_all = [gt.teamId for group in groups for gt in (group.teams or []) if gt.teamId]
+    team_leagues = _load_team_league_map(db, tournament_id, team_ids_all)
+
+    if data.leagueId is not None:
+        league = (
+            db.query(LeagueModel)
+            .filter(LeagueModel.id == data.leagueId, LeagueModel.tournamentId == tournament_id)
+            .first()
+        )
+        if not league:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"League with ID {data.leagueId} not found for this tournament",
+            )
+
     match_specs = []
     for group in groups:
         team_ids = [gt.teamId for gt in group.teams if gt.teamId]
@@ -307,11 +423,18 @@ async def generate_group_schedule(
         rounds = _generate_round_robin(team_ids, data.randomize)
         for round_index, pairs in enumerate(rounds, start=1):
             for team1_id, team2_id in pairs:
+                league_id = _resolve_match_league_id(
+                    team_leagues,
+                    team1_id,
+                    team2_id,
+                    data.leagueId,
+                )
                 match_specs.append({
                     "groupId": group.id,
                     "round": round_index,
                     "team1Id": team1_id,
                     "team2Id": team2_id,
+                    "leagueId": league_id,
                 })
 
     ordered_specs = _order_matches(match_specs, data.avoidConsecutive)
@@ -324,6 +447,7 @@ async def generate_group_schedule(
             team2Id=spec["team2Id"],
             timestamp=data.startTimestamp + interval * (index - 1),
             state=MatchState.SCHEDULED,
+            leagueId=spec["leagueId"],
         )
         db.add(match)
         db.flush()
@@ -338,6 +462,68 @@ async def generate_group_schedule(
     db.commit()
 
     return await get_tournament_structure(tournament_id, db)
+
+
+@router.post("/{tournament_id}/groups/schedule/reset", response_model=TournamentStructureResponse)
+async def reset_group_schedule(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+):
+    _get_tournament_or_404(db, tournament_id)
+    group_ids = [
+        group.id
+        for group in db.query(TournamentGroupModel.id)
+        .filter(TournamentGroupModel.tournamentId == tournament_id)
+        .all()
+    ]
+    if group_ids:
+        existing_matches = (
+            db.query(TournamentGroupMatchModel)
+            .filter(TournamentGroupMatchModel.groupId.in_(group_ids))
+            .all()
+        )
+        match_ids = [item.matchId for item in existing_matches]
+        db.query(TournamentGroupMatchModel).filter(
+            TournamentGroupMatchModel.groupId.in_(group_ids)
+        ).delete(synchronize_session=False)
+        if match_ids:
+            db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
+
+    db.commit()
+    return await get_tournament_structure(tournament_id, db)
+
+
+@router.delete("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse)
+async def delete_group_schedule(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+):
+    return await reset_group_schedule(tournament_id, db)
+
+
+@router.post("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse)
+async def generate_group_schedule_simple(
+    tournament_id: int,
+    data: TournamentGroupScheduleSimpleRequest,
+    db: Session = Depends(get_db),
+):
+    mode = (data.mode or "round-robin").strip().lower()
+    mode = mode.replace("_", "-").replace(" ", "-")
+    if mode not in {"round-robin", "roundrobin"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only round-robin mode is supported",
+        )
+
+    payload = TournamentGroupScheduleRequest(
+        startTimestamp=data.startTimestamp or datetime.utcnow(),
+        intervalMinutes=data.intervalMinutes,
+        randomize=data.randomize,
+        avoidConsecutive=data.avoidConsecutive,
+        replaceExisting=data.replaceExisting,
+        leagueId=data.leagueId,
+    )
+    return await generate_group_schedule(tournament_id, payload, db)
 
 
 @router.get("/{tournament_id}/groups/matches", response_model=TournamentGroupMatchesResponse)
@@ -439,6 +625,8 @@ async def create_knockout_matches_bulk(
     db: Session = Depends(get_db),
 ):
     _get_tournament_or_404(db, tournament_id)
+    team_ids = [team_id for entry in data.matches for team_id in (entry.team1Id, entry.team2Id)]
+    team_leagues = _load_team_league_map(db, tournament_id, team_ids)
 
     if data.replaceExisting:
         existing = (
@@ -455,12 +643,14 @@ async def create_knockout_matches_bulk(
 
     for entry in data.matches:
         _validate_teams_belong_to_tournament(db, tournament_id, [entry.team1Id, entry.team2Id])
+        league_id = _resolve_match_league_id(team_leagues, entry.team1Id, entry.team2Id, None)
         match = MatchModel(
             team1Id=entry.team1Id,
             team2Id=entry.team2Id,
             location=entry.location,
             timestamp=entry.timestamp,
             state=MatchState.SCHEDULED,
+            leagueId=league_id,
         )
         db.add(match)
         db.flush()
@@ -494,6 +684,7 @@ async def create_knockout_matches_auto(
 
     ordered_groups = sorted(groups, key=lambda g: (g.order is None, g.order or 0, g.name.lower()))
     qualifiers = []
+    team_ids_all = []
     for group in ordered_groups:
         group_standings = standings_by_group.get(group.id, [])
         if len(group_standings) < data.qualifiersPerGroup:
@@ -502,11 +693,25 @@ async def create_knockout_matches_auto(
                 detail=f"Not enough teams to qualify {data.qualifiersPerGroup} team(s) for {group.name}",
             )
         qualifiers.append(group_standings[: data.qualifiersPerGroup])
+        team_ids_all.extend([team.id for team in group_standings[: data.qualifiersPerGroup]])
 
-    if data.pairingStrategy not in {"cross", "seeded"}:
+    team_leagues = _load_team_league_map(db, tournament_id, team_ids_all)
+    if data.leagueId is not None:
+        league = (
+            db.query(LeagueModel)
+            .filter(LeagueModel.id == data.leagueId, LeagueModel.tournamentId == tournament_id)
+            .first()
+        )
+        if not league:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"League with ID {data.leagueId} not found for this tournament",
+            )
+
+    if data.pairingStrategy not in {"cross", "seeded", "random"}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="pairingStrategy must be 'cross' or 'seeded'",
+            detail="pairingStrategy must be 'cross', 'seeded' or 'random'",
         )
 
     pairs: list[tuple[int, int]] = []
@@ -525,17 +730,25 @@ async def create_knockout_matches_auto(
             group_a = qualifiers[i]
             group_b = qualifiers[i + 1]
             if data.qualifiersPerGroup == 1:
-                pairs.append((group_a[0]["id"], group_b[0]["id"]))
+                pairs.append((group_a[0].id, group_b[0].id))
             else:
-                pairs.append((group_a[0]["id"], group_b[1]["id"]))
-                pairs.append((group_b[0]["id"], group_a[1]["id"]))
+                pairs.append((group_a[0].id, group_b[1].id))
+                pairs.append((group_b[0].id, group_a[1].id))
+    elif data.pairingStrategy == "seeded":
+        flat = []
+        for group in qualifiers:
+            flat.extend(group)
+        ordered = [team.id for team in flat]
+        while len(ordered) >= 2:
+            pairs.append((ordered.pop(0), ordered.pop(-1)))
     else:
         flat = []
         for group in qualifiers:
             flat.extend(group)
-        ordered = [team["id"] for team in flat]
+        ordered = [team.id for team in flat]
+        random.shuffle(ordered)
         while len(ordered) >= 2:
-            pairs.append((ordered.pop(0), ordered.pop(-1)))
+            pairs.append((ordered.pop(0), ordered.pop(0)))
 
     if data.replaceExisting:
         existing = (
@@ -552,11 +765,13 @@ async def create_knockout_matches_auto(
 
     interval = timedelta(minutes=data.intervalMinutes)
     for index, (team1_id, team2_id) in enumerate(pairs, start=1):
+        league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
         match = MatchModel(
             team1Id=team1_id,
             team2Id=team2_id,
             timestamp=data.startTimestamp + interval * (index - 1),
             state=MatchState.SCHEDULED,
+            leagueId=league_id,
         )
         db.add(match)
         db.flush()
@@ -564,6 +779,244 @@ async def create_knockout_matches_auto(
             tournamentId=tournament_id,
             matchId=match.id,
             round=data.round,
+            order=index,
+        ))
+
+    db.commit()
+    return await get_tournament_structure(tournament_id, db)
+
+
+@router.post("/{tournament_id}/knockout-config", response_model=TournamentKnockoutConfig)
+async def set_knockout_config(
+    tournament_id: int,
+    data: TournamentKnockoutConfig,
+    db: Session = Depends(get_db),
+):
+    _get_tournament_or_404(db, tournament_id)
+    pairing_mode = _normalize_pairing_mode(data.pairingMode)
+    if pairing_mode not in {"cross", "random", "manual"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="pairingMode must be 'CROSS', 'RANDOM' or 'MANUAL'",
+        )
+
+    manual_pairs = data.manualPairs or []
+    if pairing_mode == "manual":
+        if not manual_pairs:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="manualPairs is required when pairingMode is MANUAL",
+            )
+        seen_slots = set()
+        for pair in manual_pairs:
+            for slot in [pair.home, pair.away]:
+                if slot in seen_slots:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="manualPairs contains duplicate slots",
+                    )
+                seen_slots.add(slot)
+
+    config = (
+        db.query(TournamentKnockoutConfigModel)
+        .filter(TournamentKnockoutConfigModel.tournamentId == tournament_id)
+        .first()
+    )
+    payload = TournamentKnockoutConfigModel(
+        tournamentId=tournament_id,
+        qualifiersPerGroup=data.qualifiersPerGroup,
+        pairingMode=pairing_mode,
+        manualPairs=json.dumps([pair.model_dump() for pair in manual_pairs]) if manual_pairs else None,
+    )
+    if config:
+        config.qualifiersPerGroup = payload.qualifiersPerGroup
+        config.pairingMode = payload.pairingMode
+        config.manualPairs = payload.manualPairs
+    else:
+        db.add(payload)
+    db.commit()
+
+    return TournamentKnockoutConfig(
+        qualifiersPerGroup=payload.qualifiersPerGroup,
+        pairingMode=payload.pairingMode,
+        manualPairs=manual_pairs,
+    )
+
+
+@router.post("/{tournament_id}/knockout-generate", response_model=TournamentStructureResponse)
+async def generate_knockout_matches_from_config(
+    tournament_id: int,
+    data: TournamentKnockoutGenerateRequest = Body(default_factory=TournamentKnockoutGenerateRequest),
+    db: Session = Depends(get_db),
+):
+    tournament = _get_tournament_or_404(db, tournament_id)
+    config = (
+        db.query(TournamentKnockoutConfigModel)
+        .filter(TournamentKnockoutConfigModel.tournamentId == tournament_id)
+        .first()
+    )
+    if not config:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Knockout config not found",
+        )
+
+    qualifiers_per_group = config.qualifiersPerGroup
+    if qualifiers_per_group is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="qualifiersPerGroup is required in knockout config",
+        )
+    if tournament.teamsPerGroup and qualifiers_per_group > tournament.teamsPerGroup:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="qualifiersPerGroup cannot exceed teamsPerGroup",
+        )
+
+    groups = _load_groups_with_teams(db, tournament_id)
+    if not groups:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No groups found for this tournament",
+        )
+
+    standings_response = await get_group_standings(tournament_id, db)
+    standings_by_group = {item.groupId: item.teams for item in standings_response.groups}
+    ordered_groups = sorted(groups, key=lambda g: (g.order is None, g.order or 0, g.name.lower()))
+    qualifiers = []
+    team_ids_all = []
+    for group in ordered_groups:
+        group_standings = standings_by_group.get(group.id, [])
+        if len(group_standings) < qualifiers_per_group:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Not enough teams to qualify {qualifiers_per_group} team(s) for {group.name}",
+            )
+        qualifiers.append(group_standings[: qualifiers_per_group])
+        team_ids_all.extend([team.id for team in group_standings[: qualifiers_per_group]])
+
+    team_leagues = _load_team_league_map(db, tournament_id, team_ids_all)
+    if data.leagueId is not None:
+        league = (
+            db.query(LeagueModel)
+            .filter(LeagueModel.id == data.leagueId, LeagueModel.tournamentId == tournament_id)
+            .first()
+        )
+        if not league:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"League with ID {data.leagueId} not found for this tournament",
+            )
+
+    pairing_mode = _normalize_pairing_mode(config.pairingMode)
+    pairs: list[tuple[int, int]] = []
+    if pairing_mode == "cross":
+        if len(qualifiers) % 2 != 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cross pairing requires an even number of groups",
+            )
+        if qualifiers_per_group > 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cross pairing supports up to 2 qualifiers per group",
+            )
+        for i in range(0, len(qualifiers), 2):
+            group_a = qualifiers[i]
+            group_b = qualifiers[i + 1]
+            if qualifiers_per_group == 1:
+                pairs.append((group_a[0].id, group_b[0].id))
+            else:
+                pairs.append((group_a[0].id, group_b[1].id))
+                pairs.append((group_b[0].id, group_a[1].id))
+    elif pairing_mode == "random":
+        flat = []
+        for group in qualifiers:
+            flat.extend(group)
+        ordered = [team.id for team in flat]
+        random.shuffle(ordered)
+        while len(ordered) >= 2:
+            pairs.append((ordered.pop(0), ordered.pop(0)))
+    elif pairing_mode == "manual":
+        manual_pairs = []
+        if config.manualPairs:
+            try:
+                manual_pairs = json.loads(config.manualPairs)
+            except json.JSONDecodeError:
+                manual_pairs = []
+        if not manual_pairs:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="manualPairs is required for MANUAL pairing",
+            )
+        group_by_name = {group.name.lower(): group for group in ordered_groups}
+        for pair in manual_pairs:
+            group_name, rank = _parse_seed_label(pair["home"])
+            group = group_by_name.get(group_name.lower())
+            if not group:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unknown group in label: {pair['home']}",
+                )
+            group_standings = standings_by_group.get(group.id, [])
+            if len(group_standings) < rank:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Not enough teams in group for label: {pair['home']}",
+                )
+            home_team = group_standings[rank - 1].id
+            group_name, rank = _parse_seed_label(pair["away"])
+            group = group_by_name.get(group_name.lower())
+            if not group:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unknown group in label: {pair['away']}",
+                )
+            group_standings = standings_by_group.get(group.id, [])
+            if len(group_standings) < rank:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Not enough teams in group for label: {pair['away']}",
+                )
+            away_team = group_standings[rank - 1].id
+            pairs.append((home_team, away_team))
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported pairing mode",
+        )
+
+    if data.replaceExisting:
+        existing = (
+            db.query(TournamentKnockoutMatchModel)
+            .filter(TournamentKnockoutMatchModel.tournamentId == tournament_id)
+            .all()
+        )
+        match_ids = [item.matchId for item in existing]
+        db.query(TournamentKnockoutMatchModel).filter(
+            TournamentKnockoutMatchModel.tournamentId == tournament_id
+        ).delete(synchronize_session=False)
+        if match_ids:
+            db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
+
+    start_time = data.startTimestamp or datetime.utcnow()
+    interval = timedelta(minutes=data.intervalMinutes)
+    round_label = f"Round of {len(pairs) * 2}"
+    for index, (team1_id, team2_id) in enumerate(pairs, start=1):
+        league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
+        match = MatchModel(
+            team1Id=team1_id,
+            team2Id=team2_id,
+            timestamp=start_time + interval * (index - 1),
+            state=MatchState.SCHEDULED,
+            leagueId=league_id,
+        )
+        db.add(match)
+        db.flush()
+        db.add(TournamentKnockoutMatchModel(
+            tournamentId=tournament_id,
+            matchId=match.id,
+            round=round_label,
             order=index,
         ))
 

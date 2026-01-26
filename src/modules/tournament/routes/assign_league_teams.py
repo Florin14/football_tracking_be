@@ -95,6 +95,7 @@ async def assign_league_teams(
             "id": league.id,
             "name": league.name,
             "description": league.description,
+            "logo": league.logo,
             "season": league.season,
             "relevanceOrder": league.relevanceOrder,
             "tournamentId": league.tournamentId,

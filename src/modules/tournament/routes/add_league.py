@@ -31,6 +31,7 @@ async def add_league(
     league = LeagueModel(
         name=data.name,
         description=data.description,
+        logo=data.logo,
         startDate=data.startDate,
         endDate=data.endDate,
         season=data.season,
@@ -45,6 +46,7 @@ async def add_league(
         id=league.id,
         name=league.name,
         description=league.description,
+        logo=league.logo,
         season=league.season,
         relevanceOrder=league.relevanceOrder,
         tournamentId=league.tournamentId,

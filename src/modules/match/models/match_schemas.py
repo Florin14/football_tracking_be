@@ -36,11 +36,24 @@ class MatchItem(BaseSchema):
     id: int
     team1Name: str
     team2Name: str
+    team1Logo: Optional[str] = Field(None, example="")
+    team2Logo: Optional[str] = Field(None, example="")
+    leagueId: Optional[int] = None
+    leagueName: Optional[str] = None
+    leagueLogo: Optional[str] = Field(None, example="")
     location: Optional[str] = None
     timestamp: datetime
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     state: str
+
+    @validator("team1Logo", "team2Logo", "leagueLogo", pre=False, always=True)
+    def decode_logo_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 class TeamItem(BaseSchema):
     id: int
@@ -83,12 +96,12 @@ class ObjectItem(BaseSchema):
     id: int
     name: str
 
-class TeamItem(BaseSchema):
+class MatchResourceTeamItem(BaseSchema):
     id: int
     name: str
     isDefault: bool
     location: Optional[str] = None
 
 class MatchResourcesResponse(BaseSchema):
-    teams: List[TeamItem] = []
+    teams: List[MatchResourceTeamItem] = []
     leagues: List[ObjectItem] = []

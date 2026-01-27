@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 from datetime import date, datetime
 
 from pydantic import Field, validator
@@ -321,6 +321,8 @@ class TournamentKnockoutConfig(BaseSchema):
     qualifiersPerGroup: Optional[int] = None
     pairingMode: Optional[str] = None
     manualPairs: List[KnockoutManualPair] = []
+    pairingConfig: Optional[Dict[str, str]] = None
+    manualPairsByPhase: Optional[Dict[str, List[KnockoutManualPair]]] = None
 
 
 class TournamentPlanResponse(BaseSchema):

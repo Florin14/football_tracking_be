@@ -120,6 +120,7 @@ async def update_match(
         id=match.id,
         team1=match.team1,
         team2=match.team2,
+        league=match.league,
         location=match.location,
         timestamp=match.timestamp,
         scoreTeam1=match.scoreTeam1,

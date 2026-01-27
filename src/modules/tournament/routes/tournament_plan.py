@@ -22,6 +22,14 @@ from modules.tournament.models.tournament_schemas import (
 
 from .router import router
 
+DEFAULT_PAIRING_CONFIG = {
+    "RO16": "CROSS",
+    "QF": "CROSS",
+    "SF": "CROSS",
+    "3P": "CROSS",
+    "F": "CROSS",
+}
+
 
 @router.get("/{tournament_id}/plan", response_model=TournamentPlanResponse)
 async def get_tournament_plan(tournament_id: int, db: Session = Depends(get_db)):
@@ -143,10 +151,32 @@ async def get_tournament_plan(tournament_id: int, db: Session = Depends(get_db))
                 manual_pairs = json.loads(config.manualPairs)
             except json.JSONDecodeError:
                 manual_pairs = []
+        pairing_config = None
+        if config.pairingConfig:
+            try:
+                pairing_config = json.loads(config.pairingConfig)
+            except json.JSONDecodeError:
+                pairing_config = None
+        manual_pairs_by_phase = None
+        if config.manualPairsByPhase:
+            try:
+                manual_pairs_by_phase = json.loads(config.manualPairsByPhase)
+            except json.JSONDecodeError:
+                manual_pairs_by_phase = None
+        if pairing_config is None:
+            pairing_config = DEFAULT_PAIRING_CONFIG.copy()
         config_payload = TournamentKnockoutConfig(
             qualifiersPerGroup=config.qualifiersPerGroup,
             pairingMode=config.pairingMode,
             manualPairs=manual_pairs,
+            pairingConfig=pairing_config,
+            manualPairsByPhase=manual_pairs_by_phase,
+        )
+    else:
+        config_payload = TournamentKnockoutConfig(
+            pairingConfig=DEFAULT_PAIRING_CONFIG.copy(),
+            manualPairs=[],
+            manualPairsByPhase=None,
         )
 
     return TournamentPlanResponse(

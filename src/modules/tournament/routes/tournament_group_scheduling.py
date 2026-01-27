@@ -5,7 +5,7 @@ import re
 from datetime import datetime, timedelta
 
 from fastapi import Body, Depends, HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session, joinedload
 
 from constants.match_state import MatchState
@@ -39,6 +39,9 @@ from modules.tournament.routes.tournament_structure import (
     get_tournament_structure,
 )
 from .router import router
+
+PHASE_ORDER = ["RO16", "QF", "SF", "3P", "F"]
+DEFAULT_PAIRING_CONFIG = {phase: "CROSS" for phase in PHASE_ORDER}
 
 
 def _get_tournament_or_404(db: Session, tournament_id: int) -> TournamentModel:
@@ -191,10 +194,120 @@ def _build_group_standings(group: TournamentGroupModel, matches: list[MatchModel
     return sorted(standings.values(), key=sort_key)
 
 
+def _get_group_completion_map(db: Session, group_ids: list[int]) -> dict[int, bool]:
+    if not group_ids:
+        return {}
+    rows = (
+        db.query(
+            TournamentGroupMatchModel.groupId,
+            func.count(MatchModel.id),
+            func.coalesce(
+                func.sum(case((MatchModel.state == MatchState.FINISHED, 1), else_=0)),
+                0,
+            ),
+        )
+        .join(MatchModel, TournamentGroupMatchModel.matchId == MatchModel.id)
+        .filter(TournamentGroupMatchModel.groupId.in_(group_ids))
+        .group_by(TournamentGroupMatchModel.groupId)
+        .all()
+    )
+    completion = {group_id: False for group_id in group_ids}
+    for group_id, total_matches, finished_matches in rows:
+        completion[group_id] = total_matches > 0 and finished_matches == total_matches
+    return completion
+
+
+def _load_knockout_entries(
+    db: Session,
+    tournament_id: int,
+    round_label: str,
+) -> list[TournamentKnockoutMatchModel]:
+    return (
+        db.query(TournamentKnockoutMatchModel)
+        .options(joinedload(TournamentKnockoutMatchModel.match))
+        .filter(
+            TournamentKnockoutMatchModel.tournamentId == tournament_id,
+            TournamentKnockoutMatchModel.round == round_label,
+        )
+        .order_by(
+            TournamentKnockoutMatchModel.order.is_(None),
+            TournamentKnockoutMatchModel.order,
+            TournamentKnockoutMatchModel.id,
+        )
+        .all()
+    )
+
+
+def _get_knockout_winners(entries: list[TournamentKnockoutMatchModel]) -> list[int | None]:
+    winners: list[int | None] = []
+    for entry in entries:
+        match = entry.match
+        if not match or match.state != MatchState.FINISHED:
+            winners.append(None)
+            continue
+        if match.scoreTeam1 is None or match.scoreTeam2 is None:
+            winners.append(None)
+            continue
+        if match.scoreTeam1 == match.scoreTeam2:
+            winners.append(None)
+            continue
+        winners.append(match.team1Id if match.scoreTeam1 > match.scoreTeam2 else match.team2Id)
+    return winners
+
+
+def _get_knockout_losers(entries: list[TournamentKnockoutMatchModel]) -> list[int | None]:
+    losers: list[int | None] = []
+    for entry in entries:
+        match = entry.match
+        if not match or match.state != MatchState.FINISHED:
+            losers.append(None)
+            continue
+        if match.scoreTeam1 is None or match.scoreTeam2 is None:
+            losers.append(None)
+            continue
+        if match.scoreTeam1 == match.scoreTeam2:
+            losers.append(None)
+            continue
+        losers.append(match.team2Id if match.scoreTeam1 > match.scoreTeam2 else match.team1Id)
+    return losers
+
+
+def _normalize_pairing_config(pairing_config: dict | None, fallback: str | None) -> dict[str, str]:
+    config = DEFAULT_PAIRING_CONFIG.copy()
+    if fallback:
+        normalized = _normalize_pairing_value(fallback)
+        for phase in config:
+            config[phase] = normalized
+    if pairing_config:
+        for key, value in pairing_config.items():
+            phase_key = str(key).strip().upper()
+            if phase_key not in config:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Unknown phase in pairingConfig: {phase_key}",
+                )
+            config[phase_key] = _normalize_pairing_value(str(value))
+    return config
+
+
 def _normalize_pairing_mode(mode: str | None) -> str:
     if not mode:
         return "cross"
     return mode.strip().lower()
+
+
+def _normalize_pairing_value(value: str | None) -> str:
+    if not value:
+        return "CROSS"
+    normalized = value.strip().upper()
+    if normalized in {"CROSS", "RANDOM", "MANUAL", "SEEDED"}:
+        return normalized
+    if normalized == "SEED":
+        return "SEEDED"
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Unsupported pairing value: {value}",
+    )
 
 
 def _parse_seed_label(label: str) -> tuple[str, int]:
@@ -212,6 +325,22 @@ def _parse_seed_label(label: str) -> tuple[str, int]:
             detail=f"Invalid seed rank in label: {label}",
         )
     return group_name, rank
+
+
+def _parse_seed_index(label: str) -> int:
+    match = re.match(r"^(?:seed\\s*)?#?\\s*(\\d+)$", label.strip(), flags=re.IGNORECASE)
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid seed label: {label}",
+        )
+    seed = int(match.group(1))
+    if seed <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid seed label: {label}",
+        )
+    return seed
 
 
 def _load_team_league_map(db: Session, tournament_id: int, team_ids: list[int]) -> dict[int, set[int]]:
@@ -681,20 +810,93 @@ async def create_knockout_matches_auto(
 
     standings_response = await get_group_standings(tournament_id, db)
     standings_by_group = {item.groupId: item.teams for item in standings_response.groups}
-
     ordered_groups = sorted(groups, key=lambda g: (g.order is None, g.order or 0, g.name.lower()))
-    qualifiers = []
-    team_ids_all = []
-    for group in ordered_groups:
-        group_standings = standings_by_group.get(group.id, [])
-        if len(group_standings) < data.qualifiersPerGroup:
+    group_completion = _get_group_completion_map(db, [group.id for group in ordered_groups])
+
+    if data.pairingStrategy not in {"cross", "seeded", "random"}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="pairingStrategy must be 'cross', 'seeded' or 'random'",
+        )
+
+    if data.pairingStrategy in {"seeded", "random"}:
+        incomplete_groups = [group.name for group in ordered_groups if not group_completion.get(group.id)]
+        if incomplete_groups:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cannot generate knockout matches until all groups are finished",
+            )
+
+    pairs_with_order: list[tuple[int, int, int]] = []
+    order_index = 1
+    total_possible_matches = 0
+    if data.pairingStrategy == "cross":
+        if len(ordered_groups) % 2 != 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Not enough teams to qualify {data.qualifiersPerGroup} team(s) for {group.name}",
+                detail="Cross pairing requires an even number of groups",
             )
-        qualifiers.append(group_standings[: data.qualifiersPerGroup])
-        team_ids_all.extend([team.id for team in group_standings[: data.qualifiersPerGroup]])
+        if data.qualifiersPerGroup > 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cross pairing supports up to 2 qualifiers per group",
+            )
+        for i in range(0, len(ordered_groups), 2):
+            group_a = ordered_groups[i]
+            group_b = ordered_groups[i + 1]
+            group_a_ready = group_completion.get(group_a.id, False)
+            group_b_ready = group_completion.get(group_b.id, False)
+            if not (group_a_ready and group_b_ready):
+                order_index += 1 if data.qualifiersPerGroup == 1 else 2
+                continue
+            group_a_standings = standings_by_group.get(group_a.id, [])
+            group_b_standings = standings_by_group.get(group_b.id, [])
+            if len(group_a_standings) < data.qualifiersPerGroup or len(group_b_standings) < data.qualifiersPerGroup:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Not enough teams to qualify {data.qualifiersPerGroup} team(s) for {group_a.name}/{group_b.name}",
+                )
+            if data.qualifiersPerGroup == 1:
+                pairs_with_order.append((order_index, group_a_standings[0].id, group_b_standings[0].id))
+                order_index += 1
+            else:
+                pairs_with_order.append((order_index, group_a_standings[0].id, group_b_standings[1].id))
+                order_index += 1
+                pairs_with_order.append((order_index, group_b_standings[0].id, group_a_standings[1].id))
+                order_index += 1
+    else:
+        qualifiers = []
+        for group in ordered_groups:
+            group_standings = standings_by_group.get(group.id, [])
+            if len(group_standings) < data.qualifiersPerGroup:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Not enough teams to qualify {data.qualifiersPerGroup} team(s) for {group.name}",
+                )
+            qualifiers.append(group_standings[: data.qualifiersPerGroup])
 
+        pairs: list[tuple[int, int]] = []
+        if data.pairingStrategy == "seeded":
+            flat = []
+            for group in qualifiers:
+                flat.extend(group)
+            ordered = [team.id for team in flat]
+            while len(ordered) >= 2:
+                pairs.append((ordered.pop(0), ordered.pop(-1)))
+        else:
+            flat = []
+            for group in qualifiers:
+                flat.extend(group)
+            ordered = [team.id for team in flat]
+            random.shuffle(ordered)
+            while len(ordered) >= 2:
+                pairs.append((ordered.pop(0), ordered.pop(0)))
+
+        for team1_id, team2_id in pairs:
+            pairs_with_order.append((order_index, team1_id, team2_id))
+            order_index += 1
+
+    team_ids_all = [team_id for _, team_id, _ in pairs_with_order] + [team_id for _, _, team_id in pairs_with_order]
     team_leagues = _load_team_league_map(db, tournament_id, team_ids_all)
     if data.leagueId is not None:
         league = (
@@ -707,48 +909,6 @@ async def create_knockout_matches_auto(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"League with ID {data.leagueId} not found for this tournament",
             )
-
-    if data.pairingStrategy not in {"cross", "seeded", "random"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="pairingStrategy must be 'cross', 'seeded' or 'random'",
-        )
-
-    pairs: list[tuple[int, int]] = []
-    if data.pairingStrategy == "cross":
-        if len(qualifiers) % 2 != 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cross pairing requires an even number of groups",
-            )
-        if data.qualifiersPerGroup > 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cross pairing supports up to 2 qualifiers per group",
-            )
-        for i in range(0, len(qualifiers), 2):
-            group_a = qualifiers[i]
-            group_b = qualifiers[i + 1]
-            if data.qualifiersPerGroup == 1:
-                pairs.append((group_a[0].id, group_b[0].id))
-            else:
-                pairs.append((group_a[0].id, group_b[1].id))
-                pairs.append((group_b[0].id, group_a[1].id))
-    elif data.pairingStrategy == "seeded":
-        flat = []
-        for group in qualifiers:
-            flat.extend(group)
-        ordered = [team.id for team in flat]
-        while len(ordered) >= 2:
-            pairs.append((ordered.pop(0), ordered.pop(-1)))
-    else:
-        flat = []
-        for group in qualifiers:
-            flat.extend(group)
-        ordered = [team.id for team in flat]
-        random.shuffle(ordered)
-        while len(ordered) >= 2:
-            pairs.append((ordered.pop(0), ordered.pop(0)))
 
     if data.replaceExisting:
         existing = (
@@ -763,13 +923,27 @@ async def create_knockout_matches_auto(
         if match_ids:
             db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
 
+    round_label = data.round
+    existing_orders = set()
+    if not data.replaceExisting:
+        existing_query = db.query(TournamentKnockoutMatchModel.order).filter(
+            TournamentKnockoutMatchModel.tournamentId == tournament_id
+        )
+        if round_label is None:
+            existing_query = existing_query.filter(TournamentKnockoutMatchModel.round.is_(None))
+        else:
+            existing_query = existing_query.filter(TournamentKnockoutMatchModel.round == round_label)
+        existing_orders = {row[0] for row in existing_query.all()}
+
     interval = timedelta(minutes=data.intervalMinutes)
-    for index, (team1_id, team2_id) in enumerate(pairs, start=1):
+    for order, team1_id, team2_id in pairs_with_order:
+        if order in existing_orders:
+            continue
         league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
         match = MatchModel(
             team1Id=team1_id,
             team2Id=team2_id,
-            timestamp=data.startTimestamp + interval * (index - 1),
+            timestamp=data.startTimestamp + interval * (order - 1),
             state=MatchState.SCHEDULED,
             leagueId=league_id,
         )
@@ -778,8 +952,8 @@ async def create_knockout_matches_auto(
         db.add(TournamentKnockoutMatchModel(
             tournamentId=tournament_id,
             matchId=match.id,
-            round=data.round,
-            order=index,
+            round=round_label,
+            order=order,
         ))
 
     db.commit()
@@ -794,13 +968,14 @@ async def set_knockout_config(
 ):
     _get_tournament_or_404(db, tournament_id)
     pairing_mode = _normalize_pairing_mode(data.pairingMode)
-    if pairing_mode not in {"cross", "random", "manual"}:
+    if pairing_mode not in {"cross", "random", "manual", "seeded"}:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="pairingMode must be 'CROSS', 'RANDOM' or 'MANUAL'",
+            detail="pairingMode must be 'CROSS', 'RANDOM', 'SEEDED' or 'MANUAL'",
         )
 
     manual_pairs = data.manualPairs or []
+    manual_pairs_by_phase = data.manualPairsByPhase or None
     if pairing_mode == "manual":
         if not manual_pairs:
             raise HTTPException(
@@ -827,11 +1002,22 @@ async def set_knockout_config(
         qualifiersPerGroup=data.qualifiersPerGroup,
         pairingMode=pairing_mode,
         manualPairs=json.dumps([pair.model_dump() for pair in manual_pairs]) if manual_pairs else None,
+        pairingConfig=json.dumps(data.pairingConfig) if data.pairingConfig else None,
+        manualPairsByPhase=(
+            json.dumps({
+                phase: [pair.model_dump() for pair in pairs]
+                for phase, pairs in manual_pairs_by_phase.items()
+            })
+            if manual_pairs_by_phase
+            else None
+        ),
     )
     if config:
         config.qualifiersPerGroup = payload.qualifiersPerGroup
         config.pairingMode = payload.pairingMode
         config.manualPairs = payload.manualPairs
+        config.pairingConfig = payload.pairingConfig
+        config.manualPairsByPhase = payload.manualPairsByPhase
     else:
         db.add(payload)
     db.commit()
@@ -840,6 +1026,8 @@ async def set_knockout_config(
         qualifiersPerGroup=payload.qualifiersPerGroup,
         pairingMode=payload.pairingMode,
         manualPairs=manual_pairs,
+        pairingConfig=data.pairingConfig,
+        manualPairsByPhase=manual_pairs_by_phase,
     )
 
 
@@ -880,22 +1068,26 @@ async def generate_knockout_matches_from_config(
             detail="No groups found for this tournament",
         )
 
+    pairing_config_raw = None
+    if config.pairingConfig:
+        try:
+            pairing_config_raw = json.loads(config.pairingConfig)
+        except json.JSONDecodeError:
+            pairing_config_raw = None
+    pairing_config = _normalize_pairing_config(pairing_config_raw, config.pairingMode)
+
+    manual_pairs_by_phase = None
+    if config.manualPairsByPhase:
+        try:
+            manual_pairs_by_phase = json.loads(config.manualPairsByPhase)
+        except json.JSONDecodeError:
+            manual_pairs_by_phase = None
+
     standings_response = await get_group_standings(tournament_id, db)
     standings_by_group = {item.groupId: item.teams for item in standings_response.groups}
     ordered_groups = sorted(groups, key=lambda g: (g.order is None, g.order or 0, g.name.lower()))
-    qualifiers = []
-    team_ids_all = []
-    for group in ordered_groups:
-        group_standings = standings_by_group.get(group.id, [])
-        if len(group_standings) < qualifiers_per_group:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Not enough teams to qualify {qualifiers_per_group} team(s) for {group.name}",
-            )
-        qualifiers.append(group_standings[: qualifiers_per_group])
-        team_ids_all.extend([team.id for team in group_standings[: qualifiers_per_group]])
+    group_completion = _get_group_completion_map(db, [group.id for group in ordered_groups])
 
-    team_leagues = _load_team_league_map(db, tournament_id, team_ids_all)
     if data.leagueId is not None:
         league = (
             db.query(LeagueModel)
@@ -907,84 +1099,6 @@ async def generate_knockout_matches_from_config(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"League with ID {data.leagueId} not found for this tournament",
             )
-
-    pairing_mode = _normalize_pairing_mode(config.pairingMode)
-    pairs: list[tuple[int, int]] = []
-    if pairing_mode == "cross":
-        if len(qualifiers) % 2 != 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cross pairing requires an even number of groups",
-            )
-        if qualifiers_per_group > 2:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cross pairing supports up to 2 qualifiers per group",
-            )
-        for i in range(0, len(qualifiers), 2):
-            group_a = qualifiers[i]
-            group_b = qualifiers[i + 1]
-            if qualifiers_per_group == 1:
-                pairs.append((group_a[0].id, group_b[0].id))
-            else:
-                pairs.append((group_a[0].id, group_b[1].id))
-                pairs.append((group_b[0].id, group_a[1].id))
-    elif pairing_mode == "random":
-        flat = []
-        for group in qualifiers:
-            flat.extend(group)
-        ordered = [team.id for team in flat]
-        random.shuffle(ordered)
-        while len(ordered) >= 2:
-            pairs.append((ordered.pop(0), ordered.pop(0)))
-    elif pairing_mode == "manual":
-        manual_pairs = []
-        if config.manualPairs:
-            try:
-                manual_pairs = json.loads(config.manualPairs)
-            except json.JSONDecodeError:
-                manual_pairs = []
-        if not manual_pairs:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="manualPairs is required for MANUAL pairing",
-            )
-        group_by_name = {group.name.lower(): group for group in ordered_groups}
-        for pair in manual_pairs:
-            group_name, rank = _parse_seed_label(pair["home"])
-            group = group_by_name.get(group_name.lower())
-            if not group:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown group in label: {pair['home']}",
-                )
-            group_standings = standings_by_group.get(group.id, [])
-            if len(group_standings) < rank:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Not enough teams in group for label: {pair['home']}",
-                )
-            home_team = group_standings[rank - 1].id
-            group_name, rank = _parse_seed_label(pair["away"])
-            group = group_by_name.get(group_name.lower())
-            if not group:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Unknown group in label: {pair['away']}",
-                )
-            group_standings = standings_by_group.get(group.id, [])
-            if len(group_standings) < rank:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Not enough teams in group for label: {pair['away']}",
-                )
-            away_team = group_standings[rank - 1].id
-            pairs.append((home_team, away_team))
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported pairing mode",
-        )
 
     if data.replaceExisting:
         existing = (
@@ -999,26 +1113,283 @@ async def generate_knockout_matches_from_config(
         if match_ids:
             db.query(MatchModel).filter(MatchModel.id.in_(match_ids)).delete(synchronize_session=False)
 
+    total_qualifiers = len(ordered_groups) * qualifiers_per_group
+    if total_qualifiers not in {2, 4, 8, 16}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Qualifiers count must be 2, 4, 8, or 16 to generate knockout phases",
+        )
+
+    initial_phase = {16: "RO16", 8: "QF", 4: "SF", 2: "F"}[total_qualifiers]
+    initial_pairing = pairing_config.get(initial_phase, "CROSS")
+    if manual_pairs_by_phase is None and config.manualPairs:
+        try:
+            legacy_pairs = json.loads(config.manualPairs)
+        except json.JSONDecodeError:
+            legacy_pairs = []
+        manual_pairs_by_phase = {initial_phase: legacy_pairs} if legacy_pairs else None
+
+    def create_matches_for_phase(
+        phase: str,
+        participants: list[int],
+        pairing_value: str,
+        start_time: datetime,
+        interval: timedelta,
+    ) -> None:
+        if not participants or len(participants) < 2:
+            return
+        pairs: list[tuple[int, int]] = []
+        if len(participants) == 2:
+            pairs.append((participants[0], participants[1]))
+        elif pairing_value == "RANDOM":
+            ordered = list(participants)
+            random.shuffle(ordered)
+            while len(ordered) >= 2:
+                pairs.append((ordered.pop(0), ordered.pop(0)))
+        elif pairing_value in {"SEEDED", "CROSS"}:
+            ordered = list(participants)
+            while len(ordered) >= 2:
+                pairs.append((ordered.pop(0), ordered.pop(-1)))
+        elif pairing_value == "MANUAL":
+            phase_pairs = (manual_pairs_by_phase or {}).get(phase) or []
+            if not phase_pairs:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"manualPairs are required for phase {phase}. Provide manualPairsByPhase['{phase}']",
+                )
+            for pair in phase_pairs:
+                home_index = _parse_seed_index(pair["home"])
+                away_index = _parse_seed_index(pair["away"])
+                if home_index > len(participants) or away_index > len(participants):
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"manualPairs seed index out of range for phase {phase}",
+                    )
+                pairs.append((participants[home_index - 1], participants[away_index - 1]))
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported pairing mode for phase {phase}",
+            )
+
+        existing_orders = {
+            row[0]
+            for row in db.query(TournamentKnockoutMatchModel.order)
+            .filter(
+                TournamentKnockoutMatchModel.tournamentId == tournament_id,
+                TournamentKnockoutMatchModel.round == phase,
+            )
+            .all()
+        }
+        team_leagues = _load_team_league_map(
+            db, tournament_id, [team_id for pair in pairs for team_id in pair]
+        )
+        for idx, (team1_id, team2_id) in enumerate(pairs, start=1):
+            if idx in existing_orders:
+                continue
+            league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
+            match = MatchModel(
+                team1Id=team1_id,
+                team2Id=team2_id,
+                timestamp=start_time + interval * (idx - 1),
+                state=MatchState.SCHEDULED,
+                leagueId=league_id,
+            )
+            db.add(match)
+            db.flush()
+            db.add(TournamentKnockoutMatchModel(
+                tournamentId=tournament_id,
+                matchId=match.id,
+                round=phase,
+                order=idx,
+            ))
+
+    def build_initial_participants() -> list[tuple[int, int, int]]:
+        pairs_with_order: list[tuple[int, int, int]] = []
+        order_index = 1
+        if initial_pairing == "CROSS":
+            if len(ordered_groups) % 2 != 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cross pairing requires an even number of groups",
+                )
+            if qualifiers_per_group > 2:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cross pairing supports up to 2 qualifiers per group",
+                )
+            for i in range(0, len(ordered_groups), 2):
+                group_a = ordered_groups[i]
+                group_b = ordered_groups[i + 1]
+                group_a_ready = group_completion.get(group_a.id, False)
+                group_b_ready = group_completion.get(group_b.id, False)
+                if not (group_a_ready and group_b_ready):
+                    order_index += 1 if qualifiers_per_group == 1 else 2
+                    continue
+                group_a_standings = standings_by_group.get(group_a.id, [])
+                group_b_standings = standings_by_group.get(group_b.id, [])
+                if len(group_a_standings) < qualifiers_per_group or len(group_b_standings) < qualifiers_per_group:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Not enough teams to qualify {qualifiers_per_group} team(s) for {group_a.name}/{group_b.name}",
+                    )
+                if qualifiers_per_group == 1:
+                    pairs_with_order.append((order_index, group_a_standings[0].id, group_b_standings[0].id))
+                    order_index += 1
+                else:
+                    pairs_with_order.append((order_index, group_a_standings[0].id, group_b_standings[1].id))
+                    order_index += 1
+                    pairs_with_order.append((order_index, group_b_standings[0].id, group_a_standings[1].id))
+                    order_index += 1
+        elif initial_pairing in {"RANDOM", "SEEDED"}:
+            incomplete_groups = [group.name for group in ordered_groups if not group_completion.get(group.id)]
+            if incomplete_groups:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Cannot generate knockout matches until all groups are finished",
+                )
+            qualifiers = []
+            for group in ordered_groups:
+                group_standings = standings_by_group.get(group.id, [])
+                if len(group_standings) < qualifiers_per_group:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Not enough teams to qualify {qualifiers_per_group} team(s) for {group.name}",
+                    )
+                qualifiers.append(group_standings[: qualifiers_per_group])
+            flat = []
+            for group in qualifiers:
+                flat.extend(group)
+            ordered = [team.id for team in flat]
+            if initial_pairing == "RANDOM":
+                random.shuffle(ordered)
+            pairs: list[tuple[int, int]] = []
+            if initial_pairing == "SEEDED":
+                while len(ordered) >= 2:
+                    pairs.append((ordered.pop(0), ordered.pop(-1)))
+            else:
+                while len(ordered) >= 2:
+                    pairs.append((ordered.pop(0), ordered.pop(0)))
+            for team1_id, team2_id in pairs:
+                pairs_with_order.append((order_index, team1_id, team2_id))
+                order_index += 1
+        elif initial_pairing == "MANUAL":
+            manual_pairs = (manual_pairs_by_phase or {}).get(initial_phase) or []
+            if not manual_pairs:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"manualPairs are required for phase {initial_phase}",
+                )
+            group_by_name = {group.name.lower(): group for group in ordered_groups}
+            for pair in manual_pairs:
+                group_name, rank = _parse_seed_label(pair["home"])
+                group = group_by_name.get(group_name.lower())
+                if not group:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Unknown group in label: {pair['home']}",
+                    )
+                if not group_completion.get(group.id, False):
+                    order_index += 1
+                    continue
+                group_standings = standings_by_group.get(group.id, [])
+                if len(group_standings) < rank:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Not enough teams in group for label: {pair['home']}",
+                    )
+                home_team = group_standings[rank - 1].id
+                group_name, rank = _parse_seed_label(pair["away"])
+                group = group_by_name.get(group_name.lower())
+                if not group:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Unknown group in label: {pair['away']}",
+                    )
+                if not group_completion.get(group.id, False):
+                    order_index += 1
+                    continue
+                group_standings = standings_by_group.get(group.id, [])
+                if len(group_standings) < rank:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Not enough teams in group for label: {pair['away']}",
+                    )
+                away_team = group_standings[rank - 1].id
+                pairs_with_order.append((order_index, home_team, away_team))
+                order_index += 1
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Unsupported pairing mode for phase {initial_phase}",
+            )
+        return pairs_with_order
+
     start_time = data.startTimestamp or datetime.utcnow()
     interval = timedelta(minutes=data.intervalMinutes)
-    round_label = f"Round of {len(pairs) * 2}"
-    for index, (team1_id, team2_id) in enumerate(pairs, start=1):
-        league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
-        match = MatchModel(
-            team1Id=team1_id,
-            team2Id=team2_id,
-            timestamp=start_time + interval * (index - 1),
-            state=MatchState.SCHEDULED,
-            leagueId=league_id,
+
+    pairs_with_order = build_initial_participants()
+    if pairs_with_order:
+        team_leagues = _load_team_league_map(
+            db,
+            tournament_id,
+            [team_id for _, team_id, _ in pairs_with_order] + [team_id for _, _, team_id in pairs_with_order],
         )
-        db.add(match)
-        db.flush()
-        db.add(TournamentKnockoutMatchModel(
-            tournamentId=tournament_id,
-            matchId=match.id,
-            round=round_label,
-            order=index,
-        ))
+        existing_orders = {
+            row[0]
+            for row in db.query(TournamentKnockoutMatchModel.order)
+            .filter(
+                TournamentKnockoutMatchModel.tournamentId == tournament_id,
+                TournamentKnockoutMatchModel.round == initial_phase,
+            )
+            .all()
+        }
+        for order, team1_id, team2_id in pairs_with_order:
+            if order in existing_orders:
+                continue
+            league_id = _resolve_match_league_id(team_leagues, team1_id, team2_id, data.leagueId)
+            match = MatchModel(
+                team1Id=team1_id,
+                team2Id=team2_id,
+                timestamp=start_time + interval * (order - 1),
+                state=MatchState.SCHEDULED,
+                leagueId=league_id,
+            )
+            db.add(match)
+            db.flush()
+            db.add(TournamentKnockoutMatchModel(
+                tournamentId=tournament_id,
+                matchId=match.id,
+                round=initial_phase,
+                order=order,
+            ))
+
+    phase_chain = {
+        "RO16": "QF",
+        "QF": "SF",
+        "SF": "F",
+    }
+    current_phase = initial_phase
+    while current_phase in phase_chain:
+        next_phase = phase_chain[current_phase]
+        current_entries = _load_knockout_entries(db, tournament_id, current_phase)
+        if not current_entries:
+            break
+        winners = _get_knockout_winners(current_entries)
+        if any(winner is None for winner in winners):
+            break
+        participants = [winner for winner in winners if winner is not None]
+        next_pairing = pairing_config.get(next_phase, "CROSS")
+        create_matches_for_phase(next_phase, participants, next_pairing, start_time, interval)
+        current_phase = next_phase
+
+    sf_entries = _load_knockout_entries(db, tournament_id, "SF")
+    if sf_entries:
+        sf_losers = _get_knockout_losers(sf_entries)
+        if sf_losers and not any(loser is None for loser in sf_losers):
+            participants = [loser for loser in sf_losers if loser is not None]
+            third_place_pairing = pairing_config.get("3P", "CROSS")
+            create_matches_for_phase("3P", participants, third_place_pairing, start_time, interval)
 
     db.commit()
     return await get_tournament_structure(tournament_id, db)

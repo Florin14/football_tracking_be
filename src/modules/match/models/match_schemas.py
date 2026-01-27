@@ -4,6 +4,7 @@ from typing import Optional, List
 from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
+from modules.tournament.models.tournament_schemas import LeagueItem
 
 
 class MatchAdd(BaseSchema):
@@ -59,6 +60,7 @@ class TeamItem(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
+    isDefault: bool
     playerCount: Optional[int] = 0
     logo: Optional[str] = Field(None, example="")
 
@@ -74,6 +76,7 @@ class MatchResponse(BaseSchema):
     id: int
     team1: TeamItem
     team2: TeamItem
+    league: Optional[LeagueItem] = None
     location: Optional[str] = None
     timestamp: datetime
     scoreTeam1: Optional[int] = None

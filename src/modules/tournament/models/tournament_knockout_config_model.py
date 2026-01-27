@@ -11,3 +11,5 @@ class TournamentKnockoutConfigModel(BaseModel):
     qualifiersPerGroup = Column(Integer, nullable=True, name="qualifiers_per_group")
     pairingMode = Column(String, nullable=True, name="pairing_mode")
     manualPairs = Column(Text, nullable=True, name="manual_pairs")
+    pairingConfig = Column(Text, nullable=True, name="pairing_config")
+    manualPairsByPhase = Column(Text, nullable=True, name="manual_pairs_by_phase")

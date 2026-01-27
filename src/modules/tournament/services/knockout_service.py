@@ -8,6 +8,7 @@ from modules.match.models.match_model import MatchModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
+from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 
 
 def _get_match_winner(match: MatchModel) -> int | None:
@@ -77,6 +78,14 @@ def auto_advance_knockout(db: Session, match: MatchModel) -> None:
     if not knockout_entry:
         return
 
+    config = (
+        db.query(TournamentKnockoutConfigModel)
+        .filter(TournamentKnockoutConfigModel.tournamentId == knockout_entry.tournamentId)
+        .first()
+    )
+    if config and (config.pairingMode or config.pairingConfig or config.manualPairs or config.manualPairsByPhase):
+        return
+
     winner = _get_match_winner(match)
     if not winner:
         return
@@ -103,6 +112,8 @@ def auto_advance_knockout(db: Session, match: MatchModel) -> None:
     for entry in current_entries:
         entry_match = db.query(MatchModel).filter(MatchModel.id == entry.matchId).first()
         winners.append(_get_match_winner(entry_match))
+    if any(winner is None for winner in winners):
+        return
 
     next_round = _next_round_label(current_round, len(current_entries))
     if not next_round:

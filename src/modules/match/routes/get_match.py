@@ -16,6 +16,7 @@ async def get_match(match: MatchModel = Depends(GetInstanceFromPath(MatchModel))
         .options(
             joinedload(MatchModel.team1),
             joinedload(MatchModel.team2),
+            joinedload(MatchModel.league),
         )
         .filter(MatchModel.id == match.id)
         .first()
@@ -25,6 +26,7 @@ async def get_match(match: MatchModel = Depends(GetInstanceFromPath(MatchModel))
         id=match.id,
         team1=match.team1,
         team2=match.team2,
+        league=match.league,
         location=match.location,
         timestamp=match.timestamp,
         scoreTeam1=match.scoreTeam1,

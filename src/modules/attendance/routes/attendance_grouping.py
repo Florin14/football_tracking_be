@@ -8,6 +8,7 @@ from modules.attendance.models.attendance_schemas import (
     AttendanceResponse,
     AttendanceTournamentGroupResponse,
 )
+from constants.attendance_status import AttendanceStatus
 from modules.match.models import MatchModel
 from modules.player.models import PlayerModel
 from modules.team.models import TeamModel
@@ -97,4 +98,15 @@ def build_grouped_attendance(
 
         tournament_group.items.append(attendance_response)
 
-    return list(players.values())
+    player_groups = list(players.values())
+    player_groups.sort(
+        key=lambda group: (
+            not any(
+                item.status == AttendanceStatus.PRESENT.value
+                for tournament in group.tournaments
+                for item in tournament.items
+            ),
+            (group.playerName or "").casefold(),
+        )
+    )
+    return player_groups

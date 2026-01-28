@@ -8,7 +8,7 @@ from modules.match.models import (
 )
 from modules.ranking.services import recalculate_match_rankings
 from modules.tournament.services.knockout_service import auto_advance_knockout
-from modules.player.models import PlayerModel
+from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
 from .router import router

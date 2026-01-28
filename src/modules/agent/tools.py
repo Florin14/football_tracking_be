@@ -8,7 +8,9 @@ import redis, json, os
 from sqlalchemy.orm import Session
 
 from extensions import SessionLocal, get_db
-from modules import MatchModel, GoalModel, RankingModel
+from modules.match.models.match_model import MatchModel
+from modules.match.models.goal_model import GoalModel
+from modules.ranking.models.ranking_model import RankingModel
 
 r = redis.Redis.from_url(os.getenv("REDIS_URL","redis://localhost:6379"), decode_responses=True)
 

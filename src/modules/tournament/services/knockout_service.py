@@ -9,6 +9,7 @@ from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
+from modules.attendance.services.attendance_service import ensure_match_attendance_for_default_team
 
 
 def _get_match_winner(match: MatchModel) -> int | None:
@@ -158,3 +159,4 @@ def auto_advance_knockout(db: Session, match: MatchModel) -> None:
             round=next_round,
             order=order,
         ))
+        ensure_match_attendance_for_default_team(db, new_match)

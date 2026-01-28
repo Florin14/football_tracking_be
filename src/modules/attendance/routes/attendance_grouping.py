@@ -10,7 +10,7 @@ from modules.attendance.models.attendance_schemas import (
 )
 from constants.attendance_status import AttendanceStatus
 from modules.match.models import MatchModel
-from modules.player.models import PlayerModel
+from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 

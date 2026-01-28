@@ -4,7 +4,27 @@ from datetime import date, datetime
 from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
-from modules.team.models import TeamItem
+
+class TeamItemLite(BaseSchema):
+    id: int
+    name: str
+    description: Optional[str] = None
+    playerCount: Optional[int] = 0
+    logo: Optional[str] = Field(None, example="")
+    points: Optional[int] = 0
+    goalsFor: Optional[int] = 0
+    goalsAgainst: Optional[int] = 0
+    wins: Optional[int] = 0
+    draws: Optional[int] = 0
+    losses: Optional[int] = 0
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 from project_helpers.functions import process_and_convert_image_to_base64
 
 
@@ -118,7 +138,7 @@ class LeagueDetail(BaseSchema):
 
 class LeagueTeamsResponse(BaseSchema):
     league: LeagueDetail
-    teams: List[TeamItem] = []
+    teams: List[TeamItemLite] = []
 
 
 class LeagueTeamsAssignRequest(BaseSchema):
@@ -183,7 +203,7 @@ class TournamentGroupItem(BaseSchema):
     id: int
     name: str
     order: Optional[int] = None
-    teams: List[TeamItem] = []
+    teams: List[TeamItemLite] = []
 
 
 class TournamentGroupsAutoAssignRequest(BaseSchema):
@@ -234,7 +254,7 @@ class TournamentGroupMatchesResponse(BaseSchema):
 class TournamentGroupStandingsItem(BaseSchema):
     groupId: int
     groupName: str
-    teams: List[TeamItem] = []
+    teams: List[TeamItemLite] = []
 
 
 class TournamentGroupStandingsResponse(BaseSchema):

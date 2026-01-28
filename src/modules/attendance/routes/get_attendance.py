@@ -12,6 +12,7 @@ from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
+from modules.team.models import TeamModel
 from .attendance_grouping import build_grouped_attendance
 from .router import router
 
@@ -48,6 +49,11 @@ async def get_attendance(
 
     if player_id:
         query = query.filter(AttendanceModel.playerId == player_id)
+
+    if team_id is None:
+        default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+        if default_team:
+            team_id = default_team.id
 
     if team_id:
         query = query.filter(AttendanceModel.teamId == team_id)

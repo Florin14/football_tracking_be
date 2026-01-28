@@ -2,7 +2,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
-from modules.player.models import PlayerModel
+from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse

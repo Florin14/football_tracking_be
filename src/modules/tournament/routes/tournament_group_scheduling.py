@@ -34,6 +34,7 @@ from modules.tournament.models.tournament_schemas import (
     TournamentStructureResponse,
 )
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
+from modules.attendance.services.attendance_service import ensure_match_attendance_for_default_team
 from modules.tournament.routes.tournament_structure import (
     _validate_teams_belong_to_tournament,
     get_tournament_structure,
@@ -586,6 +587,7 @@ async def generate_group_schedule(
             round=spec["round"],
             order=index,
         ))
+        ensure_match_attendance_for_default_team(db, match)
         created_matches.append(match)
 
     db.commit()
@@ -789,6 +791,7 @@ async def create_knockout_matches_bulk(
             round=entry.round,
             order=entry.order,
         ))
+        ensure_match_attendance_for_default_team(db, match)
 
     db.commit()
     return await get_tournament_structure(tournament_id, db)
@@ -955,6 +958,7 @@ async def create_knockout_matches_auto(
             round=round_label,
             order=order,
         ))
+        ensure_match_attendance_for_default_team(db, match)
 
     db.commit()
     return await get_tournament_structure(tournament_id, db)
@@ -1203,6 +1207,7 @@ async def generate_knockout_matches_from_config(
                 round=phase,
                 order=idx,
             ))
+            ensure_match_attendance_for_default_team(db, match)
 
     def build_initial_participants() -> list[tuple[int, int, int]]:
         pairs_with_order: list[tuple[int, int, int]] = []
@@ -1363,6 +1368,7 @@ async def generate_knockout_matches_from_config(
                 round=initial_phase,
                 order=order,
             ))
+            ensure_match_attendance_for_default_team(db, match)
 
     phase_chain = {
         "RO16": "QF",

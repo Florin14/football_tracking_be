@@ -10,3 +10,4 @@ from .auth import *
 from .admin import *
 from .training import *
 from .attendance import *
+from .reports import *

@@ -11,8 +11,9 @@ from modules.attendance.models.attendance_schemas import AttendanceGroupedListRe
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
-from modules.player.models import PlayerModel
+from modules.player.models.player_model import PlayerModel
 from modules.tournament.models.tournament_model import TournamentModel
+from modules.team.models import TeamModel
 from .attendance_grouping import build_grouped_attendance
 from .router import router
 
@@ -51,6 +52,11 @@ async def get_attendance_by_scope(
     if player_id:
         query = query.filter(AttendanceModel.playerId == player_id)
 
+    if team_id is None:
+        default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+        if default_team:
+            team_id = default_team.id
+
     if team_id:
         query = query.filter(AttendanceModel.teamId == team_id)
 
@@ -82,7 +88,7 @@ async def get_attendance_by_scope(
             )
         )
 
-    if attendance_scope == AttendanceScope.MATCH and match_id:
+    if match_id and (attendance_scope is None or attendance_scope == AttendanceScope.MATCH):
         match = db.query(MatchModel).filter(MatchModel.id == match_id).first()
         if match:
             should_add_missing = True
@@ -106,7 +112,7 @@ async def get_attendance_by_scope(
                 if tournament and (tournament.formatType or "").upper().startswith("GROUP"):
                     should_add_missing = False
 
-            if should_add_missing and (attendance_status is None or attendance_status == AttendanceStatus.UNKNOWN):
+            if should_add_missing:
                 players_query = db.query(PlayerModel).filter(
                     PlayerModel.teamId.in_([match.team1Id, match.team2Id])
                 )

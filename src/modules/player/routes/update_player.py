@@ -42,6 +42,10 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
         position=player.position if player.position else None,
         rating=player.rating,
         avatar=player.avatar,
-        # teamId=player.teamId,
-        # teamName=player.team.name if player.team else None
+        teamId=player.teamId,
+        teamName=player.team.name if player.team else None,
+        goals=int(player.goalsCount or 0),
+        assists=int(player.assistsCount or 0),
+        yellowCards=int(player.yellowCardsCount or 0),
+        redCards=int(player.redCardsCount or 0),
     )

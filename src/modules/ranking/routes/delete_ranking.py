@@ -2,7 +2,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
-from modules.player.models import PlayerModel
+from modules.player.models.player_model import PlayerModel
 from modules.ranking.models import RankingModel
 from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse

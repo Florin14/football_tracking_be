@@ -44,6 +44,12 @@ class PlayerItem(BaseSchema):
     email: Optional[str] = None
     position: Optional[str] = None
     rating: Optional[int] = None
+    teamId: Optional[int] = None
+    teamName: Optional[str] = None
+    goals: Optional[int] = 0
+    assists: Optional[int] = 0
+    yellowCards: Optional[int] = 0
+    redCards: Optional[int] = 0
     # teamName: Optional[str] = None
     avatar: Optional[bytes] = Field(None, example="")
 
@@ -68,6 +74,12 @@ class PlayerResponse(BaseSchema):
     email: str
     position: Optional[str] = None
     rating: Optional[int] = None
+    teamId: Optional[int] = None
+    teamName: Optional[str] = None
+    goals: Optional[int] = 0
+    assists: Optional[int] = 0
+    yellowCards: Optional[int] = 0
+    redCards: Optional[int] = 0
     # teamId: Optional[int] = None
     # teamName: Optional[str] = None
     avatar: Optional[bytes] = Field(None, example="")

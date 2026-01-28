@@ -2,7 +2,25 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-import modules
+from modules.user.models.user_model import UserModel  # noqa: F401
+from modules.admin.models.admin_model import AdminModel  # noqa: F401
+from modules.team.models.team_model import TeamModel  # noqa: F401
+from modules.player.models.player_model import PlayerModel  # noqa: F401
+from modules.match.models.match_model import MatchModel  # noqa: F401
+from modules.match.models.goal_model import GoalModel  # noqa: F401
+from modules.match.models.card_model import CardModel  # noqa: F401
+from modules.attendance.models.attendance_model import AttendanceModel  # noqa: F401
+from modules.tournament.models.tournament_model import TournamentModel  # noqa: F401
+from modules.tournament.models.league_model import LeagueModel  # noqa: F401
+from modules.tournament.models.league_team_model import LeagueTeamModel  # noqa: F401
+from modules.tournament.models.tournament_group_model import TournamentGroupModel  # noqa: F401
+from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel  # noqa: F401
+from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel  # noqa: F401
+from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel  # noqa: F401
+from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel  # noqa: F401
+from modules.ranking.models.ranking_model import RankingModel  # noqa: F401
+from modules.notifications.models.notification_model import NotificationModel  # noqa: F401
+from modules.training.models.training_session_model import TrainingSessionModel  # noqa: F401
 import alembic_postgresql_enum
 
 from extensions.sqlalchemy.init import build_database_url

@@ -7,8 +7,6 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     GoalModel, GoalListResponse, GoalResponse
 )
-from modules.player.models import PlayerModel
-from modules.team.models import TeamModel
 from .router import router
 
 
@@ -22,6 +20,9 @@ async def get_goals(
         db: Session = Depends(get_db)
 ):
     """Get goals with optional filters"""
+    from modules.player.models.player_model import PlayerModel
+    from modules.team.models import TeamModel
+
     query = db.query(GoalModel)
 
     if match_id:

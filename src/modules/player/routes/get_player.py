@@ -21,5 +21,9 @@ async def get_player(id: int, db: Session = Depends(get_db)):
         position=player.position.value if player.position else None,
         rating=player.rating,
         teamId=player.teamId,
-        teamName=player.team.name if player.team else None
+        teamName=player.team.name if player.team else None,
+        goals=int(player.goalsCount or 0),
+        assists=int(player.assistsCount or 0),
+        yellowCards=int(player.yellowCardsCount or 0),
+        redCards=int(player.redCardsCount or 0),
     )

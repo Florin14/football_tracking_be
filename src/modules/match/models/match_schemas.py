@@ -4,7 +4,22 @@ from typing import Optional, List
 from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
-from modules.tournament.models.tournament_schemas import LeagueItem
+
+
+class LeagueItemLite(BaseSchema):
+    id: int
+    name: str
+    logo: Optional[str] = Field(None, example="")
+    relevanceOrder: Optional[int] = None
+    tournamentId: Optional[int] = None
+
+    @validator("logo", pre=False, always=True)
+    def decode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
 
 class MatchAdd(BaseSchema):
@@ -76,7 +91,7 @@ class MatchResponse(BaseSchema):
     id: int
     team1: TeamItem
     team2: TeamItem
-    league: Optional[LeagueItem] = None
+    league: Optional[LeagueItemLite] = None
     location: Optional[str] = None
     timestamp: datetime
     scoreTeam1: Optional[int] = None

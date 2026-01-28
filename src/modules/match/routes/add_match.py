@@ -6,7 +6,7 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchAdd, MatchResponse
 )
-from modules.team.models import TeamModel
+from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from .router import router

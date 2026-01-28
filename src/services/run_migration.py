@@ -10,8 +10,9 @@ from alembic.util.exc import CommandError
 from extensions import SqlBaseModel
 from extensions.sqlalchemy import SessionLocal
 from extensions.sqlalchemy.init import DATABASE_URL
-from modules import TournamentModel, LeagueModel
-from modules.team.models import TeamModel
+from modules.tournament.models.tournament_model import TournamentModel
+from modules.tournament.models.league_model import LeagueModel
+from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 
 BASE_DIR = Path(__file__).resolve().parents[1]

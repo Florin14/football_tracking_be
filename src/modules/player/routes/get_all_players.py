@@ -39,7 +39,12 @@ async def get_all_players(
             "email": player.email,
             "position": player.position.value if player.position else None,
             "rating": player.rating,
-            "teamName": player.team.name if player.team else None
+            "teamId": player.teamId,
+            "teamName": player.team.name if player.team else None,
+            "goals": int(player.goalsCount or 0),
+            "assists": int(player.assistsCount or 0),
+            "yellowCards": int(player.yellowCardsCount or 0),
+            "redCards": int(player.redCardsCount or 0),
         })
 
     return PlayerListResponse(data=player_items)

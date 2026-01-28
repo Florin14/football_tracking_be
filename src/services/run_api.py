@@ -11,7 +11,18 @@ from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalErr
 
 from extensions.auth_jwt import AuthJWT
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
-from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter
+from modules.auth.routes import router as authRouter
+from modules.attendance.routes import router as attendanceRouter
+from modules.user.routes import router as userRouter
+from modules.match.routes import matchRouter, emailRouter
+from modules.admin.routes import router as adminRouter
+from modules.team.routes import router as teamRouter
+from modules.player.routes import router as playerRouter
+from modules.tournament.routes import router as tournamentRouter
+from modules.ranking.routes import router as rankingRouter
+from modules.notifications.routes import router as notificationsRouter
+from modules.training.routes import router as trainingRouter
+from modules.reports.routes import reportsRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
 from modules.user.models.user_model import UserModel
 from modules.admin.models.admin_model import AdminModel
@@ -201,7 +212,7 @@ common_responses = {
     422: {"model": ErrorSchema},
     404: {"model": ErrorSchema},
 }
-for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter):
+for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter, reportsRouter):
     api.include_router(router, responses=common_responses)
 
 

@@ -1,3 +1,6 @@
-from .models import *
-from .routes import *
-from . import events
+"""Ranking module package.
+
+Avoid eager imports to prevent circular dependencies.
+"""
+
+from . import events  # Register SQLAlchemy event listeners.

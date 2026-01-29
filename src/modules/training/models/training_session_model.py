@@ -4,6 +4,7 @@ from sqlalchemy import Column, DateTime, String, BigInteger
 from sqlalchemy.orm import relationship
 
 from extensions import BaseModel
+from modules.attendance.models.attendance_model import AttendanceModel  # noqa: F401
 
 
 class TrainingSessionModel(BaseModel):

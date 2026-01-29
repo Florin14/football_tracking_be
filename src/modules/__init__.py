@@ -1,13 +1,5 @@
-from .user import *
-from .team import *
-from .match import *
-from .tournament import *
-# from .agent import *
-from .player import *
-from .ranking import *
-from .notifications import *
-from .auth import *
-from .admin import *
-from .training import *
-from .attendance import *
-from .reports import *
+"""Modules package.
+
+Keep this package free of eager imports to avoid circular dependencies during
+model-only imports (e.g., migrations).
+"""

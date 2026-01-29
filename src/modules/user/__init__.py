@@ -1,2 +1,4 @@
-from .models import *
-from .routes import *
+"""User module package.
+
+Avoid eager imports to prevent circular dependencies.
+"""

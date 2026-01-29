@@ -1,2 +1,4 @@
-from .models import *
-from .routes import *
+"""Notifications module package.
+
+Avoid eager imports to prevent circular dependencies.
+"""

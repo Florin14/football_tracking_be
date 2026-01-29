@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from modules.attendance.models.attendance_model import AttendanceModel
-from modules.player.models.player_model import PlayerModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.training.models.training_session_model import TrainingSessionModel
 
@@ -17,6 +16,8 @@ def _insert_attendance_for_players(
     tournament_id: Optional[int] = None,
     training_session_id: Optional[int] = None,
 ):
+    from modules.player.models.player_model import PlayerModel
+
     attendance_table = AttendanceModel.__table__
     players_table = PlayerModel.__table__
 
@@ -55,6 +56,8 @@ def _insert_attendance_for_players(
 
 
 def backfill_attendance_for_existing_scopes(db: Session) -> None:
+    from modules.player.models.player_model import PlayerModel
+
     players = db.query(PlayerModel.id, PlayerModel.teamId).all()
     if not players:
         return

@@ -1,1 +1,4 @@
-from .routes import *
+"""Agent module package.
+
+Avoid eager imports to prevent circular dependencies.
+"""

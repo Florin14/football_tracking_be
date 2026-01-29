@@ -7,6 +7,8 @@ from modules.team.models.team_model import TeamModel
 from modules.user.models.user_model import UserModel
 from modules.match.models.goal_model import GoalModel
 from modules.match.models.card_model import CardModel
+from modules.attendance.models.attendance_model import AttendanceModel  # noqa: F401
+from modules.notifications.models.notifications_model import NotificationModel  # noqa: F401
 from constants.card_type import CardType
 
 

@@ -2,10 +2,16 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 from alembic import context
-import modules
 import alembic_postgresql_enum
+import os
 
-from extensions.sqlalchemy.init import build_database_url
+# Get database URL from environment variable
+def get_database_url():
+    db_url = os.getenv("DATABASE_URL")
+    if db_url:
+        return db_url
+    raise RuntimeError("DATABASE_URL env var is required.")
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -16,14 +22,40 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Ensure the URL comes from env vars instead of the placeholder in alembic.ini.
-config.set_main_option("sqlalchemy.url", build_database_url())
+config.set_main_option("sqlalchemy.url", get_database_url())
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from extensions import BaseModel
-target_metadata = BaseModel.metadata
+try:
+    from extensions import BaseModel
+    target_metadata = BaseModel.metadata
+except ImportError:
+    target_metadata = None
+
+
+def _load_models() -> None:
+    # Local imports to register all SQLAlchemy models without pulling routes.
+    try:
+        from modules.user import models as user_models  # noqa: F401
+        from modules.admin import models as admin_models  # noqa: F401
+        from modules.team import models as team_models  # noqa: F401
+        from modules.player import models as player_models  # noqa: F401
+        from modules.match import models as match_models  # noqa: F401
+        from modules.tournament import models as tournament_models  # noqa: F401
+        from modules.ranking import models as ranking_models  # noqa: F401
+        from modules.notifications import models as notifications_models  # noqa: F401
+        from modules.training import models as training_models  # noqa: F401
+        from modules.attendance import models as attendance_models  # noqa: F401
+        from modules.auth import models as auth_models  # noqa: F401
+    except ImportError as e:
+        import warnings
+        warnings.warn(f"Could not import all models: {e}")
+    except ImportError as e:
+        # Handle import errors gracefully for migrations
+        print(f"Warning: Could not import all models: {e}")
+        pass
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -43,6 +75,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    _load_models()
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
@@ -63,6 +96,7 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    _load_models()
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

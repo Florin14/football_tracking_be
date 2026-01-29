@@ -146,6 +146,8 @@ async def lifespan(app: FastAPI):
         level=logging.INFO,
         handlers=[logging.StreamHandler(sys.stdout)],
     )
+    # Register SQLAlchemy event listeners on startup to avoid import cycles.
+    import modules.ranking.events  # noqa: F401
     init_db()
     db = SessionLocal()
     try:

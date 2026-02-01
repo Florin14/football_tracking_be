@@ -114,12 +114,22 @@ class ObjectItem(BaseSchema):
     id: int
     name: str
 
-class MatchResourceTeamItem(BaseSchema):
+class TeamOut(BaseSchema):
     id: int
     name: str
     isDefault: bool
-    location: Optional[str] = None
+
+    class Config:
+        from_attributes = True 
+        
+class LeagueOut(BaseSchema):
+    id: int
+    name: str
+    season: str
+    teams: List[TeamOut] = []
+
+    class Config:
+        from_attributes = True
 
 class MatchResourcesResponse(BaseSchema):
-    teams: List[MatchResourceTeamItem] = []
-    leagues: List[ObjectItem] = []
+    leagues: List[LeagueOut]

@@ -11,7 +11,7 @@ class NotificationModel(BaseModel):
     id = Column(BigInteger, primary_key=True, index=True)
     name = Column(String, nullable=False, unique=True)
     description = Column(String, nullable=True)
-    isDeleted = Column(Boolean, nullable=False, default=False)
+    isDeleted = Column(Boolean, name="is_deleted", nullable=False, default=False)
     playerId = Column(BigInteger, ForeignKey("players.id"), name="player_id", nullable=False)
     player = relationship("PlayerModel", back_populates="notifications")
     createdAt = Column(DateTime, name="created_at", nullable=False)

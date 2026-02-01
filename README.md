@@ -34,7 +34,7 @@ Server (default):
 
 Local (use local DB):
 - APP_ENV=local
-- DATABASE_URL_LOCAL=postgresql://postgres:postgres@localhost:5432/football_tracking_be
+- DATABASE_URL=postgresql://postgres:postgres@localhost:5432/football_tracking_be
 
 You can also use POSTGRESQL_LOCAL_* vars if you prefer split config.
 

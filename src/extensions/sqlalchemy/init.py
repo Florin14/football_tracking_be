@@ -20,8 +20,8 @@ if not is_docker and local_env_path.exists():
 def build_database_url() -> str:
     app_env = os.getenv("APP_ENV", "").strip().lower()
     is_docker = Path("/.dockerenv").exists()
-    if not is_docker and (app_env == "local" or os.getenv("DATABASE_URL_LOCAL")):
-        local_url = os.getenv("DATABASE_URL_LOCAL")
+    if not is_docker and (app_env == "local" or os.getenv("DATABASE_URL")):
+        local_url = os.getenv("DATABASE_URL")
         if local_url:
             return local_url
 
@@ -47,7 +47,7 @@ def build_database_url() -> str:
 
     raise RuntimeError(
         "DATABASE_URL or POSTGRESQL_* env vars are required. "
-        "For APP_ENV=local, use DATABASE_URL_LOCAL or POSTGRESQL_LOCAL_*."
+        "For APP_ENV=local, use DATABASE_URL or POSTGRESQL_LOCAL_*."
     )
 
 

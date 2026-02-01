@@ -1,5 +1,12 @@
-"""Modules package.
-
-Keep this package free of eager imports to avoid circular dependencies during
-model-only imports (e.g., migrations).
-"""
+from .admin import *
+from .auth import *
+from .attendance import *
+from .match import *
+from .notifications import *
+from .player import *
+from .ranking import *
+from .reports import *
+from .team import *
+from .tournament import *
+from .training import *
+from .user import *

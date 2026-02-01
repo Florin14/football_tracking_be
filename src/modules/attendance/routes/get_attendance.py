@@ -12,7 +12,7 @@ from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
-from modules.team.models import TeamModel
+from modules.team.models.team_model import TeamModel
 from .attendance_grouping import build_grouped_attendance
 from .router import router
 

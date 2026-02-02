@@ -1,4 +1,6 @@
-from fastapi import Depends, HTTPException, status
+import logging
+
+from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from constants.match_state import MatchState
@@ -6,14 +8,25 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchAdd, MatchResponse
 )
+from modules.player.models.player_model import PlayerModel
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
+from project_helpers.emails_handling import (
+    SendEmailRequest as EmailSendRequest,
+    build_message,
+    send_via_gmail_oauth2_safe,
+    validate_config,
+)
 from .router import router
 
 
 @router.post("/", response_model=MatchResponse, status_code=status.HTTP_201_CREATED)
-async def add_match(data: MatchAdd, db: Session = Depends(get_db)):
+async def add_match(
+    data: MatchAdd,
+    bg: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
     if data.team1Id == data.team2Id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -97,6 +110,37 @@ async def add_match(data: MatchAdd, db: Session = Depends(get_db)):
         .filter(MatchModel.id == match.id)
         .first()
     )
+
+    recipient_rows = (
+        db.query(PlayerModel.email)
+        .filter(
+            PlayerModel.teamId.in_(team_ids),
+            PlayerModel.email.isnot(None),
+        )
+        .all()
+    )
+    recipients = sorted({email for (email,) in recipient_rows if email})
+    if recipients:
+        try:
+            validate_config()
+        except RuntimeError as exc:
+            logging.warning("Email not sent for match %s: %s", match.id, exc)
+        else:
+            subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
+            match_datetime = match.timestamp.strftime("%Y-%m-%d %H:%M")
+            template_data = {
+                "title": "Match scheduled",
+                "message": "A new football match has been created.",
+                "team1_name": match.team1.name,
+                "team2_name": match.team2.name,
+                "match_datetime": match_datetime,
+                "location": match.location,
+                "league_name": match.league.name if match.league else "TBD",
+                "match_id": match.id,
+            }
+            email_req = EmailSendRequest(to=recipients, subject=subject)
+            msg = build_message(email_req, template_data=template_data)
+            bg.add_task(send_via_gmail_oauth2_safe, msg)
 
     return MatchResponse(
         id=match.id,

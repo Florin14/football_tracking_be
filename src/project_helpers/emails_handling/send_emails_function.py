@@ -1,6 +1,8 @@
 import base64
+import logging
 import os
 from email.message import EmailMessage
+from pathlib import Path
 from time import time
 from typing import List, Optional, Dict, Any
 
@@ -12,7 +14,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, EmailStr, Field
 
 # ----------------- Setup & Config -----------------
-load_dotenv()  # loads from .env if present
+ROOT_DIR = Path(__file__).resolve().parents[3]
+load_dotenv(ROOT_DIR / ".env", override=False)
+load_dotenv(ROOT_DIR / ".env.local", override=False)
 
 # Required env vars (no hardcoding)
 DEFAULT_FROM = os.getenv("DEFAULT_FROM", "Match Notifier <no-reply@example.com>")
@@ -24,9 +28,9 @@ GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-TOKEN_URL = "https://oauth2  .googleapis.com/token"
-def validate_config():
+TOKEN_URL = "https://oauth2.googleapis.com/token"
 
+def validate_config():
     if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):
         missing = [k for k, v in {
             "GMAIL_SENDER": GMAIL_SENDER,
@@ -38,11 +42,22 @@ def validate_config():
 
 FROM_NAME = os.getenv("FROM_NAME", "Match Notifier")
 
+TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "templates"
 jinja_env = Environment(
-    loader=FileSystemLoader("templates"),
+    loader=FileSystemLoader(str(TEMPLATE_DIR)),
     autoescape=select_autoescape(["html", "xml"])
 )
 TEMPLATE_NAME = "match_notification.html"
+DEFAULT_TEMPLATE_DATA = {
+    "title": "Match scheduled",
+    "message": "A new football match has been created.",
+    "team1_name": "Team 1",
+    "team2_name": "Team 2",
+    "match_datetime": "TBD",
+    "location": "TBD",
+    "league_name": "TBD",
+    "match_id": "-",
+}
 
 # ----------------- Models -----------------
 class Attachment(BaseModel):
@@ -67,8 +82,14 @@ def render_template(data: Dict[str, Any]) -> str:
         raise HTTPException(status_code=400, detail=f"Template error: {e}")
 
 # ----------------- Message Builder -----------------
-def build_message(req: SendEmailRequest) -> EmailMessage:
-    html_body = render_template({"user_name": "florin", "total": 10})
+def build_message(
+    req: SendEmailRequest,
+    template_data: Optional[Dict[str, Any]] = None,
+) -> EmailMessage:
+    data = DEFAULT_TEMPLATE_DATA.copy()
+    if template_data:
+        data.update({key: value for key, value in template_data.items() if value is not None})
+    html_body = render_template(data)
     text_body = "You have a new match. Please view this email in HTML."
 
     msg = EmailMessage()
@@ -159,3 +180,9 @@ async def send_via_gmail_oauth2(msg: EmailMessage):
         raise HTTPException(status_code=502, detail=detail)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"SMTP failed: {e}")
+
+async def send_via_gmail_oauth2_safe(msg: EmailMessage):
+    try:
+        await send_via_gmail_oauth2(msg)
+    except Exception as exc:
+        logging.exception("Email send failed: %s", exc)

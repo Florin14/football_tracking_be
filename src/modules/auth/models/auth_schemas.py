@@ -17,10 +17,3 @@ class LoginResponse(BaseSchema):
     role: PlatformRoles
     hasDefaultPassword: bool
     isAvailable: bool
-    nrOfInvalidatedNaturalPersons: Optional[int] = Field(
-        default=None, example=0, description="Number of invalidated accounts"
-    )
-    nrOfInvalidatedLegalEntities: Optional[int] = Field(
-        default=None, example=0, description="Number of invalidated accounts"
-    )
-    communications: Optional[int] = Field(default=None, example=0, description="Number of submissions")

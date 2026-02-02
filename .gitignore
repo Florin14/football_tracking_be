@@ -4,3 +4,5 @@
 /src/extensions/migrations/
 __pycache__/
 *.pyc
+.env
+.env.local

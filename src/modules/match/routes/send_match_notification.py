@@ -4,7 +4,7 @@ from fastapi import BackgroundTasks, HTTPException
 from pydantic import EmailStr, Field
 
 from modules.match.routes.router import emailRouter
-from project_helpers.emails_handling import build_message, send_via_gmail_oauth2, GMAIL_SENDER
+from project_helpers.emails_handling import build_message, send_via_gmail_oauth2_safe, GMAIL_SENDER
 from project_helpers.schemas import BaseSchema
 
 
@@ -28,5 +28,5 @@ async def send_email(req: SendEmailRequest, bg: BackgroundTasks):
     if not GMAIL_SENDER:
         raise HTTPException(status_code=500, detail="GMAIL_SENDER not configured")
     msg = build_message(req)
-    bg.add_task(send_via_gmail_oauth2, msg)
+    bg.add_task(send_via_gmail_oauth2_safe, msg)
     return {"status": "queued"}

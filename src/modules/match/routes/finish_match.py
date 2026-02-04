@@ -14,7 +14,7 @@ from modules.tournament.models.tournament_group_model import TournamentGroupMode
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
-from modules.tournament.routes.tournament_group_scheduling import generate_knockout_matches_from_config
+from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
 from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse
 from .router import router

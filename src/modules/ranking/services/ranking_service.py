@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
-from constants.match_state import MatchState
 from modules.match.models import MatchModel
+from modules.match.services.match_status import match_is_completed_expr
 from modules.ranking.models import RankingModel
 
 
@@ -22,7 +22,7 @@ def _recalculate_team_ranking(db: Session, league_id: int, team_id: int) -> None
     matches = (
         db.query(MatchModel)
         .filter(
-            MatchModel.state == MatchState.FINISHED,
+            match_is_completed_expr(MatchModel),
             MatchModel.leagueId == league_id,
             (MatchModel.team1Id == team_id) | (MatchModel.team2Id == team_id),
         )

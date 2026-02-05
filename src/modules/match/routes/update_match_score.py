@@ -15,7 +15,6 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
 from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
-from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
 from project_helpers.responses import ConfirmationResponse
@@ -27,6 +26,8 @@ async def update_match_score(
         data: ScoreUpdate, match: MatchModel = Depends(GetInstanceFromPath(MatchModel)), db: Session = Depends(get_db)
 
 ):
+    from modules.player.models.player_model import PlayerModel
+
     for goal in data.goals:
         player = db.query(PlayerModel).filter(PlayerModel.id == goal.playerId).first()
         if not player:

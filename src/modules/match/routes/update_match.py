@@ -8,7 +8,6 @@ from modules.match.models import (
 )
 from modules.ranking.services import recalculate_match_rankings
 from modules.tournament.services.knockout_service import auto_advance_knockout
-from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath
 from .router import router
@@ -28,6 +27,7 @@ async def update_match(
     db: Session = Depends(get_db),
 ):
     """Update match details (location, timestamp, scores, state)"""
+    from modules.player.models.player_model import PlayerModel
 
     if match_data.location:
         match.location = match_data.location
@@ -35,13 +35,17 @@ async def update_match(
     if match_data.timestamp:
         match.timestamp = match_data.timestamp
 
+    scores_updated = False
     if match_data.scoreTeam1 is not None:
         match.scoreTeam1 = match_data.scoreTeam1
+        scores_updated = True
 
     if match_data.scoreTeam2 is not None:
         match.scoreTeam2 = match_data.scoreTeam2
+        scores_updated = True
 
     if match_data.goals is not None:
+        scores_updated = True
         for goal in match_data.goals:
             player = db.query(PlayerModel).filter(PlayerModel.id == goal.playerId).first()
             if not player:
@@ -110,6 +114,13 @@ async def update_match(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid match state"
             )
+    elif scores_updated:
+        if (
+            match.state == MatchState.SCHEDULED
+            and match.scoreTeam1 is not None
+            and match.scoreTeam2 is not None
+        ):
+            match.state = MatchState.FINISHED
 
     recalculate_match_rankings(db, match)
     auto_advance_knockout(db, match)

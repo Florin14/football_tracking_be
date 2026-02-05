@@ -4,11 +4,11 @@ from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.match.models.match_model import MatchModel
-from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 
 
 def ensure_match_attendance_for_default_team(db: Session, match: MatchModel) -> None:
+    from modules.player.models.player_model import PlayerModel
     if not match:
         return
 

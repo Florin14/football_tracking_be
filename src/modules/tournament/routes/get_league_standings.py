@@ -2,9 +2,9 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
-from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models.match_model import MatchModel
+from modules.match.services.match_status import is_match_completed
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
@@ -46,7 +46,7 @@ def _build_group_standings(
         }
 
     for match in matches:
-        if match.state != MatchState.FINISHED:
+        if not is_match_completed(match):
             continue
         team1 = standings.get(match.team1Id)
         team2 = standings.get(match.team2Id)

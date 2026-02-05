@@ -2,13 +2,13 @@ from datetime import date, datetime, time
 from typing import Optional
 
 from fastapi import Depends, HTTPException, Query
-from sqlalchemy import and_, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from constants.match_state import MatchState
 from constants.player_positions import PlayerPositions
 from extensions.sqlalchemy import get_db
 from modules.match.models.match_model import MatchModel
+from modules.match.services.match_status import match_is_completed_expr
 from modules.match.models.goal_model import GoalModel
 from modules.player.models.player_model import PlayerModel
 from modules.reports.models.report_schemas import (
@@ -55,10 +55,7 @@ async def get_performance_report(
 
     start_dt, end_dt = _build_date_range(from_date, to_date)
 
-    finished_filter = or_(
-        MatchModel.state == MatchState.FINISHED,
-        and_(MatchModel.scoreTeam1.isnot(None), MatchModel.scoreTeam2.isnot(None)),
-    )
+    finished_filter = match_is_completed_expr(MatchModel)
     query = db.query(MatchModel).filter(
         finished_filter,
         or_(MatchModel.team1Id == team.id, MatchModel.team2Id == team.id),

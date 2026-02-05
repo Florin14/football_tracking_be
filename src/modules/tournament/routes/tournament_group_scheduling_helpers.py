@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 from constants.match_state import MatchState
 from modules.attendance.services.attendance_service import ensure_match_attendance_for_default_team
 from modules.match.models.match_model import MatchModel
+from modules.match.services.match_status import is_match_completed, match_is_completed_expr
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
@@ -138,7 +139,7 @@ def _build_group_standings(group: TournamentGroupModel, matches: list[MatchModel
         }
 
     for match in matches:
-        if match.state != MatchState.FINISHED:
+        if not is_match_completed(match):
             continue
         team1 = standings.get(match.team1Id)
         team2 = standings.get(match.team2Id)
@@ -180,7 +181,7 @@ def _get_group_completion_map(db: Session, group_ids: list[int]) -> dict[int, bo
             TournamentGroupMatchModel.groupId,
             func.count(MatchModel.id),
             func.coalesce(
-                func.sum(case((MatchModel.state == MatchState.FINISHED, 1), else_=0)),
+                func.sum(case((match_is_completed_expr(MatchModel), 1), else_=0)),
                 0,
             ),
         )
@@ -220,7 +221,7 @@ def _get_knockout_winners(entries: list[TournamentKnockoutMatchModel]) -> list[i
     winners: list[int | None] = []
     for entry in entries:
         match = entry.match
-        if not match or match.state != MatchState.FINISHED:
+        if not is_match_completed(match):
             winners.append(None)
             continue
         if match.scoreTeam1 is None or match.scoreTeam2 is None:
@@ -237,7 +238,7 @@ def _get_knockout_losers(entries: list[TournamentKnockoutMatchModel]) -> list[in
     losers: list[int | None] = []
     for entry in entries:
         match = entry.match
-        if not match or match.state != MatchState.FINISHED:
+        if not is_match_completed(match):
             losers.append(None)
             continue
         if match.scoreTeam1 is None or match.scoreTeam2 is None:

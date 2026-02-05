@@ -8,7 +8,6 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchAdd, MatchResponse
 )
-from modules.player.models.player_model import PlayerModel
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
@@ -27,6 +26,8 @@ async def add_match(
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
+    from modules.player.models.player_model import PlayerModel
+
     if data.team1Id == data.team2Id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

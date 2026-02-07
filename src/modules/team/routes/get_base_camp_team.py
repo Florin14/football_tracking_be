@@ -1,8 +1,9 @@
 from fastapi import Depends
-from fastapi import Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from modules.attendance.models.attendance_model import AttendanceModel
 from modules.team.models import TeamModel, TeamResponse
 from .router import router
 
@@ -26,6 +27,16 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
 
     players = []
     if team.players:
+        player_ids = [player.id for player in team.players]
+        attendance_counts = {}
+        if player_ids:
+            attendance_counts = dict(
+                db.query(AttendanceModel.playerId, func.count(AttendanceModel.id))
+                .filter(AttendanceModel.playerId.in_(player_ids))
+                .group_by(AttendanceModel.playerId)
+                .all()
+            )
+
         for player in team.players:
             players.append({
                 "id": player.id,
@@ -34,7 +45,12 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
                 "avatar": player.avatar,
                 "shirtNumber": player.shirtNumber,
                 "position": player.position.value if player.position else None,
-                "rating": player.rating
+                "rating": player.rating,
+                "goals": int(player.goalsCount or 0),
+                "assists": int(player.assistsCount or 0),
+                "appearances": int(attendance_counts.get(player.id, 0)),
+                "yellowCards": int(player.yellowCardsCount or 0),
+                "redCards": int(player.redCardsCount or 0),
             })
 
     return TeamResponse(

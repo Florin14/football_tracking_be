@@ -1,10 +1,10 @@
-from fastapi import Depends
 from datetime import datetime
+from fastapi import Depends
 from sqlalchemy import or_
-from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from project_helpers.schemas import PaginationParams
 from modules.match.models import (
     MatchModel, MatchListResponse
 )
@@ -14,8 +14,7 @@ from .router import router
 
 @router.get("-attendance", response_model=MatchListResponse)
 async def get_matches(
-        skip: int = 0,
-        limit: int = 100,
+        params: PaginationParams = Depends(),
         db: Session = Depends(get_db)
 ):
     query = db.query(MatchModel).options(
@@ -36,7 +35,7 @@ async def get_matches(
         MatchModel.id,
     )
 
-    matches = query.offset(skip).limit(limit).all()
+    matches = params.apply(query).all()
     matches = sorted(
         matches,
         key=lambda match: (

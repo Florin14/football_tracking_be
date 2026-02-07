@@ -1,5 +1,4 @@
 from fastapi import Depends, HTTPException, status
-from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db

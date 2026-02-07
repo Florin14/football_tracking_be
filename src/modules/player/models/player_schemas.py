@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
 from project_helpers.functions import process_and_convert_image_to_base64
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class PlayerAdd(BaseSchema):
@@ -66,6 +66,12 @@ class PlayerFilter(FilterSchema):
     teamId: Optional[int] = None
     position: Optional[str] = None
     sortBy: str = "name"
+
+
+class PlayerListParams(PaginationParams):
+    teamId: Optional[int] = Field(None, validation_alias=AliasChoices("teamId", "team_id"))
+    position: Optional[str] = None
+    search: Optional[str] = None
 
 
 class PlayerResponse(BaseSchema):

@@ -1,24 +1,19 @@
-from typing import Optional
-
-from fastapi import Depends, HTTPException, status
 from datetime import datetime
+from fastapi import Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
-    MatchModel, MatchListResponse
+    MatchModel, MatchListResponse, MatchListParams
 )
 from .router import router
 
 
 @router.get("/", response_model=MatchListResponse)
 async def get_matches(
-        skip: int = 0,
-        limit: int = 100,
-        team_id: Optional[int] = None,
-        state: Optional[str] = None,
+        params: MatchListParams = Depends(),
         db: Session = Depends(get_db)
 ):
     query = db.query(MatchModel).options(
@@ -27,14 +22,14 @@ async def get_matches(
         joinedload(MatchModel.league),
     )
 
-    if team_id:
+    if params.teamId:
         query = query.filter(
-            or_(MatchModel.team1Id == team_id, MatchModel.team2Id == team_id)
+            or_(MatchModel.team1Id == params.teamId, MatchModel.team2Id == params.teamId)
         )
 
-    if state:
+    if params.state:
         try:
-            match_state = MatchState(state.upper())
+            match_state = MatchState(params.state.upper())
             query = query.filter(MatchModel.state == match_state)
         except ValueError:
             raise HTTPException(
@@ -43,9 +38,19 @@ async def get_matches(
             )
 
     query = query.order_by(
-        MatchModel.timestamp.asc(),
+        MatchModel.timestamp.is_(None),
+        MatchModel.timestamp,
+        MatchModel.id,
     )
 
-    matches = query.offset(skip).limit(limit).all()
+    matches = params.apply(query).all()
+    matches = sorted(
+        matches,
+        key=lambda match: (
+            match.timestamp is None,
+            match.timestamp or datetime.max,
+            match.id or 0,
+        ),
+    )
 
     return MatchListResponse(data=matches)

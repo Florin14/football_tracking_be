@@ -1,13 +1,11 @@
-from typing import Optional
-
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends, HTTPException, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, aliased
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from extensions.sqlalchemy import get_db
-from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse
+from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse, AttendanceQueryParams
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
@@ -20,25 +18,15 @@ from .router import router
 
 @router.get("-by-scope", response_model=AttendanceGroupedListResponse)
 async def get_attendance_by_scope(
-        skip: int = 0,
-        limit: int = 100,
-        scope: Optional[str] = None,
-        match_id: Optional[int] = Query(None, alias="matchId"),
-        player_id: Optional[int] = Query(None, alias="playerId"),
-        team_id: Optional[int] = Query(None, alias="teamId"),
-        league_id: Optional[int] = Query(None, alias="leagueId"),
-        tournament_id: Optional[int] = Query(None, alias="tournamentId"),
-        training_session_id: Optional[int] = Query(None, alias="trainingSessionId"),
-        excludeGroupLeagues: bool = Query(False, alias="excludeGroupLeagues"),
-        status: Optional[str] = None,
+        params: AttendanceQueryParams = Depends(),
         db: Session = Depends(get_db)
 ):
     query = db.query(AttendanceModel)
 
     attendance_scope = None
-    if scope:
+    if params.scope:
         try:
-            attendance_scope = AttendanceScope(scope.upper())
+            attendance_scope = AttendanceScope(params.scope.upper())
             query = query.filter(AttendanceModel.scope == attendance_scope)
         except ValueError:
             raise HTTPException(
@@ -46,12 +34,15 @@ async def get_attendance_by_scope(
                 detail="Invalid attendance scope"
             )
 
+    match_id = params.matchId
     if match_id:
         query = query.filter(AttendanceModel.matchId == match_id)
 
+    player_id = params.playerId
     if player_id:
         query = query.filter(AttendanceModel.playerId == player_id)
 
+    team_id = params.teamId
     if team_id is None:
         default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
         if default_team:
@@ -60,13 +51,14 @@ async def get_attendance_by_scope(
     if team_id:
         query = query.filter(AttendanceModel.teamId == team_id)
 
+    training_session_id = params.trainingSessionId
     if training_session_id:
         query = query.filter(AttendanceModel.trainingSessionId == training_session_id)
 
     attendance_status = None
-    if status:
+    if params.status:
         try:
-            attendance_status = AttendanceStatus(status.upper())
+            attendance_status = AttendanceStatus(params.status.upper())
             query = query.filter(AttendanceModel.status == attendance_status)
         except ValueError:
             raise HTTPException(
@@ -74,10 +66,12 @@ async def get_attendance_by_scope(
                 detail="Invalid attendance status"
             )
 
+    league_id = params.leagueId
     if league_id:
         query = query.join(MatchModel, AttendanceModel.matchId == MatchModel.id)
         query = query.filter(MatchModel.leagueId == league_id)
 
+    tournament_id = params.tournamentId
     if tournament_id:
         query = query.outerjoin(MatchModel, AttendanceModel.matchId == MatchModel.id)
         query = query.outerjoin(LeagueModel, MatchModel.leagueId == LeagueModel.id)
@@ -102,7 +96,7 @@ async def get_attendance_by_scope(
                     league = db.query(LeagueModel).filter(LeagueModel.id == match.leagueId).first()
                 if not league or league.tournamentId != tournament_id:
                     should_add_missing = False
-            if excludeGroupLeagues and should_add_missing and match.leagueId:
+            if params.excludeGroupLeagues and should_add_missing and match.leagueId:
                 tournament = (
                     db.query(TournamentModel)
                     .join(LeagueModel, LeagueModel.tournamentId == TournamentModel.id)
@@ -148,7 +142,7 @@ async def get_attendance_by_scope(
                         db.bulk_save_objects(missing)
                         db.commit()
 
-    if excludeGroupLeagues:
+    if params.excludeGroupLeagues:
         direct_tournament = aliased(TournamentModel)
         league_tournament = aliased(TournamentModel)
         match_for_league = aliased(MatchModel)
@@ -170,7 +164,9 @@ async def get_attendance_by_scope(
             )
         )
 
-    attendance_rows = query.order_by(AttendanceModel.recordedAt.desc()).offset(skip).limit(limit).all()
+    attendance_rows = params.apply(
+        query.order_by(AttendanceModel.recordedAt.desc())
+    ).all()
 
     grouped_items = build_grouped_attendance(attendance_rows, db)
 

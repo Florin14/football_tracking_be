@@ -2,9 +2,7 @@ from typing import List, Optional
 
 from pydantic import Field, validator
 
-from modules.player.models.player_schemas import PlayerResponse
-from project_helpers.functions import process_and_convert_image_to_base64
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class NotificationAdd(BaseSchema):
@@ -26,6 +24,10 @@ class NotificationItem(BaseSchema):
 
 class NotificationFilter(FilterSchema):
     sortBy: str = "name"
+
+
+class NotificationListParams(PaginationParams):
+    search: Optional[str] = None
 
 
 class NotificationResponse(BaseSchema):

@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
 
@@ -49,6 +49,10 @@ class RankingItem(BaseSchema):
 
 class RankingFilter(FilterSchema):
     sortBy: str = "name"
+
+
+class RankingListParams(BaseSchema):
+    leagueId: int = Field(..., validation_alias=AliasChoices("leagueId", "league_id"))
 
 
 class RankingResponse(BaseSchema):

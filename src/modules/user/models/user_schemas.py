@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import Field
 
 from constants.platform_roles import PlatformRoles
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class UserAdd(BaseSchema):
@@ -21,6 +21,10 @@ class UserItem(BaseSchema):
 
 class UserFilter(FilterSchema):
     sortBy: str = "companyName"
+
+
+class UserListParams(PaginationParams):
+    search: Optional[str] = None
 
 
 class UserResponse(BaseSchema):

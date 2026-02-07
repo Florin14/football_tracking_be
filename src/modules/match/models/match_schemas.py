@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 from modules.match.models.goal_schemas import GoalResponse
 
 
@@ -109,6 +109,11 @@ class MatchFilter(FilterSchema):
     teamId: Optional[int] = None
     state: Optional[str] = None
     sortBy: str = "timestamp"
+
+
+class MatchListParams(PaginationParams):
+    teamId: Optional[int] = Field(None, validation_alias=AliasChoices("teamId", "team_id"))
+    state: Optional[str] = None
 
 
 class MatchListResponse(BaseSchema):

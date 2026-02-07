@@ -1,11 +1,9 @@
-from typing import Optional
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
-from modules.player.models.player_schemas import PlayerFilter, PlayerListResponse, PlayerResponse
+from modules.player.models.player_schemas import PlayerResponse
 from .router import router
 
 

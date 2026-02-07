@@ -33,3 +33,31 @@ class AttendanceModel(BaseModel):
     #     UniqueConstraint(tournamentId, playerId, name="uq_tournament_attendance_player"),
     #     UniqueConstraint(trainingSessionId, playerId, name="uq_training_attendance_player"),
     # )
+
+    @property
+    def playerName(self):
+        return self.player.name if self.player else "Unknown"
+
+    @property
+    def teamName(self):
+        return self.team.name if self.team else "Unknown"
+
+    @property
+    def resolvedLeagueId(self):
+        value = getattr(self, "_resolvedLeagueId", None)
+        if value is not None:
+            return value
+        if self.match and self.match.leagueId:
+            return self.match.leagueId
+        return None
+
+    @property
+    def resolvedTournamentId(self):
+        value = getattr(self, "_resolvedTournamentId", None)
+        if value is not None:
+            return value
+        if self.tournamentId is not None:
+            return self.tournamentId
+        if self.match and self.match.league:
+            return self.match.league.tournamentId
+        return None

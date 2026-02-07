@@ -24,16 +24,4 @@ async def get_tournaments(
 
     tournaments = query.offset(skip).limit(limit).all()
 
-    tournament_items = []
-    for tournament in tournaments:
-        tournament_items.append({
-            "id": tournament.id,
-            "name": tournament.name,
-            "description": tournament.description,
-            "formatType": tournament.formatType,
-            "groupCount": tournament.groupCount,
-            "teamsPerGroup": tournament.teamsPerGroup,
-            "hasKnockout": tournament.hasKnockout,
-        })
-
-    return TournamentListResponse(data=tournament_items)
+    return TournamentListResponse(data=tournaments)

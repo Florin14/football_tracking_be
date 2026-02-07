@@ -23,6 +23,16 @@ class RankingModel(BaseModel):
     teamId = Column(BigInteger, ForeignKey("teams.id"), name="team_id", nullable=False)
     team = relationship("TeamModel")
 
+    @property
+    def name(self):
+        if hasattr(self, "_name") and self._name is not None:
+            return self._name
+        return self.team.name if self.team else None
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
     @hybrid_property
     def form(self):
         return "WDLWL"

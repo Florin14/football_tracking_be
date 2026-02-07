@@ -90,12 +90,19 @@ async def add_match(
                 detail="Teams share multiple leagues. Provide leagueId.",
             )
 
+    if data.round is not None and not league_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Round can only be set for league matches",
+        )
+
     match = MatchModel(
         team1Id=data.team1Id,
         team2Id=data.team2Id,
         location=data.location,
         timestamp=data.timestamp,
         leagueId=league_id,
+        round=data.round,
     )
 
     db.add(match)
@@ -143,15 +150,4 @@ async def add_match(
             msg = build_message(email_req, template_data=template_data)
             bg.add_task(send_via_gmail_oauth2_safe, msg)
 
-    return MatchResponse(
-        id=match.id,
-        team1=match.team1,
-        team2=match.team2,
-        league=match.league,
-        location=match.location,
-        timestamp=match.timestamp,
-        scoreTeam1=match.scoreTeam1,
-        scoreTeam2=match.scoreTeam2,
-        state=match.state.value,
-        goals=[]
-    )
+    return match

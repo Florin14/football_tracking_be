@@ -36,29 +36,10 @@ async def get_league_teams(league_id: int, db: Session = Depends(get_db)):
 
     team_items = []
     for team, ranking in teams:
-        team_items.append({
-            "id": team.id,
-            "name": team.name,
-            "description": team.description,
-            "logo": team.logo,
-            "playerCount": len(team.players) if team.players else 0,
-            "points": ranking.points if ranking else 0,
-            "goalsFor": ranking.goalsScored if ranking else 0,
-            "goalsAgainst": ranking.goalsConceded if ranking else 0,
-            "wins": ranking.gamesWon if ranking else 0,
-            "draws": ranking.gamesTied if ranking else 0,
-            "losses": ranking.gamesLost if ranking else 0,
-        })
+        team._ranking = ranking
+        team_items.append(team)
 
     return LeagueTeamsResponse(
-        league={
-            "id": league.id,
-            "name": league.name,
-            "description": league.description,
-            "logo": league.logo,
-            "season": league.season,
-            "relevanceOrder": league.relevanceOrder,
-            "tournamentId": league.tournamentId,
-        },
+        league=league,
         teams=team_items,
     )

@@ -17,20 +17,4 @@ async def get_team(id: int, db: Session = Depends(get_db)):
             detail="Team not found"
         )
 
-    players = []
-    if team.players:
-        for player in team.players:
-            players.append({
-                "id": player.id,
-                "name": player.name,
-                "email": player.email,
-                "position": player.position.value if player.position else None,
-                "rating": player.rating
-            })
-
-    return TeamResponse(
-        id=team.id,
-        name=team.name,
-        description=team.description,
-        players=players
-    )
+    return team

@@ -22,17 +22,4 @@ async def add_base_camp_player(data: PlayerAdd, db: Session = Depends(get_db)):
     db.add(player)
     db.commit()
     db.refresh(player)
-    return PlayerResponse(
-        id=player.id,
-        name=player.name,
-        email=player.email,
-        position=player.position if player.position else None,
-        rating=player.rating,
-        avatar=player.avatar,
-        teamId=player.teamId,
-        teamName=player.team.name if player.team else None,
-        goals=int(player.goalsCount or 0),
-        assists=int(player.assistsCount or 0),
-        yellowCards=int(player.yellowCardsCount or 0),
-        redCards=int(player.redCardsCount or 0),
-    )
+    return player

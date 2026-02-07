@@ -80,25 +80,7 @@ async def assign_league_teams(
 
     db.commit()
 
-    team_items = []
-    for team in teams:
-        team_items.append({
-            "id": team.id,
-            "name": team.name,
-            "description": team.description,
-            "logo": team.logo,
-            "playerCount": len(team.players) if team.players else 0,
-        })
-
     return LeagueTeamsResponse(
-        league={
-            "id": league.id,
-            "name": league.name,
-            "description": league.description,
-            "logo": league.logo,
-            "season": league.season,
-            "relevanceOrder": league.relevanceOrder,
-            "tournamentId": league.tournamentId,
-        },
-        teams=team_items,
+        league=league,
+        teams=teams,
     )

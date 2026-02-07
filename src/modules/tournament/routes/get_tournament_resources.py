@@ -18,9 +18,7 @@ async def get_tournament_resources(db: Session = Depends(get_db)):
         .all()
     )
 
-    tournament_items = []
     for tournament in tournaments:
-        leagues_items = []
         sorted_leagues = sorted(
             tournament.leagues or [],
             key=lambda league: (
@@ -29,24 +27,6 @@ async def get_tournament_resources(db: Session = Depends(get_db)):
                 (league.name or "").lower(),
             )
         )
-        for league in sorted_leagues:
-            leagues_items.append({
-                "id": league.id,
-                "name": league.name,
-                "logo": league.logo,
-                "relevanceOrder": league.relevanceOrder,
-                "tournamentId": league.tournamentId,
-            })
+        tournament.leagues = sorted_leagues
 
-        tournament_items.append({
-            "id": tournament.id,
-            "name": tournament.name,
-            "description": tournament.description,
-            "formatType": tournament.formatType,
-            "groupCount": tournament.groupCount,
-            "teamsPerGroup": tournament.teamsPerGroup,
-            "hasKnockout": tournament.hasKnockout,
-            "leagues": leagues_items,
-        })
-
-    return TournamentResourcesResponse(tournaments=tournament_items)
+    return TournamentResourcesResponse(tournaments=tournaments)

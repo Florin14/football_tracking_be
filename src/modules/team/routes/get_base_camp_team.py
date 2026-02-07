@@ -15,7 +15,6 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
     ).first()
 
     if not team:
-        # Create the team if it doesn't exist
         team = TeamModel(
             name="FC Base Camp",
             description="The default team for the Base Camp football club",
@@ -25,7 +24,6 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
         db.commit()
         db.refresh(team)
 
-    players = []
     if team.players:
         player_ids = [player.id for player in team.players]
         attendance_counts = {}
@@ -38,25 +36,6 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
             )
 
         for player in team.players:
-            players.append({
-                "id": player.id,
-                "name": player.name,
-                "email": player.email,
-                "avatar": player.avatar,
-                "shirtNumber": player.shirtNumber,
-                "position": player.position.value if player.position else None,
-                "rating": player.rating,
-                "goals": int(player.goalsCount or 0),
-                "assists": int(player.assistsCount or 0),
-                "appearances": int(attendance_counts.get(player.id, 0)),
-                "yellowCards": int(player.yellowCardsCount or 0),
-                "redCards": int(player.redCardsCount or 0),
-            })
+            player.appearances = int(attendance_counts.get(player.id, 0))
 
-    return TeamResponse(
-        id=team.id,
-        name=team.name,
-        description=team.description,
-        players=players,
-        logo=team.logo,
-    )
+    return team

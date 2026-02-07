@@ -2,7 +2,7 @@
 from typing import Optional
 
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
@@ -18,22 +18,11 @@ async def get_free_agents(
         db: Session = Depends(get_db)
 ):
     """Get players without a team (free agents)"""
-    query = db.query(PlayerModel).filter(PlayerModel.teamId == None)
+    query = db.query(PlayerModel).options(joinedload(PlayerModel.team)).filter(PlayerModel.teamId == None)
 
     if position:
         query = query.filter(PlayerModel.position == position)
 
     players = query.offset(skip).limit(limit).all()
 
-    player_items = []
-    for player in players:
-        player_items.append({
-            "id": player.id,
-            "name": player.name,
-            "email": player.email,
-            "position": player.position.value if player.position else None,
-            "rating": player.rating,
-            "teamName": None
-        })
-
-    return PlayerListResponse(data=player_items)
+    return PlayerListResponse(data=players)

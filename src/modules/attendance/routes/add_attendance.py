@@ -178,18 +178,7 @@ async def upsert_attendance(data: AttendanceUpsert, db: Session = Depends(get_db
         if league:
             league_id = league.id
 
-    return AttendanceResponse(
-        id=attendance.id,
-        scope=attendance.scope.value,
-        matchId=attendance.matchId,
-        trainingSessionId=attendance.trainingSessionId,
-        playerId=attendance.playerId,
-        playerName=player.name,
-        teamId=attendance.teamId,
-        teamName=team.name,
-        status=attendance.status.value,
-        note=attendance.note,
-        recordedAt=attendance.recordedAt,
-        leagueId=league_id,
-        tournamentId=tournament_id
-    )
+    attendance._resolvedLeagueId = league_id
+    attendance._resolvedTournamentId = tournament_id
+
+    return attendance

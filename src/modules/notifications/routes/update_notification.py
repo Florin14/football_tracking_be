@@ -20,8 +20,4 @@ async def update_notification(data: NotificationUpdate, notification: Notificati
     db.commit()
     db.refresh(notification)
 
-    return NotificationResponse(
-        id=notification.id,
-        name=notification.name,
-        description=notification.description,
-    )
+    return notification

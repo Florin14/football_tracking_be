@@ -21,3 +21,11 @@ class GoalModel(BaseModel):
     player = relationship("PlayerModel", foreign_keys=[playerId])
     # assistPlayer = relationship("PlayerModel", foreign_keys=[assistPlayerId])
     team = relationship("TeamModel")
+
+    @property
+    def playerName(self):
+        return self.player.name if self.player else "Unknown"
+
+    @property
+    def teamName(self):
+        return self.team.name if self.team else "Unknown"

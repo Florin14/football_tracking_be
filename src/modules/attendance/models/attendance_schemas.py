@@ -26,7 +26,6 @@ class AttendanceResponse(BaseSchema):
     id: int
     scope: str
     matchId: Optional[int] = None
-    tournamentId: Optional[int] = None
     trainingSessionId: Optional[int] = None
     playerId: int
     playerName: str
@@ -35,8 +34,8 @@ class AttendanceResponse(BaseSchema):
     status: str
     note: Optional[str] = None
     recordedAt: datetime
-    leagueId: Optional[int] = None
-    tournamentId: Optional[int] = None
+    leagueId: Optional[int] = Field(None, validation_alias="resolvedLeagueId")
+    tournamentId: Optional[int] = Field(None, validation_alias="resolvedTournamentId")
 
 
 class AttendanceListResponse(BaseSchema):

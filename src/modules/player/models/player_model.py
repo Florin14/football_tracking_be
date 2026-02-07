@@ -51,6 +51,34 @@ class PlayerModel(UserModel):
         .scalar_subquery()
     )
 
+    @property
+    def teamName(self):
+        return self.team.name if self.team else None
+
+    @property
+    def goals(self):
+        return int(self.goalsCount or 0)
+
+    @property
+    def assists(self):
+        return int(self.assistsCount or 0)
+
+    @property
+    def yellowCards(self):
+        return int(self.yellowCardsCount or 0)
+
+    @property
+    def redCards(self):
+        return int(self.redCardsCount or 0)
+
+    @property
+    def appearances(self):
+        return int(getattr(self, "_appearances", 0) or 0)
+
+    @appearances.setter
+    def appearances(self, value):
+        self._appearances = value
+
 
     __mapper_args__ = {
         "polymorphic_identity": PlatformRoles.PLAYER,

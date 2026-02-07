@@ -52,25 +52,13 @@ async def get_teams(
 
     teams = query.distinct(TeamModel.id).offset(skip).limit(limit).all()
 
-    teamItems = []
+    team_items = []
     for row in teams:
         if include_ranking:
             team, ranking = row
+            team._ranking = ranking
         else:
-            team, ranking = row, None
-        teamItems.append({
-            "id": team.id,
-            "name": team.name,
-            "description": team.description,
-            "location": team.location,
-            "logo": team.logo,
-            "playerCount": len(team.players) if team.players else 0,
-            "points": ranking.points if ranking else 0,
-            "goalsFor": ranking.goalsScored if ranking else 0,
-            "goalsAgainst": ranking.goalsConceded if ranking else 0,
-            "wins": ranking.gamesWon if ranking else 0,
-            "draws": ranking.gamesTied if ranking else 0,
-            "losses": ranking.gamesLost if ranking else 0,
-        })
+            team = row
+        team_items.append(team)
 
-    return TeamListResponse(data=teamItems)
+    return TeamListResponse(data=team_items)

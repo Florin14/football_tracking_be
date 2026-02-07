@@ -78,7 +78,7 @@ class TeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    players: Optional[List[dict]] = []
+    players: Optional[List[PlayerResponse]] = []
     logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)

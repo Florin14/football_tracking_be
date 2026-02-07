@@ -35,6 +35,14 @@ async def update_match(
     if match_data.timestamp:
         match.timestamp = match_data.timestamp
 
+    if match_data.round is not None:
+        if not match.leagueId:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Round can only be set for league matches",
+            )
+        match.round = match_data.round
+
     scores_updated = False
     if match_data.scoreTeam1 is not None:
         match.scoreTeam1 = match_data.scoreTeam1
@@ -127,15 +135,4 @@ async def update_match(
     db.commit()
     db.refresh(match)
 
-    return MatchResponse(
-        id=match.id,
-        team1=match.team1,
-        team2=match.team2,
-        league=match.league,
-        location=match.location,
-        timestamp=match.timestamp,
-        scoreTeam1=match.scoreTeam1,
-        scoreTeam2=match.scoreTeam2,
-        state=match.state.value,
-        goals=[]
-    )
+    return match

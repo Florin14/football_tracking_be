@@ -30,9 +30,4 @@ async def update_training_session(
     db.commit()
     db.refresh(session)
 
-    return TrainingSessionResponse(
-        id=session.id,
-        timestamp=session.timestamp,
-        location=session.location,
-        details=session.details,
-    )
+    return session

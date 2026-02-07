@@ -39,12 +39,4 @@ async def add_tournament(data: TournamentAdd, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(tournament)
 
-    return TournamentResponse(
-        id=tournament.id,
-        name=tournament.name,
-        description=tournament.description,
-        formatType=tournament.formatType,
-        groupCount=tournament.groupCount,
-        teamsPerGroup=tournament.teamsPerGroup,
-        hasKnockout=tournament.hasKnockout,
-    )
+    return tournament

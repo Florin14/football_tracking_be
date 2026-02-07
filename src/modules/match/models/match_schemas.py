@@ -4,6 +4,7 @@ from typing import Optional, List
 from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
+from modules.match.models.goal_schemas import GoalResponse
 
 
 class LeagueItemLite(BaseSchema):
@@ -26,6 +27,7 @@ class MatchAdd(BaseSchema):
     team1Id: int = Field(..., example=1)
     team2Id: int = Field(..., example=2)
     leagueId: Optional[int] = Field(None, example=1)
+    round: Optional[int] = Field(None, ge=1, example=1)
     location: Optional[str] = Field(None, min_length=1, example="Stadium Arena")
     timestamp: datetime = Field(..., example="2024-12-25T15:00:00")
 
@@ -42,6 +44,7 @@ class MatchUpdate(BaseSchema):
     scoreTeam2: Optional[int] = None
     state: Optional[str] = None
     goals: Optional[List[GoalAdd]] = None
+    round: Optional[int] = Field(None, ge=1)
 
 
 class ScoreUpdate(BaseSchema):
@@ -62,6 +65,7 @@ class MatchItem(BaseSchema):
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     state: str
+    round: Optional[int] = None
 
     @validator("team1Logo", "team2Logo", "leagueLogo", pre=False, always=True)
     def decode_logo_from_base64(cls, value):
@@ -97,7 +101,8 @@ class MatchResponse(BaseSchema):
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     state: str
-    goals: Optional[List[dict]] = []
+    goals: Optional[List[GoalResponse]] = []
+    round: Optional[int] = None
 
 
 class MatchFilter(FilterSchema):

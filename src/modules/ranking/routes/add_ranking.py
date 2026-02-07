@@ -8,16 +8,11 @@ from .router import router
 
 @router.post("/", response_model=RankingResponse)
 async def add_ranking(data: RankingAdd, db: Session = Depends(get_db)):
-    ranking = RankingModel(
-        name=data.name,
-        description=data.description
-    )
+    ranking = RankingModel(description=data.description)
+    if data.name:
+        ranking.name = data.name
     db.add(ranking)
     db.commit()
     db.refresh(ranking)
 
-    return RankingResponse(
-        id=ranking.id,
-        name=ranking.name,
-        description=ranking.description,
-    )
+    return ranking

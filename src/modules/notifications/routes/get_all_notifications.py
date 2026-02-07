@@ -24,14 +24,4 @@ async def get_notifications(
 
     notifications = query.offset(skip).limit(limit).all()
 
-    notificationItems = []
-    for notification in notifications:
-        notificationItems.append({
-            "id": notification.id,
-            "name": notification.name,
-            "description": notification.description,
-            "location": notification.location,
-            "logo": notification.logo,
-        })
-
-    return NotificationListResponse(data=notificationItems)
+    return NotificationListResponse(data=notifications)

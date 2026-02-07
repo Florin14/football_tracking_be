@@ -21,4 +21,41 @@ class TeamModel(BaseModel):
     )
     leagues = relationship("LeagueModel", secondary="league_teams", viewonly=True)
 
+    @property
+    def playerCount(self):
+        return len(self.players) if self.players else 0
+
+    def _get_ranking(self):
+        return getattr(self, "_ranking", None)
+
+    @property
+    def points(self):
+        ranking = self._get_ranking()
+        return ranking.points if ranking else 0
+
+    @property
+    def goalsFor(self):
+        ranking = self._get_ranking()
+        return ranking.goalsScored if ranking else 0
+
+    @property
+    def goalsAgainst(self):
+        ranking = self._get_ranking()
+        return ranking.goalsConceded if ranking else 0
+
+    @property
+    def wins(self):
+        ranking = self._get_ranking()
+        return ranking.gamesWon if ranking else 0
+
+    @property
+    def draws(self):
+        ranking = self._get_ranking()
+        return ranking.gamesTied if ranking else 0
+
+    @property
+    def losses(self):
+        ranking = self._get_ranking()
+        return ranking.gamesLost if ranking else 0
+
 

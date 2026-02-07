@@ -12,13 +12,4 @@ async def get_training_sessions(skip: int = 0, limit: int = 100, db: Session = D
         TrainingSessionModel.timestamp.desc()
     ).offset(skip).limit(limit).all()
 
-    items = []
-    for session in sessions:
-        items.append(TrainingSessionResponse(
-            id=session.id,
-            timestamp=session.timestamp,
-            location=session.location,
-            details=session.details
-        ))
-
-    return TrainingSessionListResponse(data=items)
+    return TrainingSessionListResponse(data=sessions)

@@ -34,14 +34,4 @@ async def get_all_leagues(
 
     leagues = query.offset(skip).limit(limit).all()
 
-    leagues_items = []
-    for league in leagues:
-        leagues_items.append({
-            "id": league.id,
-            "name": league.name,
-            "logo": league.logo,
-            "relevanceOrder": league.relevanceOrder,
-            "tournamentId": league.tournamentId,
-        })
-
-    return LeaguesListResponse(data=leagues_items)
+    return LeaguesListResponse(data=leagues)

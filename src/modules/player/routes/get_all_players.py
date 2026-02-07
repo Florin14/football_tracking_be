@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
@@ -18,7 +18,7 @@ async def get_all_players(
         search: Optional[str] = None,
         db: Session = Depends(get_db)
 ):
-    query = db.query(PlayerModel)
+    query = db.query(PlayerModel).options(joinedload(PlayerModel.team))
 
     if teamId:
         query = query.filter(PlayerModel.teamId == teamId)
@@ -31,21 +31,5 @@ async def get_all_players(
 
     players = query.offset(skip).limit(limit).all()
 
-    player_items = []
-    for player in players:
-        player_items.append({
-            "id": player.id,
-            "name": player.name,
-            "email": player.email,
-            "position": player.position.value if player.position else None,
-            "rating": player.rating,
-            "teamId": player.teamId,
-            "teamName": player.team.name if player.team else None,
-            "goals": int(player.goalsCount or 0),
-            "assists": int(player.assistsCount or 0),
-            "yellowCards": int(player.yellowCardsCount or 0),
-            "redCards": int(player.redCardsCount or 0),
-        })
-
-    return PlayerListResponse(data=player_items)
+    return PlayerListResponse(data=players)
 

@@ -17,4 +17,8 @@ class NotificationModel(BaseModel):
     createdAt = Column(DateTime, name="created_at", nullable=False)
     type = Column(Enum(NotificationType), nullable=False, default=NotificationType.NEW_MATCH)
 
+    @property
+    def playerCount(self):
+        return 1 if self.player else 0
+
 

@@ -99,15 +99,4 @@ async def reorder_leagues(
         .all()
     )
 
-    return LeaguesListResponse(
-        data=[
-            {
-                "id": league.id,
-                "name": league.name,
-                "logo": league.logo,
-                "relevanceOrder": league.relevanceOrder,
-                "tournamentId": league.tournamentId,
-            }
-            for league in ordered_leagues
-        ]
-    )
+    return LeaguesListResponse(data=ordered_leagues)

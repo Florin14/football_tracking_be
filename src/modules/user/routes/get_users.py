@@ -1,17 +1,16 @@
-from sqlalchemy.orm import Session
-from .router import router
 from fastapi import Depends
+from sqlalchemy.orm import Session
+
 from extensions import get_db
-from modules.user.models.user_schemas import UserFilter, UserListResponse
+from project_helpers.db import apply_search
+from modules.user.models.user_schemas import UserListParams, UserListResponse
 from modules.user.models.user_model import UserModel
+from .router import router
 
 
 @router.get('', response_model=UserListResponse)
-async def get_all_users(query: UserFilter = Depends(), db: Session = Depends(get_db)):
+async def get_all_users(params: UserListParams = Depends(), db: Session = Depends(get_db)):
     employerQuery = db.query(UserModel)
 
-    # employerQuery = employerQuery.order_by(getattr(getattr(UserModel, query.sortBy), query.sortType)())
-    # qty = employerQuery.count()
-    # if None not in [query.offset, query.limit]:
-    #     employerQuery = employerQuery.offset(query.offset).limit(query.limit)
-    return UserListResponse(data=employerQuery.all())
+    employerQuery = apply_search(employerQuery, UserModel.name, params.search)
+    return UserListResponse(data=params.apply(employerQuery).all())

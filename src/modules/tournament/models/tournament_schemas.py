@@ -1,9 +1,9 @@
 from typing import Dict, List, Optional
 from datetime import date, datetime
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 class TeamItemLite(BaseSchema):
     id: int
@@ -81,6 +81,15 @@ class TournamentItem(BaseSchema):
 
 class TournamentFilter(FilterSchema):
     sortBy: str = "name"
+
+
+class TournamentListParams(PaginationParams):
+    search: Optional[str] = None
+
+
+class LeagueListParams(PaginationParams):
+    search: Optional[str] = None
+    tournamentId: Optional[int] = Field(None, validation_alias=AliasChoices("tournamentId", "tournament_id"))
 
 
 class TournamentResponse(BaseSchema):

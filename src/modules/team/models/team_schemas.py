@@ -1,10 +1,10 @@
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
 from modules.player.models.player_schemas import PlayerResponse
 from project_helpers.functions import process_and_convert_image_to_base64
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class TeamAdd(BaseSchema):
@@ -74,11 +74,23 @@ class TeamFilter(FilterSchema):
     sortBy: str = "name"
 
 
+class TeamListParams(PaginationParams):
+    search: Optional[str] = None
+    leagueId: Optional[int] = Field(None, validation_alias=AliasChoices("leagueId", "league_id"))
+    excludeLeagueId: Optional[int] = Field(
+        None, validation_alias=AliasChoices("excludeLeagueId", "exclude_league_id")
+    )
+    tournamentId: Optional[int] = Field(None, validation_alias=AliasChoices("tournamentId", "tournament_id"))
+    excludeTournamentId: Optional[int] = Field(
+        None, validation_alias=AliasChoices("excludeTournamentId", "exclude_tournament_id")
+    )
+
+
 class TeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    players: Optional[List[dict]] = []
+    players: Optional[List[PlayerResponse]] = []
     logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
@@ -95,7 +107,7 @@ class BaseCampTeamResponse(BaseSchema):
     name: str
     description: Optional[str] = None
     players: Optional[List[PlayerResponse]] = []
-    logo: Optional[bytes] = Field(None, example="")
+    logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):
@@ -108,3 +120,15 @@ class BaseCampTeamResponse(BaseSchema):
 
 class TeamListResponse(BaseSchema):
     data: List[TeamItem] = []
+
+
+class PlayerStatItem(BaseSchema):
+    playerId: int
+    playerName: str
+    value: int
+
+
+class BaseCampStatsResponse(BaseSchema):
+    topScorer: Optional[PlayerStatItem] = None
+    topAssists: Optional[PlayerStatItem] = None
+    topAppearances: Optional[PlayerStatItem] = None

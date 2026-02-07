@@ -1,5 +1,4 @@
 from fastapi import Depends
-from fastapi import Depends
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
@@ -14,7 +13,6 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
     ).first()
 
     if not team:
-        # Create the team if it doesn't exist
         team = TeamModel(
             name="FC Base Camp",
             description="The default team for the Base Camp football club",
@@ -24,23 +22,4 @@ async def get_base_camp_team(db: Session = Depends(get_db)):
         db.commit()
         db.refresh(team)
 
-    players = []
-    if team.players:
-        for player in team.players:
-            players.append({
-                "id": player.id,
-                "name": player.name,
-                "email": player.email,
-                "avatar": player.avatar,
-                "shirtNumber": player.shirtNumber,
-                "position": player.position.value if player.position else None,
-                "rating": player.rating
-            })
-
-    return TeamResponse(
-        id=team.id,
-        name=team.name,
-        description=team.description,
-        players=players,
-        logo=team.logo,
-    )
+    return team

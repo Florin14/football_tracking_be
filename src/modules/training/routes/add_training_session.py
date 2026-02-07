@@ -16,9 +16,4 @@ async def add_training_session(data: TrainingSessionAdd, db: Session = Depends(g
     db.add(session)
     db.commit()
 
-    return TrainingSessionResponse(
-        id=session.id,
-        timestamp=session.timestamp,
-        location=session.location,
-        details=session.details
-    )
+    return session

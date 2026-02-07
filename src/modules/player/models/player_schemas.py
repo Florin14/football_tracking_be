@@ -1,9 +1,9 @@
 from typing import List, Optional
 
-from pydantic import Field, validator
+from pydantic import AliasChoices, Field, validator
 
 from project_helpers.functions import process_and_convert_image_to_base64
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class PlayerAdd(BaseSchema):
@@ -51,7 +51,7 @@ class PlayerItem(BaseSchema):
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
     # teamName: Optional[str] = None
-    avatar: Optional[bytes] = Field(None, example="")
+    avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)
     def decode_image_from_base64(cls, value):
@@ -68,21 +68,27 @@ class PlayerFilter(FilterSchema):
     sortBy: str = "name"
 
 
+class PlayerListParams(PaginationParams):
+    teamId: Optional[int] = Field(None, validation_alias=AliasChoices("teamId", "team_id"))
+    position: Optional[str] = None
+    search: Optional[str] = None
+
+
 class PlayerResponse(BaseSchema):
     id: int
     name: str
     email: str
     position: Optional[str] = None
     rating: Optional[int] = None
+    shirtNumber: Optional[int] = None
     teamId: Optional[int] = None
     teamName: Optional[str] = None
     goals: Optional[int] = 0
     assists: Optional[int] = 0
+    appearances: Optional[int] = 0
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
-    # teamId: Optional[int] = None
-    # teamName: Optional[str] = None
-    avatar: Optional[bytes] = Field(None, example="")
+    avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)
     def decode_image_from_base64(cls, value):

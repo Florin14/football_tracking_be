@@ -3,3 +3,4 @@ from .error_schema import ErrorSchema
 from .confirmation_schema import ConfirmationSchema
 from .filter_schema import FilterSchema
 from .file_schema import FileSchema
+from .pagination_schema import PaginationParams

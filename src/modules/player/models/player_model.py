@@ -1,14 +1,16 @@
 from sqlalchemy import Column, Integer, ForeignKey, LargeBinary, Enum, BigInteger, func, select, literal
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, column_property
 
 from constants.platform_roles import PlatformRoles
+from constants.attendance_scope import AttendanceScope
+from constants.attendance_status import AttendanceStatus
 from constants.player_positions import PlayerPositions
 from modules.team.models.team_model import TeamModel
 from modules.user.models.user_model import UserModel
 from modules.match.models.goal_model import GoalModel
 from modules.match.models.card_model import CardModel
-# from modules.attendance.models.attendance_model import AttendanceModel  # noqa: F401
-# from modules.notifications.models.notifications_model import NotificationModel  # noqa: F401
+from modules.attendance.models.attendance_model import AttendanceModel
 from constants.card_type import CardType
 
 
@@ -50,6 +52,40 @@ class PlayerModel(UserModel):
         .correlate_except(CardModel)
         .scalar_subquery()
     )
+    appearancesCount = column_property(
+        select(func.count(AttendanceModel.id))
+        .where(
+            AttendanceModel.playerId == id,
+            AttendanceModel.scope == AttendanceScope.MATCH,
+            AttendanceModel.status == AttendanceStatus.PRESENT,
+        )
+        .correlate_except(AttendanceModel)
+        .scalar_subquery()
+    )
+
+    @property
+    def teamName(self):
+        return self.team.name if self.team else None
+
+    @property
+    def goals(self):
+        return int(self.goalsCount or 0)
+
+    @property
+    def assists(self):
+        return int(self.assistsCount or 0)
+
+    @property
+    def yellowCards(self):
+        return int(self.yellowCardsCount or 0)
+
+    @property
+    def redCards(self):
+        return int(self.redCardsCount or 0)
+
+    @hybrid_property
+    def appearances(self):
+        return int(self.appearancesCount or 0)
 
 
     __mapper_args__ = {

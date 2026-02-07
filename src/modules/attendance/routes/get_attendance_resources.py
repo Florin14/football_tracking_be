@@ -1,13 +1,11 @@
-from typing import Optional
-
-from fastapi import Depends, HTTPException, Query, status
-from sqlalchemy import func, or_
-from sqlalchemy.orm import Session, aliased
+from fastapi import Depends, HTTPException, status
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from extensions.sqlalchemy import get_db
-from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse
+from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse, AttendanceQueryParams
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
@@ -19,20 +17,12 @@ from .router import router
 
 @router.get("-resources", response_model=AttendanceGroupedListResponse)
 async def get_attendance_resources(
-        skip: int = 0,
-        limit: int = 100,
-        scope: Optional[str] = None,
-        match_id: Optional[int] = None,
-        player_id: Optional[int] = None,
-        team_id: Optional[int] = None,
-        league_id: Optional[int] = None,
-        tournament_id: Optional[int] = None,
-        training_session_id: Optional[int] = None,
-        status: Optional[str] = None,
+        params: AttendanceQueryParams = Depends(),
         db: Session = Depends(get_db)
 ):
     query = db.query(AttendanceModel)
 
+    team_id = params.teamId
     # Get default basecamp team
     if team_id is None:
         default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
@@ -55,9 +45,9 @@ async def get_attendance_resources(
         )
     )
 
-    if scope:
+    if params.scope:
         try:
-            attendance_scope = AttendanceScope(scope.upper())
+            attendance_scope = AttendanceScope(params.scope.upper())
             query = query.filter(AttendanceModel.scope == attendance_scope)
         except ValueError:
             raise HTTPException(
@@ -65,18 +55,18 @@ async def get_attendance_resources(
                 detail="Invalid attendance scope"
             )
 
-    if match_id:
-        query = query.filter(AttendanceModel.matchId == match_id)
+    if params.matchId:
+        query = query.filter(AttendanceModel.matchId == params.matchId)
 
-    if player_id:
-        query = query.filter(AttendanceModel.playerId == player_id)
+    if params.playerId:
+        query = query.filter(AttendanceModel.playerId == params.playerId)
 
-    if training_session_id:
-        query = query.filter(AttendanceModel.trainingSessionId == training_session_id)
+    if params.trainingSessionId:
+        query = query.filter(AttendanceModel.trainingSessionId == params.trainingSessionId)
 
-    if status:
+    if params.status:
         try:
-            attendance_status = AttendanceStatus(status.upper())
+            attendance_status = AttendanceStatus(params.status.upper())
             query = query.filter(AttendanceModel.status == attendance_status)
         except ValueError:
             raise HTTPException(
@@ -84,13 +74,15 @@ async def get_attendance_resources(
                 detail="Invalid attendance status"
             )
 
-    if league_id:
-        query = query.filter(MatchModel.leagueId == league_id)
+    if params.leagueId:
+        query = query.filter(MatchModel.leagueId == params.leagueId)
 
-    if tournament_id:
-        query = query.filter(LeagueModel.tournamentId == tournament_id)
+    if params.tournamentId:
+        query = query.filter(LeagueModel.tournamentId == params.tournamentId)
 
-    attendance_rows = query.order_by(AttendanceModel.recordedAt.desc()).offset(skip).limit(limit).all()
+    attendance_rows = params.apply(
+        query.order_by(AttendanceModel.recordedAt.desc())
+    ).all()
 
     grouped_items = build_grouped_attendance(attendance_rows, db)
 

@@ -20,6 +20,7 @@ class MatchModel(BaseModel):
     scoreTeam2 = Column(Integer, nullable=True, name="score_team2")
     state = Column(Enum(MatchState), default=MatchState.SCHEDULED)
     leagueId = Column(BigInteger, ForeignKey("leagues.id"), nullable=True, name="league_id")
+    round = Column(Integer, nullable=True, name="round")
 
     team1 = relationship("TeamModel", foreign_keys=[team1Id])
     team2 = relationship("TeamModel", foreign_keys=[team2Id])
@@ -34,3 +35,27 @@ class MatchModel(BaseModel):
     @location.setter
     def location(self, value):
         self._location = value
+
+    @property
+    def team1Name(self):
+        return self.team1.name if self.team1 else None
+
+    @property
+    def team2Name(self):
+        return self.team2.name if self.team2 else None
+
+    @property
+    def team1Logo(self):
+        return self.team1.logo if self.team1 else None
+
+    @property
+    def team2Logo(self):
+        return self.team2.logo if self.team2 else None
+
+    @property
+    def leagueName(self):
+        return self.league.name if self.league else None
+
+    @property
+    def leagueLogo(self):
+        return self.league.logo if self.league else None

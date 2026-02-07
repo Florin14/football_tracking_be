@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 
-from project_helpers.schemas import BaseSchema, FilterSchema
+from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
 
 class AttendanceUpsert(BaseSchema):
@@ -26,7 +26,6 @@ class AttendanceResponse(BaseSchema):
     id: int
     scope: str
     matchId: Optional[int] = None
-    tournamentId: Optional[int] = None
     trainingSessionId: Optional[int] = None
     playerId: int
     playerName: str
@@ -35,8 +34,8 @@ class AttendanceResponse(BaseSchema):
     status: str
     note: Optional[str] = None
     recordedAt: datetime
-    leagueId: Optional[int] = None
-    tournamentId: Optional[int] = None
+    leagueId: Optional[int] = Field(None, validation_alias="resolvedLeagueId")
+    tournamentId: Optional[int] = Field(None, validation_alias="resolvedTournamentId")
 
 
 class AttendanceListResponse(BaseSchema):
@@ -69,3 +68,19 @@ class AttendanceFilter(FilterSchema):
     tournamentId: Optional[int] = None
     status: Optional[str] = None
     sortBy: str = "recordedAt"
+
+
+class AttendanceQueryParams(PaginationParams):
+    scope: Optional[str] = None
+    matchId: Optional[int] = Field(None, validation_alias=AliasChoices("matchId", "match_id"))
+    playerId: Optional[int] = Field(None, validation_alias=AliasChoices("playerId", "player_id"))
+    teamId: Optional[int] = Field(None, validation_alias=AliasChoices("teamId", "team_id"))
+    leagueId: Optional[int] = Field(None, validation_alias=AliasChoices("leagueId", "league_id"))
+    tournamentId: Optional[int] = Field(None, validation_alias=AliasChoices("tournamentId", "tournament_id"))
+    trainingSessionId: Optional[int] = Field(
+        None, validation_alias=AliasChoices("trainingSessionId", "training_session_id")
+    )
+    status: Optional[str] = None
+    excludeGroupLeagues: bool = Field(
+        False, validation_alias=AliasChoices("excludeGroupLeagues", "exclude_group_leagues")
+    )

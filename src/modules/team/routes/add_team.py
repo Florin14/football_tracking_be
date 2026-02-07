@@ -34,10 +34,4 @@ async def add_team(data: TeamAdd, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(team)
 
-    return TeamResponse(
-        id=team.id,
-        name=team.name,
-        logo=team.logo,
-        description=team.description,
-        players=[]
-    )
+    return team

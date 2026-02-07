@@ -25,8 +25,4 @@ async def add_notification(data: NotificationAdd, db: Session = Depends(get_db))
     db.commit()
     db.refresh(notification)
 
-    return NotificationResponse(
-        id=notification.id,
-        name=notification.name,
-        description=notification.description,
-    )
+    return notification

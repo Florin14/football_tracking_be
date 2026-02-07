@@ -21,9 +21,4 @@ async def update_team(data: TeamUpdate, team: TeamModel = Depends(GetInstanceFro
     db.commit()
     db.refresh(team)
 
-    return TeamResponse(
-        id=team.id,
-        name=team.name,
-        description=team.description,
-        logo=team.logo
-    )
+    return team

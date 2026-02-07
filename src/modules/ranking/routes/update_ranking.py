@@ -23,9 +23,4 @@ async def update_team(
     db.commit()
     db.refresh(team)
 
-    return RankingResponse(
-        id=team.id,
-        name=team.name,
-        description=team.description,
-        players=[]
-    )
+    return team

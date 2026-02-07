@@ -1,39 +1,23 @@
-from typing import Optional
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
+from project_helpers.db import apply_search
 from modules.tournament.models.tournament_model import TournamentModel
-from modules.tournament.models.tournament_schemas import TournamentListResponse
+from modules.tournament.models.tournament_schemas import TournamentListResponse, TournamentListParams
 
 from .router import router
 
 
 @router.get("/", response_model=TournamentListResponse)
 async def get_tournaments(
-        skip: int = 0,
-        limit: int = 100,
-        search: Optional[str] = None,
+        params: TournamentListParams = Depends(),
         db: Session = Depends(get_db)
 ):
     query = db.query(TournamentModel)
 
-    if search:
-        query = query.filter(TournamentModel.name.ilike(f"%{search}%"))
+    query = apply_search(query, TournamentModel.name, params.search)
 
-    tournaments = query.offset(skip).limit(limit).all()
+    tournaments = params.apply(query).all()
 
-    tournament_items = []
-    for tournament in tournaments:
-        tournament_items.append({
-            "id": tournament.id,
-            "name": tournament.name,
-            "description": tournament.description,
-            "formatType": tournament.formatType,
-            "groupCount": tournament.groupCount,
-            "teamsPerGroup": tournament.teamsPerGroup,
-            "hasKnockout": tournament.hasKnockout,
-        })
-
-    return TournamentListResponse(data=tournament_items)
+    return TournamentListResponse(data=tournaments)

@@ -107,7 +107,7 @@ class BaseCampTeamResponse(BaseSchema):
     name: str
     description: Optional[str] = None
     players: Optional[List[PlayerResponse]] = []
-    logo: Optional[bytes] = Field(None, example="")
+    logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
     def decode_image_from_base64(cls, value):
@@ -120,3 +120,15 @@ class BaseCampTeamResponse(BaseSchema):
 
 class TeamListResponse(BaseSchema):
     data: List[TeamItem] = []
+
+
+class PlayerStatItem(BaseSchema):
+    playerId: int
+    playerName: str
+    value: int
+
+
+class BaseCampStatsResponse(BaseSchema):
+    topScorer: Optional[PlayerStatItem] = None
+    topAssists: Optional[PlayerStatItem] = None
+    topAppearances: Optional[PlayerStatItem] = None

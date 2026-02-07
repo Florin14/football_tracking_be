@@ -51,7 +51,7 @@ class PlayerItem(BaseSchema):
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
     # teamName: Optional[str] = None
-    avatar: Optional[bytes] = Field(None, example="")
+    avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)
     def decode_image_from_base64(cls, value):
@@ -88,9 +88,7 @@ class PlayerResponse(BaseSchema):
     appearances: Optional[int] = 0
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
-    # teamId: Optional[int] = None
-    # teamName: Optional[str] = None
-    avatar: Optional[bytes] = Field(None, example="")
+    avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)
     def decode_image_from_base64(cls, value):

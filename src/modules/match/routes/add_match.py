@@ -3,6 +3,7 @@ import logging
 from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from constants.platform_roles import PlatformRoles
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
@@ -17,6 +18,7 @@ from project_helpers.emails_handling import (
     send_via_gmail_oauth2_safe,
     validate_config,
 )
+from project_helpers.dependencies import GetCurrentUser
 from .router import router
 
 
@@ -25,6 +27,7 @@ async def add_match(
     data: MatchAdd,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     from modules.player.models.player_model import PlayerModel
 

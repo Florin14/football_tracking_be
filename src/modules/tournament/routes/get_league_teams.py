@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
@@ -12,7 +13,11 @@ from .router import router
 
 
 @router.get("/leagues/{league_id}/teams", response_model=LeagueTeamsResponse)
-async def get_league_teams(league_id: int, db: Session = Depends(get_db)):
+async def get_league_teams(
+    league_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
     if not league:
         raise HTTPException(

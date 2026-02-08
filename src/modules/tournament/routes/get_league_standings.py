@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.match.models.match_model import MatchModel
 from modules.match.services.match_status import is_match_completed
 from modules.tournament.models.league_model import LeagueModel
@@ -81,7 +82,11 @@ def _build_group_standings(
 
 
 @router.get("/leagues/{league_id}/standings", response_model=LeagueStandingsResponse)
-async def get_league_standings(league_id: int, db: Session = Depends(get_db)):
+async def get_league_standings(
+    league_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
     if not league:
         raise HTTPException(

@@ -26,6 +26,12 @@ class PlayerModel(UserModel):
     team = relationship(TeamModel)
     notifications = relationship("NotificationModel", back_populates="player")
     attendance = relationship("AttendanceModel", back_populates="player")
+    preferences = relationship(
+        "PlayerPreferencesModel",
+        uselist=False,
+        back_populates="player",
+        cascade="all, delete-orphan",
+    )
 
     goalsCount = column_property(
         select(func.count(GoalModel.id))

@@ -3,6 +3,17 @@ import uvicorn
 from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError, ProgrammingError, SQLAlchemyError
+from extensions.auth_jwt.exceptions import (
+    AuthJWTException,
+    MissingTokenError,
+    RevokedTokenError,
+    InvalidHeaderError,
+    JWTDecodeError,
+    AccessTokenRequired,
+    RefreshTokenRequired,
+    FreshTokenRequired,
+    CSRFError,
+)
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from project_helpers.responses import ErrorResponse
@@ -35,6 +46,21 @@ async def error_exception_handler(request: Request, exc: ErrorException):
         message=getattr(exc, "message", None),
         fields=getattr(exc, "fields", None),
     )
+
+
+async def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+    status_code = getattr(exc, "status_code", 401) or 401
+    if isinstance(exc, MissingTokenError):
+        error = Error.TOKEN_NOT_FOUND
+    elif isinstance(exc, RevokedTokenError):
+        error = Error.REVOKED_TOKEN
+    elif isinstance(exc, FreshTokenRequired):
+        error = Error.FRESH_TOKEN_REQUIRED
+    elif isinstance(exc, (AccessTokenRequired, RefreshTokenRequired, InvalidHeaderError, JWTDecodeError, CSRFError)):
+        error = Error.INVALID_TOKEN
+    else:
+        error = Error.INVALID_TOKEN
+    return ErrorResponse(error, statusCode=status_code, message=getattr(exc, "message", None))
 
 
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -83,6 +109,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 api = FastAPI(
     exception_handlers={
         ErrorException: error_exception_handler,
+        AuthJWTException: authjwt_exception_handler,
         HTTPException: http_exception_handler,
         RequestValidationError: validation_exception_handler,
         SQLAlchemyError: sqlalchemy_exception_handler,

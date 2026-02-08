@@ -2,6 +2,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from project_helpers.schemas import PaginationParams
 from modules.training.models import TrainingSessionListResponse, TrainingSessionModel
 from .router import router
@@ -11,6 +12,7 @@ from .router import router
 async def get_training_sessions(
     params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
 ):
     sessions = params.apply(
         db.query(TrainingSessionModel).order_by(TrainingSessionModel.timestamp.desc())

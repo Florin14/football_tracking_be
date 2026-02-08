@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from constants.platform_roles import PlatformRoles
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
@@ -16,14 +17,17 @@ from modules.tournament.models.tournament_knockout_config_model import Tournamen
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
 from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
 from modules.team.models import TeamModel
-from project_helpers.dependencies import GetInstanceFromPath
+from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
 @router.post("/{id}/score", response_model=ConfirmationResponse)
 async def update_match_score(
-        data: ScoreUpdate, match: MatchModel = Depends(GetInstanceFromPath(MatchModel)), db: Session = Depends(get_db)
+        data: ScoreUpdate,
+        match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
+        db: Session = Depends(get_db),
+        current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 
 ):
     from modules.player.models.player_model import PlayerModel

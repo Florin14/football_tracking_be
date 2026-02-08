@@ -5,12 +5,16 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchResponse, GoalModel
 )
-from project_helpers.dependencies import GetInstanceFromPath
+from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
 from .router import router
 
 
 @router.get("/{id}", response_model=MatchResponse)
-async def get_match(match: MatchModel = Depends(GetInstanceFromPath(MatchModel)), db: Session = Depends(get_db)):
+async def get_match(
+    match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     match = (
         db.query(MatchModel)
         .options(

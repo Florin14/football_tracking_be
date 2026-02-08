@@ -10,6 +10,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import DataError, DBAPIError, IntegrityError, OperationalError, ProgrammingError, SQLAlchemyError
 
 from extensions.auth_jwt import AuthJWT
+from extensions.auth_jwt.exceptions import (
+    AuthJWTException,
+    MissingTokenError,
+    RevokedTokenError,
+    InvalidHeaderError,
+    JWTDecodeError,
+    AccessTokenRequired,
+    RefreshTokenRequired,
+    FreshTokenRequired,
+    CSRFError,
+)
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
 from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter, reportsRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
@@ -48,6 +59,21 @@ async def error_exception_handler(request: Request, exc: ErrorException):
         message=getattr(exc, "message", None),
         fields=getattr(exc, "fields", None),
     )
+
+
+async def authjwt_exception_handler(request: Request, exc: AuthJWTException):
+    status_code = getattr(exc, "status_code", 401) or 401
+    if isinstance(exc, MissingTokenError):
+        error = Error.TOKEN_NOT_FOUND
+    elif isinstance(exc, RevokedTokenError):
+        error = Error.REVOKED_TOKEN
+    elif isinstance(exc, FreshTokenRequired):
+        error = Error.FRESH_TOKEN_REQUIRED
+    elif isinstance(exc, (AccessTokenRequired, RefreshTokenRequired, InvalidHeaderError, JWTDecodeError, CSRFError)):
+        error = Error.INVALID_TOKEN
+    else:
+        error = Error.INVALID_TOKEN
+    return ErrorResponse(error, statusCode=status_code, message=getattr(exc, "message", None))
 
 
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -149,6 +175,7 @@ async def lifespan(app: FastAPI):
 api = FastAPI(
     exception_handlers={
         ErrorException: error_exception_handler,
+        AuthJWTException: authjwt_exception_handler,
         HTTPException: http_exception_handler,
         RequestValidationError: validation_exception_handler,
         SQLAlchemyError: sqlalchemy_exception_handler,

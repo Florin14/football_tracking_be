@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from constants.player_positions import PlayerPositions
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.match.models.match_model import MatchModel
 from modules.match.services.match_status import match_is_completed_expr
 from modules.match.models.goal_model import GoalModel
@@ -50,6 +51,7 @@ async def get_performance_report(
     from_date: Optional[date] = Query(None, alias="from"),
     to_date: Optional[date] = Query(None, alias="to"),
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
 ):
     team = _resolve_team(db, team_id)
 

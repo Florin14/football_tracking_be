@@ -127,15 +127,40 @@ def parse_allowed_origins() -> list[str]:
 
 
 def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
+    def _parse_bool(value: str | None) -> bool | None:
+        if value is None:
+            return None
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "n", "off"}:
+            return False
+        return None
+
     token_location = os.getenv("AUTHJWT_TOKEN_LOCATION")
     if token_location:
         locations = [item.strip() for item in token_location.split(",") if item.strip()]
     else:
         locations = None
-    return [
+    cookie_samesite = os.getenv("AUTHJWT_COOKIE_SAMESITE")
+    if cookie_samesite:
+        cookie_samesite = cookie_samesite.strip().lower()
+    cookie_secure = _parse_bool(os.getenv("AUTHJWT_COOKIE_SECURE"))
+    cookie_domain = os.getenv("AUTHJWT_COOKIE_DOMAIN")
+    cookie_csrf_protect = _parse_bool(os.getenv("AUTHJWT_COOKIE_CSRF_PROTECT"))
+    config: list[tuple[str, str | list[str] | bool | None]] = [
         ("AUTHJWT_SECRET_KEY", os.getenv("AUTHJWT_SECRET_KEY")),
         ("AUTHJWT_TOKEN_LOCATION", locations),
     ]
+    if cookie_samesite is not None:
+        config.append(("AUTHJWT_COOKIE_SAMESITE", cookie_samesite))
+    if cookie_secure is not None:
+        config.append(("AUTHJWT_COOKIE_SECURE", cookie_secure))
+    if cookie_domain:
+        config.append(("AUTHJWT_COOKIE_DOMAIN", cookie_domain))
+    if cookie_csrf_protect is not None:
+        config.append(("AUTHJWT_COOKIE_CSRF_PROTECT", cookie_csrf_protect))
+    return config
 
 
 def _ensure_default_admin_user(db: SessionLocal) -> None:

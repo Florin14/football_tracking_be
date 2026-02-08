@@ -10,11 +10,10 @@ from modules.match.models.match_schemas import MatchAdd
 from modules.match.routes.router import router
 from project_helpers.dependencies import JwtRequired
 
-@router.post("-schedule")
+@router.post("-schedule", dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def schedule_match(
     match: MatchAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     db_match = MatchModel(date=match.date, location=match.location)
     db.add(db_match)

@@ -10,12 +10,11 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.post("/{id}/players", response_model=ConfirmationResponse)
+@router.post("/{id}/players", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_player_to_team(
         id: int,
         player_data: AddPlayerToTeam,
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Add a player to a team"""
     # Check if team exists

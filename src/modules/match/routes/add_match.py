@@ -22,12 +22,11 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("/", response_model=MatchResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=MatchResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_match(
     data: MatchAdd,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     from modules.player.models.player_model import PlayerModel
 

@@ -9,11 +9,10 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("", response_model=UserResponse)
+@router.post("", response_model=UserResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def create_user(
     user: UserAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     password = user.password if user.password else "fotbal@2025"
     user = UserModel(**user.model_dump(), password=password)

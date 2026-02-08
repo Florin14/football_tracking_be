@@ -29,7 +29,6 @@ class SendEmailRequest(BaseSchema):
 async def send_email(
     req: SendEmailRequest,
     bg: BackgroundTasks,
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if not GMAIL_SENDER:
         raise HTTPException(status_code=500, detail="GMAIL_SENDER not configured")

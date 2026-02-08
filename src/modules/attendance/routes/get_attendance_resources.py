@@ -16,11 +16,10 @@ from .attendance_grouping import build_grouped_attendance
 from .router import router
 
 
-@router.get("-resources", response_model=AttendanceGroupedListResponse)
+@router.get("-resources", response_model=AttendanceGroupedListResponse, dependencies=[Depends(JwtRequired())])
 async def get_attendance_resources(
         params: AttendanceQueryParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     query = db.query(AttendanceModel)
 

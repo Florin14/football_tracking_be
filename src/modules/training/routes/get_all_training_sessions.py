@@ -8,11 +8,10 @@ from modules.training.models import TrainingSessionListResponse, TrainingSession
 from .router import router
 
 
-@router.get("/", response_model=TrainingSessionListResponse)
+@router.get("/", response_model=TrainingSessionListResponse, dependencies=[Depends(JwtRequired())])
 async def get_training_sessions(
     params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     sessions = params.apply(
         db.query(TrainingSessionModel).order_by(TrainingSessionModel.timestamp.desc())

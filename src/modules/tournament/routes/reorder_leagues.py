@@ -47,11 +47,10 @@ def _assign_relevance_order(entries: list[LeagueReorderItem], league_by_id: dict
             next_order += 1
 
 
-@router.put("/leagues/reorder", response_model=LeaguesListResponse)
+@router.put("/leagues/reorder", response_model=LeaguesListResponse, dependencies=[Depends(JwtRequired())])
 async def reorder_leagues(
     data: LeagueReorderRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     league_entries: list[LeagueReorderItem] = data.leagues.copy()
     if not league_entries and data.leagueIds:

@@ -10,11 +10,10 @@ from modules.user.models.user_model import UserModel
 from .router import router
 
 
-@router.get('', response_model=UserListResponse)
+@router.get('', response_model=UserListResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def get_all_users(
     params: UserListParams = Depends(),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     employerQuery = db.query(UserModel)
 

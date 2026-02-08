@@ -9,11 +9,10 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("/", response_model=TournamentResponse)
+@router.post("/", response_model=TournamentResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_tournament(
     data: TournamentAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = TournamentModel(
         name=data.name,

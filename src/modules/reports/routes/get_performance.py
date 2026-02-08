@@ -44,14 +44,13 @@ def _build_date_range(from_date: Optional[date], to_date: Optional[date]) -> tup
     return start_dt, end_dt
 
 
-@router.get("/performance", response_model=PerformanceReportResponse)
+@router.get("/performance", response_model=PerformanceReportResponse, dependencies=[Depends(JwtRequired())])
 async def get_performance_report(
     team_id: Optional[int] = Query(None, alias="teamId"),
     league_id: Optional[int] = Query(None, alias="leagueId"),
     from_date: Optional[date] = Query(None, alias="from"),
     to_date: Optional[date] = Query(None, alias="to"),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     team = _resolve_team(db, team_id)
 

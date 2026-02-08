@@ -10,12 +10,11 @@ from .router import router
 
 from modules.notifications.models.notifications_model import NotificationModel
 
-@router.put("/{id}", response_model=NotificationResponse)
+@router.put("/{id}", response_model=NotificationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_notification(
     data: NotificationUpdate,
     notification: NotificationModel = Depends(GetInstanceFromPath(NotificationModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if data.name:
         notification.name = data.name

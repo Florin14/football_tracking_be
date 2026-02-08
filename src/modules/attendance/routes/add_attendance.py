@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
@@ -22,13 +22,14 @@ from project_helpers.exceptions import ErrorException
 from .router import router
 
 
-@router.post("", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(JwtRequired())])
 async def upsert_attendance(
     data: AttendanceUpsert,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
-    if current_user.role == PlatformRoles.PLAYER and data.playerId != current_user.id:
+    auth_user = request.state.user
+    if auth_user.role == PlatformRoles.PLAYER and data.playerId != auth_user.id:
         raise ErrorException(error=Error.USER_UNAUTHORIZED, statusCode=403)
     try:
         scope = AttendanceScope(data.scope.upper())

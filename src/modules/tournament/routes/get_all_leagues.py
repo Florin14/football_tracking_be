@@ -11,11 +11,10 @@ from modules.tournament.models.tournament_schemas import LeaguesListResponse, Le
 from .router import router
 
 
-@router.get("/leagues", response_model=LeaguesListResponse)
+@router.get("/leagues", response_model=LeaguesListResponse, dependencies=[Depends(JwtRequired())])
 async def get_all_leagues(
         params: LeagueListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     query = db.query(LeagueModel)
 

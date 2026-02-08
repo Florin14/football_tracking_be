@@ -12,11 +12,10 @@ from modules.tournament.models.tournament_schemas import LeagueTeamsResponse
 from .router import router
 
 
-@router.get("/leagues/{league_id}/teams", response_model=LeagueTeamsResponse)
+@router.get("/leagues/{league_id}/teams", response_model=LeagueTeamsResponse, dependencies=[Depends(JwtRequired())])
 async def get_league_teams(
     league_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
     if not league:

@@ -45,12 +45,11 @@ from .tournament_group_scheduling_helpers import (
 )
 
 
-@router.post("/{tournament_id}/groups/auto", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/groups/auto", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def auto_assign_groups(
     tournament_id: int,
     data: TournamentGroupsAutoAssignRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     teams = _get_tournament_teams(db, tournament_id)
@@ -116,12 +115,11 @@ async def auto_assign_groups(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.post("/{tournament_id}/groups/schedule", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/groups/schedule", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def generate_group_schedule(
     tournament_id: int,
     data: TournamentGroupScheduleRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -200,11 +198,10 @@ async def generate_group_schedule(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.post("/{tournament_id}/groups/schedule/reset", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/groups/schedule/reset", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def reset_group_schedule(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     group_ids = [
@@ -219,21 +216,19 @@ async def reset_group_schedule(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.delete("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse)
+@router.delete("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def delete_group_schedule(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     return await reset_group_schedule(tournament_id, db)
 
 
-@router.post("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/group-schedule", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def generate_group_schedule_simple(
     tournament_id: int,
     data: TournamentGroupScheduleSimpleRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     mode = (data.mode or "round-robin").strip().lower()
     mode = mode.replace("_", "-").replace(" ", "-")
@@ -254,11 +249,10 @@ async def generate_group_schedule_simple(
     return await generate_group_schedule(tournament_id, payload, db)
 
 
-@router.get("/{tournament_id}/groups/matches", response_model=TournamentGroupMatchesResponse)
+@router.get("/{tournament_id}/groups/matches", response_model=TournamentGroupMatchesResponse, dependencies=[Depends(JwtRequired())])
 async def get_group_matches(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -318,11 +312,10 @@ async def get_group_matches(
     )
 
 
-@router.get("/{tournament_id}/groups/standings", response_model=TournamentGroupStandingsResponse)
+@router.get("/{tournament_id}/groups/standings", response_model=TournamentGroupStandingsResponse, dependencies=[Depends(JwtRequired())])
 async def get_group_standings(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)

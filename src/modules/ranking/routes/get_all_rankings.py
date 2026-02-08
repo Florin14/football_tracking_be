@@ -8,11 +8,10 @@ from modules.team.models.team_model import (TeamModel)
 from .router import router
 
 
-@router.get("/", response_model=RankingListResponse)
+@router.get("/", response_model=RankingListResponse, dependencies=[Depends(JwtRequired())])
 async def get_all_rankings(
         params: RankingListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     gd = (RankingModel.goalsScored - RankingModel.goalsConceded)
 

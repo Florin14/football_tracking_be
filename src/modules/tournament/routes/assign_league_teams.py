@@ -13,13 +13,12 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.put("/{tournament_id}/leagues/{league_id}/teams", response_model=LeagueTeamsResponse)
+@router.put("/{tournament_id}/leagues/{league_id}/teams", response_model=LeagueTeamsResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def assign_league_teams(
     tournament_id: int,
     league_id: int,
     data: LeagueTeamsAssignRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     league = (
         db.query(LeagueModel)

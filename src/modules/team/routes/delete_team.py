@@ -10,11 +10,10 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.delete("/{id}", response_model=ConfirmationResponse)
+@router.delete("/{id}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def delete_team(
     team: TeamModel = Depends(GetInstanceFromPath(TeamModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Delete a team"""
     # Remove all players from team first

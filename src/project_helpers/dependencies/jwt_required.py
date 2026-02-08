@@ -57,4 +57,5 @@ class JwtRequired:
                 new_token = auth.create_access_token(subject=subject, user_claims=user.getClaims())
                 auth.set_access_cookies(new_token, response)
 
+        request.state.user = user
         return user

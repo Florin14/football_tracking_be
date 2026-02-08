@@ -21,12 +21,11 @@ def _get_match(
     return GetInstanceFromPath(MatchModel)(match_id, db)
 
 
-@router.put("/{match_id}", response_model=MatchResponse)
+@router.put("/{match_id}", response_model=MatchResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_match(
     match_data: MatchUpdate,
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Update match details (location, timestamp, scores, state)"""
     from modules.player.models.player_model import PlayerModel

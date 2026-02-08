@@ -28,11 +28,10 @@ def _get_match(
     return GetInstanceFromPath(MatchModel)(match_id, db)
 
 
-@router.post("/{match_id}/finish", response_model=ConfirmationResponse)
+@router.post("/{match_id}/finish", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def finish_match(
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Mark a match as finished"""
     if match.state == MatchState.FINISHED:

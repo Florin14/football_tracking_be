@@ -12,10 +12,9 @@ from modules.tournament.models.league_model import LeagueModel
 from .router import router
 
 
-@router.get("-resources", response_model=MatchResourcesResponse)
+@router.get("-resources", response_model=MatchResourcesResponse, dependencies=[Depends(JwtRequired())])
 def get_matches_resources(
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     leagues = (
         db.query(LeagueModel)

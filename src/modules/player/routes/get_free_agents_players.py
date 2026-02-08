@@ -9,11 +9,10 @@ from modules.player.models.player_schemas import PlayerListParams, PlayerListRes
 from .router import router
 
 
-@router.get("/free-agents/", response_model=PlayerListResponse)
+@router.get("/free-agents/", response_model=PlayerListResponse, dependencies=[Depends(JwtRequired())])
 async def get_free_agents(
         params: PlayerListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     """Get players without a team (free agents)"""
     query = db.query(PlayerModel).options(joinedload(PlayerModel.team)).filter(PlayerModel.teamId == None)

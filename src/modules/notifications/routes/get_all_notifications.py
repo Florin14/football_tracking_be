@@ -15,14 +15,14 @@ from modules.notifications.models.notifications_model import NotificationModel
 async def get_notifications(
         params: NotificationListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser()),
+        # current_user=Depends(GetCurrentUser()),
 ):
     query = db.query(NotificationModel)
 
     query = apply_search(query, NotificationModel.name, params.search)
 
-    if current_user.role == PlatformRoles.PLAYER:
-        query = query.filter(NotificationModel.playerId == current_user.id)
+    # if current_user.role == PlatformRoles.PLAYER:
+    #     query = query.filter(NotificationModel.playerId == current_user.id)
 
     notifications = params.apply(query).all()
 

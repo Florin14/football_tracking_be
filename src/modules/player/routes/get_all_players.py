@@ -9,11 +9,10 @@ from modules.player.models.player_schemas import PlayerListParams, PlayerListRes
 from .router import router
 
 
-@router.get("", response_model=PlayerListResponse)
+@router.get("", response_model=PlayerListResponse, dependencies=[Depends(JwtRequired())])
 async def get_all_players(
         params: PlayerListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     query = db.query(PlayerModel).options(joinedload(PlayerModel.team))
 

@@ -8,11 +8,10 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("/", response_model=TrainingSessionResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=TrainingSessionResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_training_session(
     data: TrainingSessionAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     session = TrainingSessionModel(
         timestamp=data.timestamp,

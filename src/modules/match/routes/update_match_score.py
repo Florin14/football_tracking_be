@@ -22,12 +22,11 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.post("/{id}/score", response_model=ConfirmationResponse)
+@router.post("/{id}/score", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_match_score(
         data: ScoreUpdate,
         match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 
 ):
     from modules.player.models.player_model import PlayerModel

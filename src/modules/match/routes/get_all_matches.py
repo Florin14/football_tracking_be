@@ -12,11 +12,10 @@ from modules.match.models import (
 from .router import router
 
 
-@router.get("/", response_model=MatchListResponse)
+@router.get("/", response_model=MatchListResponse, dependencies=[Depends(JwtRequired())])
 async def get_matches(
         params: MatchListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     query = db.query(MatchModel).options(
         joinedload(MatchModel.team1),

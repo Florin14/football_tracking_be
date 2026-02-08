@@ -13,11 +13,10 @@ from .router import router
 from ..models.player_model import PlayerModel
 
 
-@router.post("/base-camp", response_model=PlayerResponse)
+@router.post("/base-camp", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_base_camp_player(
     data: PlayerAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     password = "fotbal@2025"
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()

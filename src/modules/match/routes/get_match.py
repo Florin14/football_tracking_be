@@ -9,11 +9,10 @@ from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
-@router.get("/{id}", response_model=MatchResponse)
+@router.get("/{id}", response_model=MatchResponse, dependencies=[Depends(JwtRequired())])
 async def get_match(
     match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     match = (
         db.query(MatchModel)

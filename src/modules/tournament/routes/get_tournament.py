@@ -7,11 +7,10 @@ from modules.team.models import TeamModel, TeamResponse
 from .router import router
 
 
-@router.get("/{id}", response_model=TeamResponse)
+@router.get("/{id}", response_model=TeamResponse, dependencies=[Depends(JwtRequired())])
 async def get_team(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     """Get a specific team by ID"""
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(TeamModel.id == id).first()

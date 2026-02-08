@@ -10,12 +10,11 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.delete("/{id}/players/{player_id}", response_model=ConfirmationResponse)
+@router.delete("/{id}/players/{player_id}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def remove_player_from_team(
         player_id: int,
         team: TeamModel = Depends(GetInstanceFromPath(TeamModel)),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Remove a player from a team"""
     # Check if player exists and is in this team

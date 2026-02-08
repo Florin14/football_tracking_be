@@ -10,11 +10,10 @@ from modules.tournament.models.tournament_schemas import TournamentListResponse,
 from .router import router
 
 
-@router.get("/", response_model=TournamentListResponse)
+@router.get("/", response_model=TournamentListResponse, dependencies=[Depends(JwtRequired())])
 async def get_tournaments(
         params: TournamentListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     query = db.query(TournamentModel)
 

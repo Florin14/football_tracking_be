@@ -45,12 +45,11 @@ from .tournament_group_scheduling_helpers import (
 )
 
 
-@router.post("/{tournament_id}/knockout-matches/bulk", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/knockout-matches/bulk", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def create_knockout_matches_bulk(
     tournament_id: int,
     data: TournamentKnockoutBulkCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     team_ids = [team_id for entry in data.matches for team_id in (entry.team1Id, entry.team2Id)]
@@ -82,12 +81,11 @@ async def create_knockout_matches_bulk(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.post("/{tournament_id}/knockout-matches/auto", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/knockout-matches/auto", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def create_knockout_matches_auto(
     tournament_id: int,
     data: TournamentKnockoutAutoRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -228,12 +226,11 @@ async def create_knockout_matches_auto(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.post("/{tournament_id}/knockout-config", response_model=TournamentKnockoutConfig)
+@router.post("/{tournament_id}/knockout-config", response_model=TournamentKnockoutConfig, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def set_knockout_config(
     tournament_id: int,
     data: TournamentKnockoutConfig,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     pairing_mode = _normalize_pairing_mode(data.pairingMode)
@@ -292,12 +289,11 @@ async def set_knockout_config(
     )
 
 
-@router.post("/{tournament_id}/knockout-generate", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/knockout-generate", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def generate_knockout_matches_from_config(
     tournament_id: int,
     data: TournamentKnockoutGenerateRequest = Body(default_factory=TournamentKnockoutGenerateRequest),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     config = (

@@ -15,12 +15,11 @@ def _get_training_session(
     return GetInstanceFromPath(TrainingSessionModel)(training_session_id, db)
 
 
-@router.put("/{training_session_id}", response_model=TrainingSessionResponse)
+@router.put("/{training_session_id}", response_model=TrainingSessionResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_training_session(
     data: TrainingSessionUpdate,
     session: TrainingSessionModel = Depends(_get_training_session),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if data.timestamp is not None:
         session.timestamp = data.timestamp

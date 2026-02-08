@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session, joinedload
 
 from constants.platform_roles import PlatformRoles
@@ -13,16 +13,17 @@ from .preferences_helpers import apply_preferences
 from .router import router
 
 
-@router.put("/preferences", response_model=PlayerProfileResponse)
+@router.put("/preferences", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER]))])
 async def update_player_preferences(
     data: PlayerPreferencesUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    current_user: PlayerModel = Depends(JwtRequired(roles=[PlatformRoles.PLAYER])),
 ):
+    auth_user = request.state.user
     player = (
         db.query(PlayerModel)
         .options(joinedload(PlayerModel.preferences))
-        .filter(PlayerModel.id == current_user.id)
+        .filter(PlayerModel.id == auth_user.id)
         .first()
     )
     if not player:

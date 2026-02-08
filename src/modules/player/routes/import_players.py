@@ -14,11 +14,10 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.post("-import", response_model=ConfirmationResponse)
+@router.post("-import", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def import_players(
     file: UploadFile,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     # decoded_file = TextIOWrapper(file.file, encoding="utf-8", errors="replace")
     # reader = csv.DictReader(decoded_file)

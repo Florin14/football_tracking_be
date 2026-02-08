@@ -10,11 +10,10 @@ from .router import router
 from modules.notifications.models.notifications_model import NotificationModel
 
 
-@router.post("/", response_model=NotificationResponse)
+@router.post("/", response_model=NotificationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_notification(
     data: NotificationAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     notification = NotificationModel(
         name=data.name,

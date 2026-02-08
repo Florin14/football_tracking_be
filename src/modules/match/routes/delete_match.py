@@ -19,11 +19,10 @@ def _get_match(
     return GetInstanceFromPath(MatchModel)(match_id, db)
 
 
-@router.delete("/{match_id}", response_model=ConfirmationResponse)
+@router.delete("/{match_id}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def delete_match(
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Delete a match (only if not finished)"""
     if match.state == MatchState.FINISHED:

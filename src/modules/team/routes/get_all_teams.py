@@ -11,11 +11,10 @@ from modules.tournament.models.league_team_model import LeagueTeamModel
 from .router import router
 
 
-@router.get("/", response_model=TeamListResponse)
+@router.get("/", response_model=TeamListResponse, dependencies=[Depends(JwtRequired())])
 async def get_teams(
         params: TeamListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(JwtRequired()),
 ):
     include_ranking = params.leagueId is not None
     if include_ranking:

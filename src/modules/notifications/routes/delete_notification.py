@@ -9,11 +9,10 @@ from .router import router
 from modules.notifications.models.notifications_model import NotificationModel
 
 
-@router.delete("/{id}", response_model=ConfirmationResponse)
+@router.delete("/{id}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def delete_notification(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     notification = db.query(NotificationModel).filter(NotificationModel.id == id).first()
     if not notification:

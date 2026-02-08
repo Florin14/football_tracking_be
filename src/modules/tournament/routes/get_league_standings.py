@@ -81,11 +81,10 @@ def _build_group_standings(
     return sorted(standings.values(), key=sort_key)
 
 
-@router.get("/leagues/{league_id}/standings", response_model=LeagueStandingsResponse)
+@router.get("/leagues/{league_id}/standings", response_model=LeagueStandingsResponse, dependencies=[Depends(JwtRequired())])
 async def get_league_standings(
     league_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
     if not league:

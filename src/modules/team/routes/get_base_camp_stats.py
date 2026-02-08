@@ -26,10 +26,9 @@ def _normal_league_tournament_filter():
     )
 
 
-@router.get("/base-camp/stats", response_model=BaseCampStatsResponse)
+@router.get("/base-camp/stats", response_model=BaseCampStatsResponse, dependencies=[Depends(JwtRequired())])
 async def get_base_camp_stats(
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if not team:

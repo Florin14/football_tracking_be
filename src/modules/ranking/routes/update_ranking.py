@@ -8,12 +8,11 @@ from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
-@router.put("/{id}", response_model=RankingResponse)
+@router.put("/{id}", response_model=RankingResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_team(
     team_data: RankingUpdate,
     team: RankingModel = Depends(GetInstanceFromPath(RankingModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Update a team"""
     if team_data.name:

@@ -8,11 +8,10 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("/", response_model=RankingResponse)
+@router.post("/", response_model=RankingResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_ranking(
     data: RankingAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     ranking = RankingModel(description=data.description)
     if data.name:

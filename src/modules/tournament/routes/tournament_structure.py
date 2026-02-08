@@ -60,11 +60,10 @@ def _validate_teams_belong_to_tournament(
     return teams
 
 
-@router.get("/{tournament_id}/structure", response_model=TournamentStructureResponse)
+@router.get("/{tournament_id}/structure", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired())])
 async def get_tournament_structure(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
@@ -149,12 +148,11 @@ async def get_tournament_structure(
     )
 
 
-@router.post("/{tournament_id}/groups", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/groups", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_tournament_group(
     tournament_id: int,
     data: TournamentGroupCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if data.groups:
         return await add_tournament_groups_bulk(
@@ -204,12 +202,11 @@ async def add_tournament_group(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.post("/{tournament_id}/groups/bulk", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/groups/bulk", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_tournament_groups_bulk(
     tournament_id: int,
     data: TournamentGroupBulkCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
@@ -309,12 +306,11 @@ async def add_tournament_groups_bulk(
     return await get_tournament_structure(tournament_id, db)
 
 
-@router.put("/groups/{group_id}/teams", response_model=TournamentStructureResponse)
+@router.put("/groups/{group_id}/teams", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_group_teams(
     group_id: int,
     data: TournamentGroupTeamsUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     group = db.query(TournamentGroupModel).filter(TournamentGroupModel.id == group_id).first()
     if not group:
@@ -334,12 +330,11 @@ async def update_group_teams(
     return await get_tournament_structure(group.tournamentId, db)
 
 
-@router.post("/{tournament_id}/knockout-matches", response_model=TournamentStructureResponse)
+@router.post("/{tournament_id}/knockout-matches", response_model=TournamentStructureResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_knockout_match(
     tournament_id: int,
     data: TournamentKnockoutMatchAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

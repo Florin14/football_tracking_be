@@ -32,11 +32,10 @@ DEFAULT_PAIRING_CONFIG = {
 }
 
 
-@router.get("/{tournament_id}/plan", response_model=TournamentPlanResponse)
+@router.get("/{tournament_id}/plan", response_model=TournamentPlanResponse, dependencies=[Depends(JwtRequired())])
 async def get_tournament_plan(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

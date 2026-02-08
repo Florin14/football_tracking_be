@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
@@ -13,13 +13,14 @@ from .preferences_helpers import apply_preferences
 from .router import router
 
 
-@router.put("/profile", response_model=PlayerProfileResponse)
+@router.put("/profile", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER]))])
 async def update_player_profile(
     data: PlayerProfileUpdate,
-    current_user: PlayerModel = Depends(JwtRequired(roles=[PlatformRoles.PLAYER])),
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    player = db.query(PlayerModel).get(current_user.id)
+    auth_user = request.state.user
+    player = db.query(PlayerModel).get(auth_user.id)
     if not player:
         raise ErrorException(error=Error.USER_NOT_FOUND, statusCode=404)
 

@@ -9,10 +9,9 @@ from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
-@router.put("/{id}", response_model=PlayerResponse)
+@router.put("/{id}", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
                         db: Session = Depends(get_db),
-                        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))):
     if data.name:
         player.name = data.name
 

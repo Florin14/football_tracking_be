@@ -7,11 +7,10 @@ from modules.ranking.models import RankingModel, RankingResponse
 from .router import router
 
 
-@router.get("/{id}", response_model=RankingResponse)
+@router.get("/{id}", response_model=RankingResponse, dependencies=[Depends(JwtRequired())])
 async def get_ranking(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired()),
 ):
     """Get a specific team by ID"""
     ranking = (

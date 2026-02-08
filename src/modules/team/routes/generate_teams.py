@@ -9,11 +9,10 @@ from .helpers import generate_teams
 from .router import router
 
 
-@router.post("-generate")
+@router.post("-generate", dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def create_teams(
     playerIds: list[int],
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     players = db.query(PlayerModel).filter(PlayerModel.id.in_(playerIds)).all()
     team1, team2 = generate_teams(players)

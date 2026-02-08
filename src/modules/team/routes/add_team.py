@@ -11,11 +11,10 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.post("/", response_model=TeamResponse)
+@router.post("/", response_model=TeamResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_team(
     data: TeamAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     league = db.query(LeagueModel).filter(LeagueModel.id == data.leagueId).first()
     if not league:

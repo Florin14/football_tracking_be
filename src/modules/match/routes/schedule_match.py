@@ -8,13 +8,13 @@ from extensions import get_db
 from modules.match.models.match_model import MatchModel
 from modules.match.models.match_schemas import MatchAdd
 from modules.match.routes.router import router
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 
 @router.post("-schedule")
 async def schedule_match(
     match: MatchAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     db_match = MatchModel(date=match.date, location=match.location)
     db.add(db_match)

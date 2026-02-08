@@ -6,7 +6,7 @@ from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_preferences_model import PlayerPreferencesModel
 from modules.player.models.player_schemas import PlayerPreferencesUpdate, PlayerProfileResponse
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from .preferences_helpers import apply_preferences
@@ -17,7 +17,7 @@ from .router import router
 async def update_player_preferences(
     data: PlayerPreferencesUpdate,
     db: Session = Depends(get_db),
-    current_user: PlayerModel = Depends(GetCurrentUser(roles=[PlatformRoles.PLAYER])),
+    current_user: PlayerModel = Depends(JwtRequired(roles=[PlatformRoles.PLAYER])),
 ):
     player = (
         db.query(PlayerModel)

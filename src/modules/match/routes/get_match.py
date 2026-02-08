@@ -5,7 +5,7 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchResponse, GoalModel
 )
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
@@ -13,7 +13,7 @@ from .router import router
 async def get_match(
     match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     match = (
         db.query(MatchModel)

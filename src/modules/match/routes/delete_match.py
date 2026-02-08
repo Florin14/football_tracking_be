@@ -7,7 +7,7 @@ from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, GoalModel
 )
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -23,7 +23,7 @@ def _get_match(
 async def delete_match(
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Delete a match (only if not finished)"""
     if match.state == MatchState.FINISHED:

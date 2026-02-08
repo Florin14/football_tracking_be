@@ -5,7 +5,7 @@ from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -15,7 +15,7 @@ async def remove_player_from_team(
         player_id: int,
         team: TeamModel = Depends(GetInstanceFromPath(TeamModel)),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Remove a player from a team"""
     # Check if player exists and is in this team

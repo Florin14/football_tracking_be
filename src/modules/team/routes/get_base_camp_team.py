@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
 from modules.team.models import TeamModel, TeamResponse
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 
 

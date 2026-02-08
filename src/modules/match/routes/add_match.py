@@ -18,7 +18,7 @@ from project_helpers.emails_handling import (
     send_via_gmail_oauth2_safe,
     validate_config,
 )
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
@@ -27,7 +27,7 @@ async def add_match(
     data: MatchAdd,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     from modules.player.models.player_model import PlayerModel
 

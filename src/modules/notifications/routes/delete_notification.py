@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 from modules.notifications.models.notifications_model import NotificationModel
@@ -13,7 +13,7 @@ from modules.notifications.models.notifications_model import NotificationModel
 async def delete_notification(
     id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     notification = db.query(NotificationModel).filter(NotificationModel.id == id).first()
     if not notification:

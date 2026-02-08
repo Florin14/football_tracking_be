@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.match.models import (
     MatchResourcesResponse
 )
@@ -15,7 +15,7 @@ from .router import router
 @router.get("-resources", response_model=MatchResourcesResponse)
 def get_matches_resources(
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     leagues = (
         db.query(LeagueModel)

@@ -4,7 +4,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.schemas import PaginationParams
 from modules.match.models import (
     MatchModel, MatchListResponse
@@ -17,7 +17,7 @@ from .router import router
 async def get_matches(
         params: PaginationParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser()),
+        current_user=Depends(JwtRequired()),
 ):
     query = db.query(MatchModel).options(
         joinedload(MatchModel.team1),

@@ -17,7 +17,7 @@ from modules.tournament.models.tournament_knockout_config_model import Tournamen
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
 from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
 from modules.team.models import TeamModel
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -27,7 +27,7 @@ async def update_match_score(
         data: ScoreUpdate,
         match: MatchModel = Depends(GetInstanceFromPath(MatchModel)),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 
 ):
     from modules.player.models.player_model import PlayerModel

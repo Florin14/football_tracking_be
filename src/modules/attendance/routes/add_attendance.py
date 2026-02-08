@@ -16,7 +16,7 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.training.models import TrainingSessionModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from .router import router
@@ -26,7 +26,7 @@ from .router import router
 async def upsert_attendance(
     data: AttendanceUpsert,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     if current_user.role == PlatformRoles.PLAYER and data.playerId != current_user.id:
         raise ErrorException(error=Error.USER_UNAUTHORIZED, statusCode=403)

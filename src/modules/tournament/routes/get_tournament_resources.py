@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import TournamentResourcesResponse
 
@@ -13,7 +13,7 @@ from .router import router
 @router.get("/resources", response_model=TournamentResourcesResponse)
 async def get_tournament_resources(
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     tournaments = (
         db.query(TournamentModel)

@@ -20,7 +20,7 @@ from modules.tournament.models.tournament_schemas import (
     TournamentKnockoutMatchAdd,
     TournamentStructureResponse,
 )
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 
 from .router import router
 
@@ -64,7 +64,7 @@ def _validate_teams_belong_to_tournament(
 async def get_tournament_structure(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
@@ -154,7 +154,7 @@ async def add_tournament_group(
     tournament_id: int,
     data: TournamentGroupCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if data.groups:
         return await add_tournament_groups_bulk(
@@ -209,7 +209,7 @@ async def add_tournament_groups_bulk(
     tournament_id: int,
     data: TournamentGroupBulkCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
@@ -314,7 +314,7 @@ async def update_group_teams(
     group_id: int,
     data: TournamentGroupTeamsUpdate,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     group = db.query(TournamentGroupModel).filter(TournamentGroupModel.id == group_id).first()
     if not group:
@@ -339,7 +339,7 @@ async def add_knockout_match(
     tournament_id: int,
     data: TournamentKnockoutMatchAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

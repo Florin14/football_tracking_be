@@ -5,7 +5,7 @@ from pydantic import EmailStr, Field
 
 from constants.platform_roles import PlatformRoles
 from modules.match.routes.router import emailRouter
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.emails_handling import build_message, send_via_gmail_oauth2_safe, GMAIL_SENDER
 from project_helpers.schemas import BaseSchema
 
@@ -29,7 +29,7 @@ class SendEmailRequest(BaseSchema):
 async def send_email(
     req: SendEmailRequest,
     bg: BackgroundTasks,
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if not GMAIL_SENDER:
         raise HTTPException(status_code=500, detail="GMAIL_SENDER not configured")

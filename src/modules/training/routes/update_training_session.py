@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.training.models import TrainingSessionModel, TrainingSessionResponse, TrainingSessionUpdate
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
@@ -20,7 +20,7 @@ async def update_training_session(
     data: TrainingSessionUpdate,
     session: TrainingSessionModel = Depends(_get_training_session),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     if data.timestamp is not None:
         session.timestamp = data.timestamp

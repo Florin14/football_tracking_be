@@ -7,7 +7,7 @@ from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel, TeamAdd, TeamResponse
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
@@ -15,7 +15,7 @@ from .router import router
 async def add_team(
     data: TeamAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     league = db.query(LeagueModel).filter(LeagueModel.id == data.leagueId).first()
     if not league:

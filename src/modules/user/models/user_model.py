@@ -17,7 +17,6 @@ class UserModel(BaseModel):
     _password = Column(String(300), nullable=False)
     role = Column(Enum(PlatformRoles), nullable=False, default=PlatformRoles.ADMIN)
     isDeleted = Column(Boolean, nullable=False, default=False)
-    hasDefaultPassword = Column(Boolean, nullable=False, default=True, name="has_default_password")
     isAvailable = Column(Boolean, default=True, server_default="True", name="is_available")
 
     __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}

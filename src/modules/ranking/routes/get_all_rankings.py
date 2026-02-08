@@ -2,7 +2,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.ranking.models import RankingModel, RankingListResponse, RankingListParams
 from modules.team.models.team_model import (TeamModel)
 from .router import router
@@ -12,7 +12,7 @@ from .router import router
 async def get_all_rankings(
         params: RankingListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser()),
+        current_user=Depends(JwtRequired()),
 ):
     gd = (RankingModel.goalsScored - RankingModel.goalsConceded)
 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.team.models import TeamModel, TeamUpdate, TeamResponse
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
@@ -13,7 +13,7 @@ async def update_team(
     team_data: TeamUpdate,
     team: TeamModel = Depends(GetInstanceFromPath(TeamModel)),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Update a team"""
     if team_data.name:

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
 from modules.tournament.models.tournament_schemas import (
@@ -50,7 +50,7 @@ async def create_knockout_matches_bulk(
     tournament_id: int,
     data: TournamentKnockoutBulkCreateRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     team_ids = [team_id for entry in data.matches for team_id in (entry.team1Id, entry.team2Id)]
@@ -87,7 +87,7 @@ async def create_knockout_matches_auto(
     tournament_id: int,
     data: TournamentKnockoutAutoRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -233,7 +233,7 @@ async def set_knockout_config(
     tournament_id: int,
     data: TournamentKnockoutConfig,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     pairing_mode = _normalize_pairing_mode(data.pairingMode)
@@ -297,7 +297,7 @@ async def generate_knockout_matches_from_config(
     tournament_id: int,
     data: TournamentKnockoutGenerateRequest = Body(default_factory=TournamentKnockoutGenerateRequest),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     config = (

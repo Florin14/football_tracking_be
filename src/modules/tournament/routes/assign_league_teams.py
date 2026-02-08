@@ -1,12 +1,14 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
+from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_schemas import LeagueTeamsAssignRequest, LeagueTeamsResponse
+from project_helpers.dependencies import GetCurrentUser
 
 from .router import router
 
@@ -17,6 +19,7 @@ async def assign_league_teams(
     league_id: int,
     data: LeagueTeamsAssignRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     league = (
         db.query(LeagueModel)

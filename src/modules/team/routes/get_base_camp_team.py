@@ -3,11 +3,15 @@ from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
 from modules.team.models import TeamModel, TeamResponse
+from project_helpers.dependencies import GetCurrentUser
 from .router import router
 
 
 @router.get("/base-camp", response_model=TeamResponse)
-async def get_base_camp_team(db: Session = Depends(get_db)):
+async def get_base_camp_team(
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(
         TeamModel.isDefault.is_(True)
     ).first()

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
+from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.attendance.models.attendance_schemas import AttendanceResponse, AttendanceUpsert
 from modules.match.models.match_model import MatchModel
@@ -15,11 +16,20 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.training.models import TrainingSessionModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
+from project_helpers.dependencies import GetCurrentUser
+from project_helpers.error import Error
+from project_helpers.exceptions import ErrorException
 from .router import router
 
 
 @router.post("", response_model=AttendanceResponse, status_code=status.HTTP_201_CREATED)
-async def upsert_attendance(data: AttendanceUpsert, db: Session = Depends(get_db)):
+async def upsert_attendance(
+    data: AttendanceUpsert,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
+    if current_user.role == PlatformRoles.PLAYER and data.playerId != current_user.id:
+        raise ErrorException(error=Error.USER_UNAUTHORIZED, statusCode=403)
     try:
         scope = AttendanceScope(data.scope.upper())
     except ValueError:

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, aliased
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse, AttendanceQueryParams
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
@@ -19,7 +20,8 @@ from .router import router
 @router.get("-by-scope", response_model=AttendanceGroupedListResponse)
 async def get_attendance_by_scope(
         params: AttendanceQueryParams = Depends(),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user=Depends(GetCurrentUser()),
 ):
     query = db.query(AttendanceModel)
 

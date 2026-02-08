@@ -8,6 +8,7 @@ from modules.tournament.models.tournament_schemas import (
     LeagueReorderRequest,
     LeaguesListResponse,
 )
+from project_helpers.dependencies import GetCurrentUser
 
 from .router import router
 
@@ -50,6 +51,7 @@ def _assign_relevance_order(entries: list[LeagueReorderItem], league_by_id: dict
 async def reorder_leagues(
     data: LeagueReorderRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
 ):
     league_entries: list[LeagueReorderItem] = data.leagues.copy()
     if not league_entries and data.leagueIds:

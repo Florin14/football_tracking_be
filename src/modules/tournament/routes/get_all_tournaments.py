@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from extensions.sqlalchemy import get_db
 from project_helpers.db import apply_search
+from project_helpers.dependencies import GetCurrentUser
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import TournamentListResponse, TournamentListParams
 
@@ -12,7 +13,8 @@ from .router import router
 @router.get("/", response_model=TournamentListResponse)
 async def get_tournaments(
         params: TournamentListParams = Depends(),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user=Depends(GetCurrentUser()),
 ):
     query = db.query(TournamentModel)
 

@@ -2,6 +2,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
+from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.match.models.match_model import MatchModel
 from modules.team.models import TeamModel
@@ -19,6 +20,7 @@ from modules.tournament.models.tournament_schemas import (
     TournamentKnockoutMatchAdd,
     TournamentStructureResponse,
 )
+from project_helpers.dependencies import GetCurrentUser
 
 from .router import router
 
@@ -59,7 +61,11 @@ def _validate_teams_belong_to_tournament(
 
 
 @router.get("/{tournament_id}/structure", response_model=TournamentStructureResponse)
-async def get_tournament_structure(tournament_id: int, db: Session = Depends(get_db)):
+async def get_tournament_structure(
+    tournament_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
         raise HTTPException(
@@ -148,6 +154,7 @@ async def add_tournament_group(
     tournament_id: int,
     data: TournamentGroupCreateRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     if data.groups:
         return await add_tournament_groups_bulk(
@@ -202,6 +209,7 @@ async def add_tournament_groups_bulk(
     tournament_id: int,
     data: TournamentGroupBulkCreateRequest,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
@@ -306,6 +314,7 @@ async def update_group_teams(
     group_id: int,
     data: TournamentGroupTeamsUpdate,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     group = db.query(TournamentGroupModel).filter(TournamentGroupModel.id == group_id).first()
     if not group:
@@ -330,6 +339,7 @@ async def add_knockout_match(
     tournament_id: int,
     data: TournamentKnockoutMatchAdd,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

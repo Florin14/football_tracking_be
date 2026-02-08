@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.match.models import (
     MatchModel, MatchListResponse, MatchListParams
 )
@@ -14,7 +15,8 @@ from .router import router
 @router.get("/", response_model=MatchListResponse)
 async def get_matches(
         params: MatchListParams = Depends(),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user=Depends(GetCurrentUser()),
 ):
     query = db.query(MatchModel).options(
         joinedload(MatchModel.team1),

@@ -1,16 +1,18 @@
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
+from constants.platform_roles import PlatformRoles
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerResponse, PlayerUpdate
-from project_helpers.dependencies import GetInstanceFromPath
+from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
 from .router import router
 
 
 @router.put("/{id}", response_model=PlayerResponse)
 async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
-                        db: Session = Depends(get_db)):
+                        db: Session = Depends(get_db),
+                        current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN]))):
     if data.name:
         player.name = data.name
 

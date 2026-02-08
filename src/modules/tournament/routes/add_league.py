@@ -2,10 +2,12 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import LeagueAdd, LeagueDetail
+from project_helpers.dependencies import GetCurrentUser
 
 from .router import router
 
@@ -15,6 +17,7 @@ async def add_league(
     tournament_id: int,
     data: LeagueAdd,
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

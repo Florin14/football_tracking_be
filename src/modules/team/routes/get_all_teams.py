@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
 from project_helpers.db import apply_search
+from project_helpers.dependencies import GetCurrentUser
 from modules.ranking.models.ranking_model import RankingModel
 from modules.team.models import TeamModel, TeamListResponse, TeamListParams
 from modules.tournament.models.league_model import LeagueModel
@@ -13,7 +14,8 @@ from .router import router
 @router.get("/", response_model=TeamListResponse)
 async def get_teams(
         params: TeamListParams = Depends(),
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        current_user=Depends(GetCurrentUser()),
 ):
     include_ranking = params.leagueId is not None
     if include_ranking:

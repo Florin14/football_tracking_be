@@ -2,12 +2,17 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
+from project_helpers.dependencies import GetCurrentUser
 from modules.ranking.models import RankingModel, RankingResponse
 from .router import router
 
 
 @router.get("/{id}", response_model=RankingResponse)
-async def get_ranking(id: int, db: Session = Depends(get_db)):
+async def get_ranking(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser()),
+):
     """Get a specific team by ID"""
     ranking = (
         db.query(RankingModel)

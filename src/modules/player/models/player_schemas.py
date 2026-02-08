@@ -38,6 +38,39 @@ class PlayerUpdate(BaseSchema):
         return value
 
 
+class PlayerPreferencesUpdate(BaseSchema):
+    preferredPosition: Optional[str] = None
+    preferredLanguage: Optional[str] = None
+    nickname: Optional[str] = Field(None, max_length=50)
+    receiveEmailNotifications: Optional[bool] = None
+    receiveMatchReminders: Optional[bool] = None
+
+
+class PlayerPreferencesResponse(BaseSchema):
+    preferredPosition: Optional[str] = None
+    preferredLanguage: Optional[str] = None
+    nickname: Optional[str] = None
+    receiveEmailNotifications: Optional[bool] = True
+    receiveMatchReminders: Optional[bool] = True
+
+
+class PlayerProfileUpdate(BaseSchema):
+    name: Optional[str] = Field(None, max_length=50)
+    email: Optional[str] = Field(None, max_length=40)
+    position: Optional[str] = None
+    shirtNumber: Optional[int] = Field(None, ge=0, le=999)
+    avatar: Optional[bytes] = Field(None)
+    preferences: Optional[PlayerPreferencesUpdate] = None
+
+    @validator("avatar", pre=False, always=True)
+    def encode_profile_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return process_and_convert_image_to_base64(value, 316)
+        return value
+
+
 class PlayerItem(BaseSchema):
     id: int
     name: str
@@ -97,6 +130,10 @@ class PlayerResponse(BaseSchema):
         if isinstance(value, bytes):
             return value.decode("utf-8")
         return value
+
+
+class PlayerProfileResponse(PlayerResponse):
+    preferences: Optional[PlayerPreferencesResponse] = None
 
 
 class PlayerListResponse(BaseSchema):

@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from constants.platform_roles import PlatformRoles
 from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
@@ -15,7 +16,7 @@ from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
 from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
-from project_helpers.dependencies import GetInstanceFromPath
+from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -31,6 +32,7 @@ def _get_match(
 async def finish_match(
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
+    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
 ):
     """Mark a match as finished"""
     if match.state == MatchState.FINISHED:

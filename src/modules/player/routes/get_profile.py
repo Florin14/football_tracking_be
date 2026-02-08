@@ -5,7 +5,7 @@ from constants.platform_roles import PlatformRoles
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerProfileResponse
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from .router import router
@@ -14,7 +14,7 @@ from .router import router
 @router.get("/profile", response_model=PlayerProfileResponse)
 async def get_player_profile(
     db: Session = Depends(get_db),
-    current_user: PlayerModel = Depends(GetCurrentUser(roles=[PlatformRoles.PLAYER])),
+    current_user: PlayerModel = Depends(JwtRequired(roles=[PlatformRoles.PLAYER])),
 ):
     player = (
         db.query(PlayerModel)

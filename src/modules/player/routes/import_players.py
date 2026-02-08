@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from extensions import get_db
 from constants.platform_roles import PlatformRoles
 from modules.player.models.player_model import PlayerModel
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -18,7 +18,7 @@ from .router import router
 async def import_players(
     file: UploadFile,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     # decoded_file = TextIOWrapper(file.file, encoding="utf-8", errors="replace")
     # reader = csv.DictReader(decoded_file)

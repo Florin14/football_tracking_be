@@ -5,7 +5,7 @@ from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel, AddPlayerToTeam
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -15,7 +15,7 @@ async def add_player_to_team(
         id: int,
         player_data: AddPlayerToTeam,
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+        current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Add a player to a team"""
     # Check if team exists

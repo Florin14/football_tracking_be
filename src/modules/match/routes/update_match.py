@@ -10,7 +10,7 @@ from modules.match.models import (
 from modules.ranking.services import recalculate_match_rankings
 from modules.tournament.services.knockout_service import auto_advance_knockout
 from modules.team.models import TeamModel
-from project_helpers.dependencies import GetInstanceFromPath, GetCurrentUser
+from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from .router import router
 
 
@@ -26,7 +26,7 @@ async def update_match(
     match_data: MatchUpdate,
     match: MatchModel = Depends(_get_match),
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     """Update match details (location, timestamp, scores, state)"""
     from modules.player.models.player_model import PlayerModel

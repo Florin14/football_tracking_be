@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from extensions import get_db
 from project_helpers.db import apply_search
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerListParams, PlayerListResponse
 from .router import router
@@ -13,7 +13,7 @@ from .router import router
 async def get_all_players(
         params: PlayerListParams = Depends(),
         db: Session = Depends(get_db),
-        current_user=Depends(GetCurrentUser()),
+        current_user=Depends(JwtRequired()),
 ):
     query = db.query(PlayerModel).options(joinedload(PlayerModel.team))
 

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.training.models import TrainingSessionAdd, TrainingSessionModel, TrainingSessionResponse
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
@@ -12,7 +12,7 @@ from .router import router
 async def add_training_session(
     data: TrainingSessionAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     session = TrainingSessionModel(
         timestamp=data.timestamp,

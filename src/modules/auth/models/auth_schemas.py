@@ -15,5 +15,4 @@ class LoginResponse(BaseSchema):
     id: int
     name: str
     role: PlatformRoles
-    hasDefaultPassword: bool
     isAvailable: bool

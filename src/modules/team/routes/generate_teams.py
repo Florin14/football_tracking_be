@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from constants.platform_roles import PlatformRoles
 from extensions import get_db
 from modules.player.models.player_model import PlayerModel
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .helpers import generate_teams
 from .router import router
 
@@ -13,7 +13,7 @@ from .router import router
 async def create_teams(
     playerIds: list[int],
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     players = db.query(PlayerModel).filter(PlayerModel.id.in_(playerIds)).all()
     team1, team2 = generate_teams(players)

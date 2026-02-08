@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.team.models import TeamModel
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
@@ -36,7 +36,7 @@ DEFAULT_PAIRING_CONFIG = {
 async def get_tournament_plan(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:

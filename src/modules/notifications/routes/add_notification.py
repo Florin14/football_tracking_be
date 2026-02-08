@@ -5,7 +5,7 @@ from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.ranking.models.ranking_model import RankingModel
 from modules.notifications.models.notifications_schemas import  NotificationAdd, NotificationResponse
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 from modules.notifications.models.notifications_model import NotificationModel
 
@@ -14,7 +14,7 @@ from modules.notifications.models.notifications_model import NotificationModel
 async def add_notification(
     data: NotificationAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     notification = NotificationModel(
         name=data.name,

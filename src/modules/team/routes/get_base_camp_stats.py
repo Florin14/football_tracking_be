@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.match.models.goal_model import GoalModel
 from modules.match.models.match_model import MatchModel
@@ -29,7 +29,7 @@ def _normal_league_tournament_filter():
 @router.get("/base-camp/stats", response_model=BaseCampStatsResponse)
 async def get_base_camp_stats(
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if not team:

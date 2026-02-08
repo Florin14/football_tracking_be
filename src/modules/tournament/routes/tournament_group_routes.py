@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from modules.match.models.match_model import MatchModel
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
@@ -50,7 +50,7 @@ async def auto_assign_groups(
     tournament_id: int,
     data: TournamentGroupsAutoAssignRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     teams = _get_tournament_teams(db, tournament_id)
@@ -121,7 +121,7 @@ async def generate_group_schedule(
     tournament_id: int,
     data: TournamentGroupScheduleRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -204,7 +204,7 @@ async def generate_group_schedule(
 async def reset_group_schedule(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     _get_tournament_or_404(db, tournament_id)
     group_ids = [
@@ -223,7 +223,7 @@ async def reset_group_schedule(
 async def delete_group_schedule(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     return await reset_group_schedule(tournament_id, db)
 
@@ -233,7 +233,7 @@ async def generate_group_schedule_simple(
     tournament_id: int,
     data: TournamentGroupScheduleSimpleRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     mode = (data.mode or "round-robin").strip().lower()
     mode = mode.replace("_", "-").replace(" ", "-")
@@ -258,7 +258,7 @@ async def generate_group_schedule_simple(
 async def get_group_matches(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)
@@ -322,7 +322,7 @@ async def get_group_matches(
 async def get_group_standings(
     tournament_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
+    current_user=Depends(JwtRequired()),
 ):
     _get_tournament_or_404(db, tournament_id)
     groups = _load_groups_with_teams(db, tournament_id)

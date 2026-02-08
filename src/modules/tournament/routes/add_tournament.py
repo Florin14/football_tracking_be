@@ -5,7 +5,7 @@ from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.tournament.models import TournamentModel, TournamentAdd, TournamentResponse
 from modules.tournament.models.league_model import LeagueModel
-from project_helpers.dependencies import GetCurrentUser
+from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
@@ -13,7 +13,7 @@ from .router import router
 async def add_tournament(
     data: TournamentAdd,
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser(roles=[PlatformRoles.ADMIN])),
+    current_user=Depends(JwtRequired(roles=[PlatformRoles.ADMIN])),
 ):
     tournament = TournamentModel(
         name=data.name,

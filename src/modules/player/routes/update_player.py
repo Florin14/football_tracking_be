@@ -11,7 +11,7 @@ from .router import router
 
 @router.put("/{id}", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
-                        db: Session = Depends(get_db),
+                        db: Session = Depends(get_db)):
     if data.name:
         player.name = data.name
 

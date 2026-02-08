@@ -10,7 +10,6 @@ from .router import router
 @router.get("/base-camp", response_model=TeamResponse)
 async def get_base_camp_team(
     db: Session = Depends(get_db),
-    current_user=Depends(GetCurrentUser()),
 ):
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(
         TeamModel.isDefault.is_(True)

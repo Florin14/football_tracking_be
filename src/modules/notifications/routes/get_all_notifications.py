@@ -19,7 +19,7 @@ async def get_notifications(
     query = db.query(NotificationModel)
 
     query = apply_search(query, NotificationModel.name, params.search)
-
+    print("12345")
     # if request.state.user.role == PlatformRoles.PLAYER:
     #     query = query.filter(NotificationModel.playerId == request.state.user.id)
 

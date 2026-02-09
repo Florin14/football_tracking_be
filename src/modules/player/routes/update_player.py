@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
@@ -15,13 +15,13 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
     if data.name:
         player.name = data.name
 
-        # if data.email:
-        #     # Check if new email already exists (excluding current player)
-        #     existing_player = db.query(PlayerModel).filter(
-        #         PlayerModel.email == data.email,
-        #         PlayerModel.id != playerId
-        #     ).first()
-
+    if data.email:
+        existing_player = db.query(PlayerModel).filter(
+            PlayerModel.email == data.email,
+            PlayerModel.id != player.id
+        ).first()
+        if existing_player:
+            raise HTTPException(status_code=409, detail="Email already in use")
         player.email = data.email
 
     if data.position:
@@ -37,3 +37,4 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
     db.refresh(player)
 
     return player
+

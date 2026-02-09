@@ -1,5 +1,5 @@
-import csv
-from io import TextIOWrapper, BytesIO
+
+from io import BytesIO
 
 import pandas as pd
 from fastapi import Depends
@@ -19,27 +19,26 @@ async def import_players(
     file: UploadFile,
     db: Session = Depends(get_db),
 ):
-    # decoded_file = TextIOWrapper(file.file, encoding="utf-8", errors="replace")
-    # reader = csv.DictReader(decoded_file)
     password = "fotbal@2025"
     contents = await file.read()
     df = pd.read_excel(BytesIO(contents), sheet_name="Sheet1")
 
+    has_email_column = "Email" in df.columns
+
     players = []
-    index = 0
-    for _, row in df.iterrows():
+    for index, row in df.iterrows():
+        email = row["Email"] if has_email_column and pd.notna(row.get("Email")) else f"player{index}@generated.local"
         player = PlayerModel(
             name=row["Name"],
             rating=row["Value"],
             position=row["Position"].upper(),
-            # email=row["Email"]
-            email=f"cont{index}@gmail.com",
+            email=email,
             password=password,
             role=PlatformRoles.PLAYER,
         )
         players.append(player)
-        index += 1
 
     db.add_all(players)
     db.commit()
-    return ConfirmationResponse
+    return ConfirmationResponse()
+

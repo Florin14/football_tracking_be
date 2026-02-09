@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -5,6 +6,7 @@ from dotenv import load_dotenv
 
 from fastapi import Request
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -53,7 +55,12 @@ def build_database_url() -> str:
 
 DATABASE_URL = build_database_url()
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-engine = create_engine(DATABASE_URL, connect_args=connect_args)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -78,7 +85,17 @@ def get_db(request: Request):
 
 class DBSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
-        request.state.db = SessionLocal()
-        response = await call_next(request)
-        request.state.db.close()
+        db = SessionLocal()
+        request.state.db = db
+        try:
+            response = await call_next(request)
+        except OperationalError:
+            logging.warning("DB connection lost, retrying with fresh session")
+            db.close()
+            engine.dispose()
+            db = SessionLocal()
+            request.state.db = db
+            response = await call_next(request)
+        finally:
+            db.close()
         return response

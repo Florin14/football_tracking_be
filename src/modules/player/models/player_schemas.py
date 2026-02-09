@@ -11,6 +11,8 @@ class PlayerAdd(BaseSchema):
     email: Optional[str] = Field(..., max_length=100, example="john.doe@example.com")
     position: str = Field(..., example="FORWARD")  # Should match PlayerPositions enum
     rating: Optional[int] = Field(None, ge=0, le=100, example=85)
+    shirtNumber: Optional[int] = Field(None, ge=0, le=999, example=10)
+
     avatar: Optional[bytes] = Field(None)
 
     @validator("avatar", pre=False, always=True)

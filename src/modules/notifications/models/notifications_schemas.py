@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from pydantic import Field, validator
@@ -8,6 +9,9 @@ from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 class NotificationAdd(BaseSchema):
     name: Optional[str] = Field(None, max_length=50)
     description: Optional[str] = Field(None, max_length=200)
+    playerId: int
+    type: Optional[str] = "NEW_MATCH"
+    createdAt: Optional[datetime] = None
 
 
 class NotificationUpdate(BaseSchema):
@@ -19,7 +23,9 @@ class NotificationItem(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    playerCount: Optional[int] = 0
+    isDeleted: bool = False
+    createdAt: Optional[datetime] = None
+    type: Optional[str] = None
 
 
 class NotificationFilter(FilterSchema):
@@ -34,9 +40,11 @@ class NotificationResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    players: Optional[List[dict]] = []
-
+    playerId: int
+    type: Optional[str] = None
+    createdAt: Optional[datetime] = None
 
 
 class NotificationListResponse(BaseSchema):
     data: List[NotificationItem] = []
+

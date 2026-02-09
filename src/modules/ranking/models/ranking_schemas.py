@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from pydantic import AliasChoices, Field, validator
+from fastapi import Query
+from pydantic import Field, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema
 
@@ -51,8 +52,9 @@ class RankingFilter(FilterSchema):
     sortBy: str = "name"
 
 
-class RankingListParams(BaseSchema):
-    leagueId: int = Field(..., validation_alias=AliasChoices("leagueId", "league_id"))
+class RankingListParams:
+    def __init__(self, league_id: int = Query(..., alias="league_id")):
+        self.leagueId = league_id
 
 
 class RankingResponse(BaseSchema):
@@ -63,3 +65,4 @@ class RankingResponse(BaseSchema):
 
 class RankingListResponse(BaseSchema):
     data: List[RankingItem] = []
+

@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
@@ -15,12 +13,18 @@ async def schedule_match(
     match: MatchAdd,
     db: Session = Depends(get_db),
 ):
-    db_match = MatchModel(date=match.date, location=match.location)
+    db_match = MatchModel(
+        team1Id=match.team1Id,
+        team2Id=match.team2Id,
+        leagueId=match.leagueId,
+        round=match.round,
+        timestamp=match.timestamp,
+    )
+    db_match.location = match.location
     db.add(db_match)
     db.commit()
-
-    # Programare notificare
-    notification_time = match.date - timedelta(hours=24)
-    # send_notification.apply_async(args=["player@example.com", "You have a match tomorrow!"], eta=notification_time)
+    db.refresh(db_match)
 
     return db_match
+
+

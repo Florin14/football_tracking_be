@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import os
 from typing import List
 
@@ -50,8 +50,8 @@ class JwtRequired:
         # Handle token refresh if close to expiry
         exp_timestamp = claims.get("exp")
         if exp_timestamp:
-            exp = datetime.fromtimestamp(exp_timestamp)
-            seconds_until_expire = int((exp - datetime.now()).total_seconds())
+            exp = datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
+            seconds_until_expire = int((exp - datetime.now(timezone.utc)).total_seconds())
             if (TOKEN_EXPIRATION - seconds_until_expire) > IMPLICIT_REFRESH_THRESHOLD:
                 subject = user.email or user.id
                 new_token = auth.create_access_token(subject=subject, user_claims=user.getClaims())

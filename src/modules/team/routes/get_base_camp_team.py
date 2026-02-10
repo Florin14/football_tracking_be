@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session, joinedload
 from extensions.sqlalchemy import get_db
 from modules.team.models import TeamModel, TeamResponse
 from project_helpers.dependencies import JwtRequired
+from src.constants.platform_roles import PlatformRoles
 from .router import router
 
 
-@router.get("/base-camp", response_model=TeamResponse, dependencies=[Depends(JwtRequired())])
+@router.get("/base-camp", response_model=TeamResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN, PlatformRoles.PLAYER]))])
 async def get_base_camp_team(
     db: Session = Depends(get_db),
 ):

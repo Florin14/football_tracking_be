@@ -11,7 +11,7 @@ from .router import router
 
 from modules.notifications.models.notifications_model import NotificationModel
 
-@router.get("/", response_model=NotificationListResponse, dependencies=[Depends(JwtRequired())])
+@router.get("/", response_model=NotificationListResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN, PlatformRoles.PLAYER]))])
 async def get_notifications(
         request: Request,
         params: NotificationListParams = Depends(),

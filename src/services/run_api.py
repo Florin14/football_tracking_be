@@ -139,15 +139,27 @@ def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
 
     token_location = os.getenv("AUTHJWT_TOKEN_LOCATION")
     if token_location:
-        locations = [item.strip() for item in token_location.split(",") if item.strip()]
+        locations = [item.strip().lower() for item in token_location.split(",") if item.strip()]
     else:
         locations = None
+    app_env = (os.getenv("APP_ENV") or "").strip().lower()
+    is_production = app_env in {"production", "prod"}
     cookie_samesite = os.getenv("AUTHJWT_COOKIE_SAMESITE")
     if cookie_samesite:
         cookie_samesite = cookie_samesite.strip().lower()
     cookie_secure = _parse_bool(os.getenv("AUTHJWT_COOKIE_SECURE"))
     cookie_domain = os.getenv("AUTHJWT_COOKIE_DOMAIN")
     cookie_csrf_protect = _parse_bool(os.getenv("AUTHJWT_COOKIE_CSRF_PROTECT"))
+    allow_header_fallback = _parse_bool(os.getenv("AUTHJWT_ALLOW_HEADER_FALLBACK"))
+    if allow_header_fallback is None:
+        allow_header_fallback = True
+    if locations and "cookies" in locations:
+        if allow_header_fallback and "headers" not in locations:
+            locations.append("headers")
+        if cookie_samesite is None:
+            cookie_samesite = "none" if is_production else "lax"
+        if cookie_secure is None:
+            cookie_secure = is_production
     config: list[tuple[str, str | list[str] | bool | None]] = [
         ("AUTHJWT_SECRET_KEY", os.getenv("AUTHJWT_SECRET_KEY")),
         ("AUTHJWT_TOKEN_LOCATION", locations),

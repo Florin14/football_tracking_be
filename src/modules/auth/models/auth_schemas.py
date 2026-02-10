@@ -16,3 +16,11 @@ class LoginResponse(BaseSchema):
     name: str
     role: PlatformRoles
     isAvailable: bool
+    accessToken: Optional[str] = None
+    refreshToken: Optional[str] = None
+
+
+class RefreshTokenResponse(BaseSchema):
+    message: Optional[str] = Field("Process was succesful", example="Process was succesful")
+    accessToken: Optional[str] = None
+    refreshToken: Optional[str] = None

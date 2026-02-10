@@ -34,4 +34,11 @@ def login(body: LoginBody, auth: AuthJWT = Depends(), db: Session = Depends(get_
     db.query(LoginAttemptModel).filter(LoginAttemptModel.email == user.email).delete(synchronize_session="fetch")
     db.commit()
 
-    return user
+    return LoginResponse(
+        id=user.id,
+        name=user.name,
+        role=user.role,
+        isAvailable=user.isAvailable,
+        accessToken=accessToken,
+        refreshToken=refreshToken,
+    )

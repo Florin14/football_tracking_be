@@ -7,7 +7,7 @@ from project_helpers.dependencies import JwtRequired
 from .router import router
 
 
-@router.get("/base-camp", response_model=TeamResponse)
+@router.get("/base-camp", response_model=TeamResponse, dependencies=[Depends(JwtRequired())])
 async def get_base_camp_team(
     db: Session = Depends(get_db),
 ):

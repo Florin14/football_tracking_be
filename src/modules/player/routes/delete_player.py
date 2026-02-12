@@ -25,6 +25,5 @@ async def delete_player(
     db.commit()
 
     return ConfirmationResponse(
-        success=True,
         message=f"Player {player.name} deleted successfully"
     )

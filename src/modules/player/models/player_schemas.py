@@ -29,6 +29,7 @@ class PlayerUpdate(BaseSchema):
     email: Optional[str] = Field(None, max_length=40)
     position: Optional[str] = None
     rating: Optional[int] = Field(None, ge=0, le=100)
+    shirtNumber: Optional[int] = Field(None, ge=0, le=999)
     avatar: Optional[bytes] = Field(None)
 
     @validator("avatar", pre=False, always=True)

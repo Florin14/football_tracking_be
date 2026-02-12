@@ -33,6 +33,9 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
     if data.rating is not None:
         player.rating = data.rating
 
+    if data.shirtNumber is not None:
+        player.shirtNumber = data.shirtNumber
+
     db.commit()
     db.refresh(player)
 

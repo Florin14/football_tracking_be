@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import or_
+from sqlalchemy import case, or_
 from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
@@ -82,7 +82,7 @@ async def get_attendance_resources(
         query = query.filter(LeagueModel.tournamentId == params.tournamentId)
 
     attendance_rows = params.apply(
-        query.order_by(AttendanceModel.recordedAt.desc())
+        query.order_by(case((AttendanceModel.status == AttendanceStatus.PRESENT, 0), else_=1), AttendanceModel.recordedAt.desc())
     ).all()
 
     grouped_items = build_grouped_attendance(attendance_rows, db)

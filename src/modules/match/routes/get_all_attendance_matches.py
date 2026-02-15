@@ -1,7 +1,7 @@
 from datetime import datetime
 from fastapi import Depends
-from sqlalchemy import or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import or_, func
+from sqlalchemy.orm import Session, joinedload, aliased
 
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
@@ -10,6 +10,8 @@ from modules.match.models import (
     MatchModel, MatchListResponse
 )
 from modules.team.models.team_model import TeamModel
+from modules.tournament.models.league_model import LeagueModel
+from modules.tournament.models.tournament_model import TournamentModel
 from .router import router
 
 
@@ -18,10 +20,24 @@ async def get_matches(
         params: PaginationParams = Depends(),
         db: Session = Depends(get_db),
 ):
-    query = db.query(MatchModel).options(
-        joinedload(MatchModel.team1),
-        joinedload(MatchModel.team2),
-        joinedload(MatchModel.league),
+    league_alias = aliased(LeagueModel)
+    tournament_alias = aliased(TournamentModel)
+
+    query = (
+        db.query(MatchModel)
+        .outerjoin(league_alias, MatchModel.leagueId == league_alias.id)
+        .outerjoin(tournament_alias, league_alias.tournamentId == tournament_alias.id)
+        .options(
+            joinedload(MatchModel.team1),
+            joinedload(MatchModel.team2),
+            joinedload(MatchModel.league),
+        )
+        .filter(
+            or_(
+                tournament_alias.formatType.is_(None),
+                ~func.upper(tournament_alias.formatType).like("GROUP%"),
+            )
+        )
     )
 
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
@@ -29,7 +45,7 @@ async def get_matches(
         query = query.filter(
             or_(MatchModel.team1Id == default_team.id, MatchModel.team2Id == default_team.id)
         )
-    
+
     query = query.order_by(
         MatchModel.timestamp.is_(None),
         MatchModel.timestamp,

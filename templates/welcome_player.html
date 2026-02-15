@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{{ title|default("Match scheduled") }}</title>
+    <title>Welcome to Football Tracking</title>
     <style>
       body {
         margin: 0;
@@ -59,42 +59,60 @@
       .card {
         background: #1e293b;
         border-radius: 0 0 16px 16px;
-        padding: 0 32px 32px;
+        padding: 28px 32px 32px;
         border: 1px solid rgba(255,255,255,0.06);
         border-top: none;
       }
+      .card p {
+        font-size: 15px;
+        line-height: 1.6;
+        color: #cbd5e1;
+        margin: 0 0 24px;
+      }
 
-      /* ---- VS Banner ---- */
-      .vs-section {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 28px 0 20px;
-        gap: 16px;
+      /* ---- Credentials ---- */
+      .credentials {
+        background: rgba(255,255,255,0.04);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid rgba(255,255,255,0.06);
+        margin-bottom: 24px;
       }
-      .team-name {
-        font-size: 20px;
-        font-weight: 700;
-        color: #f1f5f9;
+      .credentials .label {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        margin-bottom: 4px;
+        font-weight: 600;
+      }
+      .credentials .value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 16px;
+        word-break: break-all;
+      }
+      .credentials .value:last-child {
+        margin-bottom: 0;
+      }
+
+      /* ---- CTA Button ---- */
+      .cta-wrapper {
         text-align: center;
-        min-width: 120px;
-        max-width: 200px;
-        word-break: break-word;
+        margin: 28px 0 0;
       }
-      .vs-badge {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
+      .cta-button {
+        display: inline-block;
+        padding: 14px 36px;
         background: linear-gradient(135deg, #6366f1, #8b5cf6);
         color: #ffffff;
-        font-size: 14px;
-        font-weight: 800;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        flex-shrink: 0;
+        font-size: 15px;
+        font-weight: 700;
+        text-decoration: none;
+        border-radius: 10px;
+        letter-spacing: 0.3px;
         box-shadow: 0 4px 20px rgba(99,102,241,0.4);
       }
 
@@ -102,36 +120,7 @@
       .divider {
         height: 1px;
         background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-        margin: 0 0 24px;
-      }
-
-      /* ---- Info rows ---- */
-      .info-grid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-      }
-      .info-item {
-        flex: 1 1 45%;
-        min-width: 200px;
-        background: rgba(255,255,255,0.04);
-        border-radius: 12px;
-        padding: 16px;
-        border: 1px solid rgba(255,255,255,0.06);
-      }
-      .info-item .label {
-        display: block;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #64748b;
-        margin-bottom: 6px;
-        font-weight: 600;
-      }
-      .info-item .value {
-        font-size: 15px;
-        font-weight: 600;
-        color: #e2e8f0;
+        margin: 24px 0;
       }
 
       /* ---- Footer ---- */
@@ -151,10 +140,8 @@
         .wrapper { padding: 16px 8px; }
         .hero { padding: 28px 20px 24px; }
         .hero h1 { font-size: 22px; }
-        .card { padding: 0 20px 24px; }
-        .team-name { font-size: 16px; min-width: 80px; }
-        .vs-badge { width: 40px; height: 40px; font-size: 12px; }
-        .info-item { flex: 1 1 100%; }
+        .card { padding: 20px 20px 24px; }
+        .cta-button { padding: 12px 28px; font-size: 14px; }
       }
     </style>
   </head>
@@ -163,41 +150,27 @@
       <!-- Hero -->
       <div class="hero">
         <span class="hero-icon">&#9917;</span>
-        <h1>{{ title|default("Match scheduled") }}</h1>
-        <p class="subtitle">{{ message|default("A new football match has been created.") }}</p>
+        <h1>Welcome, {{ player_name }}!</h1>
+        <p class="subtitle">Your account has been created on Football Tracking.</p>
       </div>
 
       <!-- Card Body -->
       <div class="card">
-        <!-- VS Section -->
-        <div class="vs-section">
-          <span class="team-name">{{ team1_name|default("Team 1") }}</span>
-          <span class="vs-badge">VS</span>
-          <span class="team-name">{{ team2_name|default("Team 2") }}</span>
+        <p>An admin has created an account for you. Below are your login credentials:</p>
+
+        <div class="credentials">
+          <span class="label">Email</span>
+          <div class="value">{{ email }}</div>
+          <span class="label">Password</span>
+          <div class="value">{{ password }}</div>
         </div>
 
         <div class="divider"></div>
 
-        <!-- Match Details -->
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="label">&#128197; Date &amp; Time</span>
-            <span class="value">{{ match_datetime|default("TBD") }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">&#128205; Location</span>
-            <span class="value">{{ location|default("TBD") }}</span>
-          </div>
-          <div class="info-item">
-            <span class="label">&#127942; League</span>
-            <span class="value">{{ league_name|default("TBD") }}</span>
-          </div>
-          {% if round %}
-          <div class="info-item">
-            <span class="label">&#128220; Etapa</span>
-            <span class="value">Etapa {{ round }}</span>
-          </div>
-          {% endif %}
+        <p style="font-size: 13px; color: #94a3b8;">We recommend changing your password after your first login.</p>
+
+        <div class="cta-wrapper">
+          <a href="{{ platform_url }}" class="cta-button">Go to Platform</a>
         </div>
       </div>
 

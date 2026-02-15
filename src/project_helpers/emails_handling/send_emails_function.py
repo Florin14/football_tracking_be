@@ -41,6 +41,7 @@ def validate_config():
         raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
 
 FROM_NAME = os.getenv("FROM_NAME", "Match Notifier")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "templates"
 jinja_env = Environment(
@@ -56,7 +57,7 @@ DEFAULT_TEMPLATE_DATA = {
     "match_datetime": "TBD",
     "location": "TBD",
     "league_name": "TBD",
-    "match_id": "-",
+    "round": None,
 }
 
 # ----------------- Models -----------------
@@ -74,9 +75,9 @@ class SendEmailRequest(BaseModel):
     attachments: Optional[List[Attachment]] = None
 
 # ----------------- Template Rendering -----------------
-def render_template(data: Dict[str, Any]) -> str:
+def render_template(data: Dict[str, Any], template_name: str = TEMPLATE_NAME) -> str:
     try:
-        template = jinja_env.get_template(TEMPLATE_NAME)
+        template = jinja_env.get_template(template_name)
         return template.render(**data)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Template error: {e}")
@@ -85,12 +86,18 @@ def render_template(data: Dict[str, Any]) -> str:
 def build_message(
     req: SendEmailRequest,
     template_data: Optional[Dict[str, Any]] = None,
+    template_name: Optional[str] = None,
 ) -> EmailMessage:
-    data = DEFAULT_TEMPLATE_DATA.copy()
-    if template_data:
-        data.update({key: value for key, value in template_data.items() if value is not None})
-    html_body = render_template(data)
-    text_body = "You have a new match. Please view this email in HTML."
+    if template_name:
+        data = template_data or {}
+        html_body = render_template(data, template_name=template_name)
+        text_body = "Please view this email in an HTML-capable client."
+    else:
+        data = DEFAULT_TEMPLATE_DATA.copy()
+        if template_data:
+            data.update({key: value for key, value in template_data.items() if value is not None})
+        html_body = render_template(data)
+        text_body = "You have a new match. Please view this email in HTML."
 
     msg = EmailMessage()
     msg["Subject"] = req.subject
@@ -163,18 +170,20 @@ async def send_via_gmail_oauth2(msg: EmailMessage):
 
     access_token = get_access_token()
 
+    # Build the XOAUTH2 SASL string: user=<email>\x01auth=Bearer <token>\x01\x01
+    xoauth2_string = f"user={GMAIL_SENDER}\x01auth=Bearer {access_token}\x01\x01"
+    xoauth2_b64 = base64.b64encode(xoauth2_string.encode()).decode()
+
     try:
-        await aiosmtplib.send(
-            msg,
+        smtp = aiosmtplib.SMTP(
             hostname=SMTP_HOST,
             port=SMTP_PORT,
             start_tls=True,
-            username=GMAIL_SENDER,
-            # XOAUTH2 uses the access token in the "password" field
-            password=access_token,
-            auth_mechanism="XOAUTH2",
             timeout=30,
         )
+        await smtp.connect()
+        await smtp.execute_command(b"AUTH", b"XOAUTH2 " + xoauth2_b64.encode())
+        await smtp.send_message(msg)
     except aiosmtplib.errors.SMTPResponseException as e:
         detail = f"SMTP error {e.code}: {getattr(e, 'message', '')}"
         raise HTTPException(status_code=502, detail=detail)

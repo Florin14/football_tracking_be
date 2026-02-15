@@ -8,6 +8,11 @@ class NotificationType(Enum):
     DISCIPLINE = "DISCIPLINE"
     ACHIEVEMENT = "ACHIEVEMENT"
     ATTENDANCE_STATUS = "ATTENDANCE_STATUS"
+    GOAL_SCORED = "GOAL_SCORED"
+    GOAL_CONCEDED = "GOAL_CONCEDED"
+    YELLOW_CARD = "YELLOW_CARD"
+    RED_CARD = "RED_CARD"
+    MATCH_RESULT = "MATCH_RESULT"
 
     def __gt__(self, other):
         try:

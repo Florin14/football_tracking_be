@@ -17,6 +17,8 @@ from modules.tournament.models.tournament_knockout_config_model import Tournamen
 from modules.tournament.models.tournament_schemas import TournamentKnockoutGenerateRequest
 from modules.tournament.routes.tournament_knockout_routes import generate_knockout_matches_from_config
 from modules.team.models import TeamModel
+from constants.notification_type import NotificationType
+from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
 from .router import router
@@ -66,6 +68,37 @@ async def update_match_score(
             description=goal.description
         )
         db.add(goal)
+
+    # Goal notifications
+    default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+    default_team_id = default_team.id if default_team else None
+    default_player_ids = []
+    if default_team_id and default_team_id in (match.team1Id, match.team2Id):
+        default_player_ids = [
+            pid for (pid,) in db.query(PlayerModel.id)
+            .filter(PlayerModel.teamId == default_team_id)
+            .all()
+        ]
+
+    for g in data.goals:
+        scorer = db.query(PlayerModel).filter(PlayerModel.id == g.playerId).first()
+        scorer_name = scorer.name if scorer else "Unknown"
+        # GOAL_SCORED for the scorer
+        create_player_notifications(
+            db, [g.playerId],
+            f"You scored a goal!",
+            f"Goal in minute {g.minute or '?'}" + (f": {g.description}" if g.description else ""),
+            NotificationType.GOAL_SCORED,
+        )
+        # GOAL_CONCEDED for default team players (if the opponent scored against them)
+        if default_team_id and g.teamId != default_team_id and default_team_id in (match.team1Id, match.team2Id):
+            conceded_ids = [pid for pid in default_player_ids if pid != g.playerId]
+            create_player_notifications(
+                db, conceded_ids,
+                f"Goal conceded: {scorer_name} scored",
+                f"Minute {g.minute or '?'}" + (f": {g.description}" if g.description else ""),
+                NotificationType.GOAL_CONCEDED,
+            )
 
     team1_goals = len([g for g in data.goals if g.teamId == match.team1Id])
     team2_goals = len([g for g in data.goals if g.teamId == match.team2Id])

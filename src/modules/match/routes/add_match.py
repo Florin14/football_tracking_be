@@ -18,6 +18,8 @@ from project_helpers.emails_handling import (
     send_via_gmail_oauth2_safe,
     validate_config,
 )
+from constants.notification_type import NotificationType
+from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import JwtRequired
 from .router import router
 
@@ -146,10 +148,27 @@ async def add_match(
                 "match_datetime": match_datetime,
                 "location": match.location,
                 "league_name": match.league.name if match.league else "TBD",
-                "match_id": match.id,
+                "round": match.round,
             }
             email_req = EmailSendRequest(to=recipients, subject=subject)
             msg = build_message(email_req, template_data=template_data)
             bg.add_task(send_via_gmail_oauth2_safe, msg)
+
+    # Create NEW_MATCH notifications for default team players
+    default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+    if default_team and default_team.id in team_ids:
+        default_player_ids = [
+            pid for (pid,) in db.query(PlayerModel.id)
+            .filter(PlayerModel.teamId == default_team.id)
+            .all()
+        ]
+        create_player_notifications(
+            db,
+            default_player_ids,
+            f"New match: {match.team1.name} vs {match.team2.name}",
+            f"Match scheduled at {match.location or 'TBD'} on {match.timestamp.strftime('%Y-%m-%d %H:%M')}",
+            NotificationType.NEW_MATCH,
+        )
+        db.commit()
 
     return match

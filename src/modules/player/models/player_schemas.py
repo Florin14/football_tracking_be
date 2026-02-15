@@ -19,6 +19,10 @@ class PlayerAdd(BaseSchema):
     def encode_image_from_base64(cls, value):
         if value is None:
             return None
+        if isinstance(value, (bytes, bytearray)) and len(value) == 0:
+            return None
+        if isinstance(value, str) and value == "":
+            return None
         if isinstance(value, bytes):
             return process_and_convert_image_to_base64(value, 316)
         return value
@@ -35,6 +39,10 @@ class PlayerUpdate(BaseSchema):
     @validator("avatar", pre=False, always=True)
     def encode_image_from_base64(cls, value):
         if value is None:
+            return None
+        if isinstance(value, (bytes, bytearray)) and len(value) == 0:
+            return None
+        if isinstance(value, str) and value == "":
             return None
         if isinstance(value, bytes):
             return process_and_convert_image_to_base64(value, 316)
@@ -68,6 +76,10 @@ class PlayerProfileUpdate(BaseSchema):
     @validator("avatar", pre=False, always=True)
     def encode_profile_image_from_base64(cls, value):
         if value is None:
+            return None
+        if isinstance(value, (bytes, bytearray)) and len(value) == 0:
+            return None
+        if isinstance(value, str) and value == "":
             return None
         if isinstance(value, bytes):
             return process_and_convert_image_to_base64(value, 316)

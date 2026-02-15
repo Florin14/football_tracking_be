@@ -7,7 +7,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,21 +23,8 @@ jobs:
             git fetch --all
             git reset --hard origin/main
             cd deploy
-            cat > .env.runtime <<'EOF'
-            GMAIL_SENDER=${{ secrets.GMAIL_SENDER || vars.GMAIL_SENDER }}
-            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || vars.GOOGLE_CLIENT_ID }}
-            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || vars.GOOGLE_CLIENT_SECRET }}
-            GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN || vars.GOOGLE_REFRESH_TOKEN }}
-            EOF
-            for v in GMAIL_SENDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REFRESH_TOKEN; do
-              if ! grep -E -q "^${v}=.+" .env.runtime; then
-                echo "$v is missing in GitHub environment/secrets"
-                exit 1
-              fi
-            done
-            docker compose --env-file ./.env --env-file ./.env.runtime up -d --build
+            docker compose up -d --build
             docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
-            docker compose exec -T api sh -c 'for v in GMAIL_SENDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REFRESH_TOKEN; do eval "val=\${$v}"; if [ -z "$val" ]; then echo "$v missing in container"; exit 1; fi; done'
             docker compose ps
 
 

@@ -8,40 +8,102 @@ from typing import List, Optional, Dict, Any
 
 import aiosmtplib
 import requests
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 from fastapi import HTTPException
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, EmailStr, Field
 
 # ----------------- Setup & Config -----------------
 ROOT_DIR = Path(__file__).resolve().parents[3]
-load_dotenv(ROOT_DIR / ".env", override=False)
-load_dotenv(ROOT_DIR / ".env.local", override=False)
+DOTENV_FILES = [
+    ROOT_DIR / ".env",
+    ROOT_DIR / "deploy" / ".env",
+    ROOT_DIR / ".env.local",
+    ROOT_DIR / "deploy" / ".env.local",
+]
+for env_file in DOTENV_FILES:
+    load_dotenv(env_file, override=False)
 
-# Required env vars (no hardcoding)
-DEFAULT_FROM = os.getenv("DEFAULT_FROM", "Match Notifier <no-reply@example.com>")
-GMAIL_SENDER = os.getenv("GMAIL_SENDER")  # e.g. "you@gmail.com"
 
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
+def _first_non_empty(value: Optional[str]) -> Optional[str]:
+    if value is None:
+        return None
+    value = str(value).strip()
+    return value or None
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+
+def _read_dotenv_settings() -> Dict[str, str]:
+    settings: Dict[str, str] = {}
+    for env_file in DOTENV_FILES:
+        if not env_file.exists():
+            continue
+        for key, value in dotenv_values(env_file).items():
+            parsed_value = _first_non_empty(value)
+            if parsed_value is not None:
+                settings[key] = parsed_value
+    return settings
+
+
+def _resolve_mail_config() -> Dict[str, Any]:
+    file_settings = _read_dotenv_settings()
+
+    def get_value(key: str, default: Optional[str] = None) -> Optional[str]:
+        env_value = _first_non_empty(os.getenv(key))
+        if env_value is not None:
+            return env_value
+        file_value = _first_non_empty(file_settings.get(key))
+        if file_value is not None:
+            return file_value
+        return default
+
+    smtp_port_raw = get_value("SMTP_PORT", "587") or "587"
+    try:
+        smtp_port = int(smtp_port_raw)
+    except (TypeError, ValueError):
+        smtp_port = 587
+
+    return {
+        "DEFAULT_FROM": get_value("DEFAULT_FROM", "Match Notifier <no-reply@example.com>"),
+        "GMAIL_SENDER": get_value("GMAIL_SENDER"),
+        "GOOGLE_CLIENT_ID": get_value("GOOGLE_CLIENT_ID"),
+        "GOOGLE_CLIENT_SECRET": get_value("GOOGLE_CLIENT_SECRET"),
+        "GOOGLE_REFRESH_TOKEN": get_value("GOOGLE_REFRESH_TOKEN"),
+        "SMTP_HOST": get_value("SMTP_HOST", "smtp.gmail.com"),
+        "SMTP_PORT": smtp_port,
+        "FROM_NAME": get_value("FROM_NAME", "Match Notifier"),
+        "FRONTEND_URL": get_value("FRONTEND_URL", "http://localhost:3000"),
+    }
+
+
+_initial_config = _resolve_mail_config()
+DEFAULT_FROM = _initial_config["DEFAULT_FROM"]
+GMAIL_SENDER = _initial_config["GMAIL_SENDER"]  # kept for backward compatibility
+GOOGLE_CLIENT_ID = _initial_config["GOOGLE_CLIENT_ID"]
+GOOGLE_CLIENT_SECRET = _initial_config["GOOGLE_CLIENT_SECRET"]
+GOOGLE_REFRESH_TOKEN = _initial_config["GOOGLE_REFRESH_TOKEN"]
+SMTP_HOST = _initial_config["SMTP_HOST"]
+SMTP_PORT = _initial_config["SMTP_PORT"]
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 def validate_config():
-    if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):
+    config = _resolve_mail_config()
+    if not all([
+        config["GMAIL_SENDER"],
+        config["GOOGLE_CLIENT_ID"],
+        config["GOOGLE_CLIENT_SECRET"],
+        config["GOOGLE_REFRESH_TOKEN"],
+    ]):
         missing = [k for k, v in {
-            "GMAIL_SENDER": GMAIL_SENDER,
-            "GOOGLE_CLIENT_ID": GOOGLE_CLIENT_ID,
-            "GOOGLE_CLIENT_SECRET": GOOGLE_CLIENT_SECRET,
-            "GOOGLE_REFRESH_TOKEN": GOOGLE_REFRESH_TOKEN,
+            "GMAIL_SENDER": config["GMAIL_SENDER"],
+            "GOOGLE_CLIENT_ID": config["GOOGLE_CLIENT_ID"],
+            "GOOGLE_CLIENT_SECRET": config["GOOGLE_CLIENT_SECRET"],
+            "GOOGLE_REFRESH_TOKEN": config["GOOGLE_REFRESH_TOKEN"],
         }.items() if not v]
         raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+    return config
 
-FROM_NAME = os.getenv("FROM_NAME", "Match Notifier")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+FROM_NAME = _initial_config["FROM_NAME"]
+FRONTEND_URL = _initial_config["FRONTEND_URL"]
 
 TEMPLATE_DIR = Path(__file__).resolve().parents[3] / "templates"
 jinja_env = Environment(
@@ -125,20 +187,32 @@ def build_message(
     return msg
 
 # ----------------- OAuth2 Token Handling -----------------
-_access_token_cache = {"token": None, "exp": 0}
+_access_token_cache = {"token": None, "exp": 0, "config_key": None}
 
-def get_access_token() -> str:
+def get_access_token(config: Optional[Dict[str, Any]] = None) -> str:
+    if config is None:
+        config = validate_config()
     now = int(time())
-    if _access_token_cache["token"] and now < _access_token_cache["exp"] - 30:
+    config_key = (
+        config["GOOGLE_CLIENT_ID"],
+        config["GOOGLE_CLIENT_SECRET"],
+        config["GOOGLE_REFRESH_TOKEN"],
+        config["GMAIL_SENDER"],
+    )
+    if (
+        _access_token_cache["token"]
+        and now < _access_token_cache["exp"] - 30
+        and _access_token_cache["config_key"] == config_key
+    ):
         return _access_token_cache["token"]
 
     try:
         resp = requests.post(
             TOKEN_URL,
             data={
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "refresh_token": GOOGLE_REFRESH_TOKEN,
+                "client_id": config["GOOGLE_CLIENT_ID"],
+                "client_secret": config["GOOGLE_CLIENT_SECRET"],
+                "refresh_token": config["GOOGLE_REFRESH_TOKEN"],
                 "grant_type": "refresh_token",
             },
             timeout=15,
@@ -154,12 +228,13 @@ def get_access_token() -> str:
     expires_in = int(data.get("expires_in", 3600))
     _access_token_cache["token"] = token
     _access_token_cache["exp"] = now + expires_in
+    _access_token_cache["config_key"] = config_key
     return token
 
 # ----------------- SMTP Send (XOAUTH2) -----------------
 async def send_via_gmail_oauth2(msg: EmailMessage):
     # Consolidate recipients (To, Cc, Bcc)
-    validate_config()
+    config = validate_config()
     recipients = []
     for key in ("To", "Cc", "Bcc"):
         if msg.get(key):
@@ -168,16 +243,16 @@ async def send_via_gmail_oauth2(msg: EmailMessage):
     if "Bcc" in msg:
         del msg["Bcc"]
 
-    access_token = get_access_token()
+    access_token = get_access_token(config=config)
 
     # Build the XOAUTH2 SASL string: user=<email>\x01auth=Bearer <token>\x01\x01
-    xoauth2_string = f"user={GMAIL_SENDER}\x01auth=Bearer {access_token}\x01\x01"
+    xoauth2_string = f"user={config['GMAIL_SENDER']}\x01auth=Bearer {access_token}\x01\x01"
     xoauth2_b64 = base64.b64encode(xoauth2_string.encode()).decode()
 
     try:
         smtp = aiosmtplib.SMTP(
-            hostname=SMTP_HOST,
-            port=SMTP_PORT,
+            hostname=config["SMTP_HOST"],
+            port=config["SMTP_PORT"],
             start_tls=True,
             timeout=30,
         )

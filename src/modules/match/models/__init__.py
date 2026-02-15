@@ -3,3 +3,4 @@ from .match_schemas import *
 from .goal_model import *
 from .goal_schemas import *
 from .card_model import *
+from .card_schemas import *

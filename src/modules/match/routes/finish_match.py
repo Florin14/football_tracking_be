@@ -3,10 +3,13 @@ from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
 from constants.match_state import MatchState
+from constants.notification_type import NotificationType
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel
 )
+from modules.notifications.services.notification_service import create_player_notifications
+from modules.team.models.team_model import TeamModel
 from modules.ranking.services import recalculate_match_rankings
 from modules.tournament.services.knockout_service import auto_advance_knockout
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
@@ -42,11 +45,32 @@ async def finish_match(
 
     match.state = MatchState.FINISHED
 
+    from modules.player.models.player_model import PlayerModel
+
     # Ensure scores are set (default to 0 if not set)
     if match.scoreTeam1 is None:
         match.scoreTeam1 = 0
     if match.scoreTeam2 is None:
         match.scoreTeam2 = 0
+
+    # MATCH_RESULT notifications for default team players
+    default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+    if default_team and default_team.id in (match.team1Id, match.team2Id):
+        team1 = db.query(TeamModel).filter(TeamModel.id == match.team1Id).first()
+        team2 = db.query(TeamModel).filter(TeamModel.id == match.team2Id).first()
+        team1_name = team1.name if team1 else "Team 1"
+        team2_name = team2.name if team2 else "Team 2"
+        default_player_ids = [
+            pid for (pid,) in db.query(PlayerModel.id)
+            .filter(PlayerModel.teamId == default_team.id)
+            .all()
+        ]
+        create_player_notifications(
+            db, default_player_ids,
+            f"Result: {team1_name} {match.scoreTeam1}-{match.scoreTeam2} {team2_name}",
+            "Match has been marked as finished",
+            NotificationType.MATCH_RESULT,
+        )
 
     recalculate_match_rankings(db, match)
     auto_advance_knockout(db, match)

@@ -12,3 +12,4 @@ from .get_all_matches import *
 from .get_match_resources import *
 from .send_match_notification import *
 from .get_all_attendance_matches import *
+from .add_card import *

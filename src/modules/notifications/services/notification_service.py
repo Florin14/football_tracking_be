@@ -16,13 +16,14 @@ def create_player_notifications(
 ) -> None:
     if not player_ids:
         return
+    batch_created_at = datetime.utcnow()
     notifications = [
         NotificationModel(
             name=name,
             description=description,
             playerId=player_id,
             type=notification_type,
-            createdAt=datetime.utcnow(),
+            createdAt=batch_created_at,
             isDeleted=False,
         )
         for player_id in player_ids

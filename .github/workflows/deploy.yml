@@ -26,12 +26,23 @@ jobs:
           envs: GMAIL_SENDER,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_REFRESH_TOKEN
           script: |
             set -e
+            : "${GMAIL_SENDER:?GMAIL_SENDER is missing in GitHub environment/secrets}"
+            : "${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is missing in GitHub environment/secrets}"
+            : "${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is missing in GitHub environment/secrets}"
+            : "${GOOGLE_REFRESH_TOKEN:?GOOGLE_REFRESH_TOKEN is missing in GitHub environment/secrets}"
             cd ${{ secrets.VPS_APP_DIR }}
             git fetch --all
             git reset --hard origin/main
             cd deploy
-            docker compose up -d --build
+            cat > .env.runtime <<EOF
+            GMAIL_SENDER=$GMAIL_SENDER
+            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
+            GOOGLE_REFRESH_TOKEN=$GOOGLE_REFRESH_TOKEN
+            EOF
+            docker compose --env-file ./.env --env-file ./.env.runtime up -d --build
             docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
+            docker compose exec -T api sh -c 'for v in GMAIL_SENDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REFRESH_TOKEN; do eval "val=\${$v}"; if [ -z "$val" ]; then echo "$v missing in container"; exit 1; fi; done'
             docker compose ps
 
 

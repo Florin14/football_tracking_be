@@ -8,11 +8,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
-    env:
-      GMAIL_SENDER: ${{ secrets.GMAIL_SENDER || vars.GMAIL_SENDER }}
-      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID || vars.GOOGLE_CLIENT_ID }}
-      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET || vars.GOOGLE_CLIENT_SECRET }}
-      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN || vars.GOOGLE_REFRESH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,23 +18,24 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: GMAIL_SENDER,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_REFRESH_TOKEN
           script: |
             set -e
-            : "${GMAIL_SENDER:?GMAIL_SENDER is missing in GitHub environment/secrets}"
-            : "${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID is missing in GitHub environment/secrets}"
-            : "${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is missing in GitHub environment/secrets}"
-            : "${GOOGLE_REFRESH_TOKEN:?GOOGLE_REFRESH_TOKEN is missing in GitHub environment/secrets}"
             cd ${{ secrets.VPS_APP_DIR }}
             git fetch --all
             git reset --hard origin/main
             cd deploy
-            cat > .env.runtime <<EOF
-            GMAIL_SENDER=$GMAIL_SENDER
-            GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID
-            GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET
-            GOOGLE_REFRESH_TOKEN=$GOOGLE_REFRESH_TOKEN
+            cat > .env.runtime <<'EOF'
+            GMAIL_SENDER=${{ secrets.GMAIL_SENDER || vars.GMAIL_SENDER }}
+            GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID || vars.GOOGLE_CLIENT_ID }}
+            GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET || vars.GOOGLE_CLIENT_SECRET }}
+            GOOGLE_REFRESH_TOKEN=${{ secrets.GOOGLE_REFRESH_TOKEN || vars.GOOGLE_REFRESH_TOKEN }}
             EOF
+            for v in GMAIL_SENDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REFRESH_TOKEN; do
+              if ! grep -E -q "^${v}=.+" .env.runtime; then
+                echo "$v is missing in GitHub environment/secrets"
+                exit 1
+              fi
+            done
             docker compose --env-file ./.env --env-file ./.env.runtime up -d --build
             docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
             docker compose exec -T api sh -c 'for v in GMAIL_SENDER GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET GOOGLE_REFRESH_TOKEN; do eval "val=\${$v}"; if [ -z "$val" ]; then echo "$v missing in container"; exit 1; fi; done'

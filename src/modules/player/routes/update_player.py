@@ -1,4 +1,6 @@
-from fastapi import Depends, HTTPException
+import logging
+
+from fastapi import BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
@@ -6,12 +8,26 @@ from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerResponse, PlayerUpdate
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
+from project_helpers.emails_handling import (
+    FRONTEND_URL,
+    SendEmailRequest as EmailSendRequest,
+    build_message,
+    send_via_gmail_oauth2_safe,
+    validate_config,
+)
 from .router import router
 
 
-@router.put("/{id}", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
-async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
-                        db: Session = Depends(get_db)):
+@router.put("/{id:int}", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
+async def update_player(
+    data: PlayerUpdate,
+    bg: BackgroundTasks,
+    player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
+    db: Session = Depends(get_db),
+):
+    previous_email = player.email
+    should_send_welcome_email = False
+
     if data.name:
         player.name = data.name
 
@@ -23,6 +39,13 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
         if existing_player:
             raise HTTPException(status_code=409, detail="Email already in use")
         player.email = data.email
+
+        is_first_email_assignment = (not previous_email) or previous_email.endswith("@generated.local")
+        should_send_welcome_email = (
+            is_first_email_assignment
+            and data.email != previous_email
+            and not data.email.endswith("@generated.local")
+        )
 
     if data.position:
         player.position = data.position
@@ -38,6 +61,26 @@ async def update_player(data: PlayerUpdate, player: PlayerModel = Depends(GetIns
 
     db.commit()
     db.refresh(player)
+
+    if should_send_welcome_email:
+        password = "fotbal@2025"
+        try:
+            validate_config()
+        except RuntimeError as exc:
+            logging.warning("Welcome email not sent for player %s: %s", player.id, exc)
+        else:
+            template_data = {
+                "player_name": player.name,
+                "email": player.email,
+                "password": password,
+                "platform_url": FRONTEND_URL,
+            }
+            email_req = EmailSendRequest(
+                to=[player.email],
+                subject="Welcome to Football Tracking!",
+            )
+            msg = build_message(email_req, template_data=template_data, template_name="welcome_player.html")
+            bg.add_task(send_via_gmail_oauth2_safe, msg)
 
     return player
 

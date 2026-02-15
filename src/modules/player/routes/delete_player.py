@@ -9,7 +9,7 @@ from project_helpers.responses import ConfirmationResponse
 from .router import router
 
 
-@router.delete("/{id}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
+@router.delete("/{id:int}", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def delete_player(
     player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
     db: Session = Depends(get_db),

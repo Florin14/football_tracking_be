@@ -24,10 +24,10 @@ jobs:
             git fetch --all
             git reset --hard origin/main
             cd deploy
-            sed -i "s|^GOOGLE_CLIENT_ID=.*|GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}|" .env
-            sed -i "s|^GOOGLE_CLIENT_SECRET=.*|GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}|" .env
-            sed -i "s|^GOOGLE_REFRESH_TOKEN=.*|GOOGLE_REFRESH_TOKEN=${GOOGLE_REFRESH_TOKEN}|" .env
-            sed -i "s|^GMAIL_SENDER=.*|GMAIL_SENDER=${GMAIL_SENDER}|" .env
+            # Write secrets to a separate file (more reliable than sed)
+            printf 'GOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nGOOGLE_REFRESH_TOKEN=%s\nGMAIL_SENDER=%s\n' \
+              "${GOOGLE_CLIENT_ID}" "${GOOGLE_CLIENT_SECRET}" "${GOOGLE_REFRESH_TOKEN}" "${GMAIL_SENDER}" \
+              > .env.secrets
             docker compose up -d --build
             docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
             docker compose ps

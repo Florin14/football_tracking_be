@@ -24,6 +24,8 @@ services:
              uvicorn services.run_api:api --host 0.0.0.0 --port ${PORT:-8000}"
     env_file:
       - ./.env
+      - path: ./.env.secrets
+        required: false
     environment:
       APP_ENV: ${APP_ENV:-production}
       DATABASE_URL: ${DATABASE_URL}
@@ -34,10 +36,6 @@ services:
       AUTHJWT_COOKIE_SECURE: ${AUTHJWT_COOKIE_SECURE:-true}
       AUTHJWT_COOKIE_CSRF_PROTECT: ${AUTHJWT_COOKIE_CSRF_PROTECT:-false}
       DEFAULT_FROM: ${DEFAULT_FROM:-Match Notifier <no-reply@example.com>}
-      GMAIL_SENDER: ${GMAIL_SENDER:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN:-}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       FROM_NAME: ${FROM_NAME:-Match Notifier}

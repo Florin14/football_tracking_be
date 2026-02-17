@@ -17,8 +17,8 @@ async def mark_all_as_read_notifications(
 ):
     auth_user = request.state.user
     db.query(NotificationModel).filter(
-        NotificationModel.playerId == auth_user.id,
-        NotificationModel.isDeleted == False
+        NotificationModel.isDeleted == False,
+        NotificationModel.userId == auth_user.id,
     ).update(
         {NotificationModel.isDeleted: True},
         synchronize_session=False

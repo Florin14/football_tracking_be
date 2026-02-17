@@ -19,36 +19,15 @@ async def get_notifications(
 ):
     query = (
         db.query(NotificationModel)
-        .filter(NotificationModel.isDeleted == False)
+        .filter(
+            NotificationModel.isDeleted == False,
+            NotificationModel.userId == request.state.user.id,
+        )
         .order_by(NotificationModel.createdAt.desc(), NotificationModel.id.desc())
     )
 
-    if request.state.user.role == PlatformRoles.PLAYER:
-        query = query.filter(NotificationModel.playerId == request.state.user.id)
-        query = apply_search(query, NotificationModel.name, params.search)
-        notifications = params.apply(query).all()
-        return NotificationListResponse(data=notifications)
-
     query = apply_search(query, NotificationModel.name, params.search)
-    notifications = query.all()
-    deduplicated = []
-    seen = set()
-
-    for notification in notifications:
-        created_at = notification.createdAt
-        created_at_bucket = created_at.replace(microsecond=0) if created_at else None
-        signature = (
-            notification.type,
-            notification.name,
-            notification.description,
-            created_at_bucket,
-        )
-        if signature in seen:
-            continue
-        seen.add(signature)
-        deduplicated.append(notification)
-
-    notifications = deduplicated[params.skip: params.skip + params.limit]
+    notifications = params.apply(query).all()
 
     return NotificationListResponse(data=notifications)
 

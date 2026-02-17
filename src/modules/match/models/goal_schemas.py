@@ -9,8 +9,10 @@ from project_helpers.schemas import BaseSchema, FilterSchema
 class GoalResponse(BaseSchema):
     id: int
     matchId: int
-    playerId: int
+    playerId: Optional[int] = None
     playerName: str
+    assistPlayerId: Optional[int] = None
+    assistPlayerName: Optional[str] = None
     teamId: int
     teamName: str
     minute: Optional[int] = None

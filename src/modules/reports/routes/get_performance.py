@@ -13,6 +13,7 @@ from modules.match.services.match_status import match_is_completed_expr
 from modules.match.models.goal_model import GoalModel
 from modules.player.models.player_model import PlayerModel
 from modules.reports.models.report_schemas import (
+    PerformanceAssistStat,
     PerformanceMonthlyWins,
     PerformancePlayerStat,
     PerformancePositionStat,
@@ -136,17 +137,18 @@ async def get_performance_report(
         goal_rows = (
             db.query(
                 GoalModel.playerId,
+                GoalModel.playerNameSnapshot,
                 func.count(GoalModel.id).label("goals"),
             )
             .filter(
                 GoalModel.teamId == team.id,
                 GoalModel.matchId.in_(match_ids),
             )
-            .group_by(GoalModel.playerId)
+            .group_by(GoalModel.playerId, GoalModel.playerNameSnapshot)
             .all()
         )
 
-    player_ids = [row[0] for row in goal_rows]
+    player_ids = [player_id for player_id, _, _ in goal_rows if player_id is not None]
     players_by_id = {
         player.id: player
         for player in db.query(PlayerModel).filter(PlayerModel.id.in_(player_ids)).all()
@@ -156,12 +158,59 @@ async def get_performance_report(
         [
             PerformancePlayerStat(
                 playerId=player_id,
-                name=(players_by_id.get(player_id).name if players_by_id.get(player_id) else "Unknown"),
+                name=(
+                    players_by_id.get(player_id).name
+                    if player_id is not None and players_by_id.get(player_id)
+                    else (player_name_snapshot or "Unknown")
+                ),
                 goals=goals,
             )
-            for player_id, goals in goal_rows
+            for player_id, player_name_snapshot, goals in goal_rows
         ],
         key=lambda item: item.goals,
+        reverse=True,
+    )[:5]
+
+    assist_rows = []
+    if match_ids:
+        assist_rows = (
+            db.query(
+                GoalModel.assistPlayerId,
+                GoalModel.assistPlayerNameSnapshot,
+                func.count(GoalModel.id).label("assists"),
+            )
+            .filter(
+                GoalModel.teamId == team.id,
+                GoalModel.matchId.in_(match_ids),
+                or_(
+                    GoalModel.assistPlayerId.isnot(None),
+                    GoalModel.assistPlayerNameSnapshot.isnot(None),
+                ),
+            )
+            .group_by(GoalModel.assistPlayerId, GoalModel.assistPlayerNameSnapshot)
+            .all()
+        )
+
+    assist_player_ids = [player_id for player_id, _, _ in assist_rows if player_id is not None]
+    assist_players_by_id = {
+        player.id: player
+        for player in db.query(PlayerModel).filter(PlayerModel.id.in_(assist_player_ids)).all()
+    } if assist_player_ids else {}
+
+    top_assists = sorted(
+        [
+            PerformanceAssistStat(
+                playerId=player_id,
+                name=(
+                    assist_players_by_id.get(player_id).name
+                    if player_id is not None and assist_players_by_id.get(player_id)
+                    else (player_name_snapshot or "Unknown")
+                ),
+                assists=assists,
+            )
+            for player_id, player_name_snapshot, assists in assist_rows
+        ],
+        key=lambda item: item.assists,
         reverse=True,
     )[:5]
 
@@ -259,6 +308,6 @@ async def get_performance_report(
         trend=trend,
         positionStats=position_stats,
         topScorers=top_scorers,
-        topAssists=[],
+        topAssists=top_assists,
         monthlyWins=monthly_wins_items,
     )

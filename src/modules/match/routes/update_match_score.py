@@ -60,9 +60,26 @@ async def update_match_score(
                 detail=f"Player {player.name} does not belong to team {team.name}"
             )
 
+        assist_player = None
+        if goal.assistPlayerId is not None:
+            assist_player = db.query(PlayerModel).filter(PlayerModel.id == goal.assistPlayerId).first()
+            if not assist_player:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Assist player with ID {goal.assistPlayerId} not found"
+                )
+            if assist_player.teamId != goal.teamId:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Assist player {assist_player.name} does not belong to team {team.name}"
+                )
+
         goal = GoalModel(
             matchId=match.id,
             playerId=goal.playerId,
+            playerNameSnapshot=player.name,
+            assistPlayerId=goal.assistPlayerId,
+            assistPlayerNameSnapshot=assist_player.name if assist_player else None,
             teamId=goal.teamId,
             minute=goal.minute,
             description=goal.description

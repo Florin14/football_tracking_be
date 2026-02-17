@@ -33,6 +33,7 @@ class MatchAdd(BaseSchema):
 
 class GoalAdd(BaseSchema):
     playerId: int = Field(..., example=1)
+    assistPlayerId: Optional[int] = Field(None, example=2)
     teamId: int = Field(..., example=1)
     minute: Optional[int] = Field(None, example=45)
     description: Optional[str] = Field(None, max_length=200, example="Header from corner kick")

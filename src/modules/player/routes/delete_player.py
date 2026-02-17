@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
 from extensions import get_db
+from modules.match.models.goal_model import GoalModel
 from modules.player.models.player_model import PlayerModel
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
@@ -15,15 +16,30 @@ async def delete_player(
     db: Session = Depends(get_db),
 ):
     """Delete a player"""
-    # Remove player from any team
-    if player.teamId:
-        player.teamId = None
-        db.commit()
+    player_id = player.id
+    player_name = player.name
 
-    # Delete the player
+    # Keep goal history but detach the foreign key to allow player deletion.
+    db.query(GoalModel).filter(GoalModel.playerId == player_id).update(
+        {
+            GoalModel.playerId: None,
+            GoalModel.playerNameSnapshot: player_name,
+        },
+        synchronize_session=False,
+    )
+    db.query(GoalModel).filter(GoalModel.assistPlayerId == player_id).update(
+        {
+            GoalModel.assistPlayerId: None,
+            GoalModel.assistPlayerNameSnapshot: player_name,
+        },
+        synchronize_session=False,
+    )
+
+    # Delete the player (joined-inheritance row + base user row).
+    # Related rows are handled by DB-level ON DELETE rules.
     db.delete(player)
     db.commit()
 
     return ConfirmationResponse(
-        message=f"Player {player.name} deleted successfully"
+        message=f"Player {player_name} deleted successfully"
     )

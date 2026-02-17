@@ -2,182 +2,234 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="supported-color-schemes" content="dark" />
     <title>Welcome to Football Tracking</title>
+
     <style>
+      /* ----- Email resets ----- */
+      html, body { margin:0 !important; padding:0 !important; height:100% !important; width:100% !important; }
+      * { -ms-text-size-adjust:100%; -webkit-text-size-adjust:100%; }
+      table, td { border-collapse:collapse !important; mso-table-lspace:0pt; mso-table-rspace:0pt; }
+      img { -ms-interpolation-mode:bicubic; border:0; outline:none; text-decoration:none; }
+      a { text-decoration:none; }
+
+      /* ----- Theme ----- */
       body {
-        margin: 0;
-        padding: 0;
-        background: #0f1923;
-        font-family: "Segoe UI", Arial, sans-serif;
-        color: #e2e8f0;
-      }
-      .wrapper {
-        max-width: 640px;
-        margin: 0 auto;
-        padding: 32px 16px;
-      }
-      /* ---- Header / Hero ---- */
-      .hero {
-        background: linear-gradient(135deg, #0d9488 0%, #0891b2 50%, #6366f1 100%);
-        border-radius: 16px 16px 0 0;
-        padding: 36px 32px 28px;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-      }
-      .hero::before {
-        content: "";
-        position: absolute;
-        top: -40%;
-        left: -20%;
-        width: 140%;
-        height: 140%;
-        background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.08) 0%, transparent 60%);
-      }
-      .hero-icon {
-        font-size: 48px;
-        margin-bottom: 8px;
-        display: block;
-      }
-      .hero h1 {
-        margin: 0;
-        font-size: 26px;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: -0.3px;
-        position: relative;
-      }
-      .hero .subtitle {
-        margin: 8px 0 0;
-        font-size: 14px;
-        color: rgba(255,255,255,0.8);
-        position: relative;
+        background:#0b1220;
+        font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color:#e5e7eb;
       }
 
-      /* ---- Card body ---- */
+      .container { width:100%; background:#0b1220; padding:28px 12px; }
+
       .card {
-        background: #1e293b;
-        border-radius: 0 0 16px 16px;
-        padding: 28px 32px 32px;
-        border: 1px solid rgba(255,255,255,0.06);
-        border-top: none;
-      }
-      .card p {
-        font-size: 15px;
-        line-height: 1.6;
-        color: #cbd5e1;
-        margin: 0 0 24px;
+        width:640px;
+        max-width:640px;
+        background:#0f172a;
+        border:1px solid rgba(255,255,255,0.08);
+        border-radius:18px;
+        overflow:hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.35);
       }
 
-      /* ---- Credentials ---- */
-      .credentials {
-        background: rgba(255,255,255,0.04);
-        border-radius: 12px;
-        padding: 20px;
-        border: 1px solid rgba(255,255,255,0.06);
-        margin-bottom: 24px;
+      .header {
+        padding:22px 24px 12px;
+        background:rgba(255,255,255,0.02);
       }
-      .credentials .label {
-        display: block;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: #64748b;
-        margin-bottom: 4px;
-        font-weight: 600;
+      .brand {
+        font-size:12px;
+        letter-spacing:0.12em;
+        text-transform:uppercase;
+        color:rgba(229,231,235,0.60);
       }
-      .credentials .value {
-        font-size: 15px;
-        font-weight: 600;
-        color: #e2e8f0;
-        margin-bottom: 16px;
-        word-break: break-all;
+      .title {
+        margin:10px 0 0;
+        font-size:22px;
+        line-height:1.25;
+        font-weight:800;
+        color:#ffffff;
+        word-break:break-word;
+        overflow-wrap:anywhere;
       }
-      .credentials .value:last-child {
-        margin-bottom: 0;
-      }
-
-      /* ---- CTA Button ---- */
-      .cta-wrapper {
-        text-align: center;
-        margin: 28px 0 0;
-      }
-      .cta-button {
-        display: inline-block;
-        padding: 14px 36px;
-        background: linear-gradient(135deg, #6366f1, #8b5cf6);
-        color: #ffffff;
-        font-size: 15px;
-        font-weight: 700;
-        text-decoration: none;
-        border-radius: 10px;
-        letter-spacing: 0.3px;
-        box-shadow: 0 4px 20px rgba(99,102,241,0.4);
+      .subtitle {
+        margin:8px 0 0;
+        font-size:14px;
+        line-height:1.5;
+        color:rgba(229,231,235,0.78);
+        word-break:break-word;
+        overflow-wrap:anywhere;
       }
 
-      /* ---- Divider ---- */
-      .divider {
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-        margin: 24px 0;
+      .divider { height:1px; background:rgba(255,255,255,0.08); }
+
+      .content { padding:18px 24px 8px; }
+      .p {
+        margin:0 0 14px;
+        font-size:14px;
+        line-height:1.6;
+        color:rgba(229,231,235,0.80);
       }
 
-      /* ---- Footer ---- */
+      /* Credential blocks */
+      .credGrid { width:100%; margin-top:8px; }
+      .credBox {
+        border:1px solid rgba(255,255,255,0.08);
+        background:rgba(255,255,255,0.03);
+        border-radius:14px;
+        padding:14px 14px;
+      }
+      .label {
+        font-size:11px;
+        letter-spacing:0.12em;
+        text-transform:uppercase;
+        color:rgba(229,231,235,0.55);
+      }
+      .value {
+        margin-top:6px;
+        font-size:15px;
+        line-height:1.4;
+        font-weight:700;
+        color:#e5e7eb;
+        word-break:break-word;       /* important */
+        overflow-wrap:anywhere;      /* important */
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        letter-spacing:0.02em;
+      }
+
+      /* Note box */
+      .note {
+        margin-top:14px;
+        border:1px solid rgba(34,197,94,0.22);
+        background:rgba(34,197,94,0.08);
+        border-radius:14px;
+        padding:12px 14px;
+        color:rgba(229,231,235,0.85);
+        font-size:13px;
+        line-height:1.5;
+      }
+
+      /* Button (Outlook-safe) */
+      .ctaWrap { padding:14px 24px 22px; }
+      .btn {
+        display:inline-block;
+        background:#6366f1;
+        color:#ffffff !important;
+        font-weight:800;
+        font-size:14px;
+        padding:12px 18px;
+        border-radius:12px;
+        border:1px solid rgba(255,255,255,0.10);
+      }
+      .btnSub {
+        margin-top:10px;
+        font-size:12px;
+        line-height:1.4;
+        color:rgba(229,231,235,0.50);
+        word-break:break-word;
+        overflow-wrap:anywhere;
+      }
+
       .footer {
-        text-align: center;
-        padding: 24px 0 8px;
-        font-size: 12px;
-        color: #475569;
-      }
-      .footer a {
-        color: #6366f1;
-        text-decoration: none;
+        padding:0 24px 20px;
+        font-size:12px;
+        color:rgba(229,231,235,0.45);
       }
 
-      /* ---- Responsive ---- */
-      @media (max-width: 480px) {
-        .wrapper { padding: 16px 8px; }
-        .hero { padding: 28px 20px 24px; }
-        .hero h1 { font-size: 22px; }
-        .card { padding: 20px 20px 24px; }
-        .cta-button { padding: 12px 28px; font-size: 14px; }
+      @media screen and (max-width: 680px) {
+        .card { width:100% !important; max-width:100% !important; }
+        .header, .content, .ctaWrap, .footer { padding-left:16px !important; padding-right:16px !important; }
+        .title { font-size:20px !important; }
       }
     </style>
   </head>
+
   <body>
-    <div class="wrapper">
-      <!-- Hero -->
-      <div class="hero">
-        <span class="hero-icon">&#9917;</span>
-        <h1>Welcome, {{ player_name }}!</h1>
-        <p class="subtitle">Your account has been created on Football Tracking.</p>
-      </div>
+    <center class="container">
+      <!--[if mso]>
+      <table role="presentation" width="640" align="center" cellpadding="0" cellspacing="0" border="0">
+        <tr><td>
+      <![endif]-->
 
-      <!-- Card Body -->
-      <div class="card">
-        <p>An admin has created an account for you. Below are your login credentials:</p>
+      <table role="presentation" class="card" align="center" cellpadding="0" cellspacing="0" border="0">
+        <!-- Header -->
+        <tr>
+          <td class="header">
+            <div class="brand">FOOTBALL TRACKING</div>
+            <div class="title">Welcome, {{ player_name }} 👋</div>
+            <div class="subtitle">Your account has been created. Use the credentials below to sign in.</div>
+          </td>
+        </tr>
 
-        <div class="credentials">
-          <span class="label">Email</span>
-          <div class="value">{{ email }}</div>
-          <span class="label">Password</span>
-          <div class="value">{{ password }}</div>
-        </div>
+        <tr><td class="divider"></td></tr>
 
-        <div class="divider"></div>
+        <!-- Body -->
+        <tr>
+          <td class="content">
+            <p class="p">An admin has created an account for you. Here are your login details:</p>
 
-        <p style="font-size: 13px; color: #94a3b8;">We recommend changing your password after your first login.</p>
+            <table role="presentation" class="credGrid" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="width:100%; padding:0 0 12px 0;">
+                  <div class="credBox">
+                    <div class="label">Email</div>
+                    <div class="value mono">{{ email }}</div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td style="width:100%; padding:0 0 0 0;">
+                  <div class="credBox">
+                    <div class="label">Temporary password</div>
+                    <div class="value mono">{{ password }}</div>
+                  </div>
+                </td>
+              </tr>
+            </table>
 
-        <div class="cta-wrapper">
-          <a href="{{ platform_url }}" class="cta-button">Go to Platform</a>
-        </div>
-      </div>
+            <div class="note">
+              ✅ We recommend changing your password after your first login.
+            </div>
+          </td>
+        </tr>
 
-      <!-- Footer -->
-      <div class="footer">
-        Football Tracking &bull; Automated notification
-      </div>
-    </div>
+        <!-- CTA -->
+        <tr>
+          <td class="ctaWrap" align="center">
+            <!--[if mso]>
+              <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" href="{{ platform_url }}" style="height:44px;v-text-anchor:middle;width:220px;" arcsize="18%" stroke="f" fillcolor="#6366f1">
+                <w:anchorlock/>
+                <center style="color:#ffffff;font-family:Segoe UI, Arial, sans-serif;font-size:14px;font-weight:700;">
+                  Go to Platform
+                </center>
+              </v:roundrect>
+            <![endif]-->
+            <!--[if !mso]><!-- -->
+              <a href="{{ platform_url }}" class="btn">Go to Platform</a>
+            <!--<![endif]-->
+
+            <div class="btnSub">
+              If the button doesn’t work, copy and paste this link:<br />
+              <span class="mono">{{ platform_url }}</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td class="footer">
+            Automated notification • Please do not reply
+          </td>
+        </tr>
+      </table>
+
+      <!--[if mso]>
+        </td></tr>
+      </table>
+      <![endif]-->
+    </center>
   </body>
 </html>

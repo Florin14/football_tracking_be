@@ -12,7 +12,7 @@ class CardModel(BaseModel):
 
     id = Column(BigInteger, primary_key=True, index=True)
     matchId = Column(BigInteger, ForeignKey("matches.id"), nullable=False)
-    playerId = Column(BigInteger, ForeignKey("players.id"), nullable=False)
+    playerId = Column(BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
     teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     cardType = Column(Enum(CardType), nullable=False, name="card_type")
     minute = Column(Integer, nullable=True)

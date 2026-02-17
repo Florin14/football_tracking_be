@@ -38,13 +38,13 @@ class PerformancePositionStat(BaseSchema):
 
 
 class PerformancePlayerStat(BaseSchema):
-    playerId: int
+    playerId: Optional[int] = None
     name: str
     goals: int
 
 
 class PerformanceAssistStat(BaseSchema):
-    playerId: int
+    playerId: Optional[int] = None
     name: str
     assists: int
 

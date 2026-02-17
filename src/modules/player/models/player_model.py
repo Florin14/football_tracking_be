@@ -17,20 +17,20 @@ from constants.card_type import CardType
 class PlayerModel(UserModel):
     __tablename__ = "players"
 
-    id = Column(BigInteger, ForeignKey("users.id"), primary_key=True)
+    id = Column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     position = Column(Enum(PlayerPositions), nullable=False, default=PlayerPositions.DEFENDER)
     rating = Column(Integer, nullable=True)
     shirtNumber = Column("shirt_number", Integer, nullable=True)
     avatar = Column(LargeBinary, nullable=True)
     teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     team = relationship(TeamModel)
-    notifications = relationship("NotificationModel", back_populates="player")
-    attendance = relationship("AttendanceModel", back_populates="player")
+    attendance = relationship("AttendanceModel", back_populates="player", passive_deletes=True)
     preferences = relationship(
         "PlayerPreferencesModel",
         uselist=False,
         back_populates="player",
         cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     goalsCount = column_property(

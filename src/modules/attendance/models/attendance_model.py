@@ -16,7 +16,7 @@ class AttendanceModel(BaseModel):
     matchId = Column(BigInteger, ForeignKey("matches.id"), nullable=True)
     tournamentId = Column(BigInteger, ForeignKey("tournaments.id"), nullable=True)
     trainingSessionId = Column(BigInteger, ForeignKey("training_sessions.id"), nullable=True, name="training_session_id")
-    playerId = Column(BigInteger, ForeignKey("players.id"), nullable=False)
+    playerId = Column(BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False)
     teamId = Column(BigInteger, ForeignKey("teams.id"), nullable=False)
     status = Column(Enum(AttendanceStatus), nullable=False, default=AttendanceStatus.UNKNOWN)
     note = Column(String, nullable=True)

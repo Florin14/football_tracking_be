@@ -132,9 +132,8 @@ def get_access_token() -> str:
     now = int(time())
     if _access_token_cache["token"] and now < _access_token_cache["exp"] - 30:
         return _access_token_cache["token"]
-    logging.info('GOOGLE_CLIENT_ID: %s', GOOGLE_CLIENT_ID)
     logging.info('GOOGLE_CLIENT_SECRET: %s', GOOGLE_CLIENT_SECRET)
-    logging.info('GOOGLE_REFRESH_TOKEN: %s', GOOGLE_REFRESH_TOKEN)
+
     try:
         resp = requests.post(
             TOKEN_URL,

@@ -5,5 +5,4 @@
 __pycache__/
 *.pyc
 .env
-.env.local
-deploy/.env.secrets
+# .env.local

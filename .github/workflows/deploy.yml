@@ -2,11 +2,12 @@
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,10 +25,19 @@ jobs:
             git fetch --all
             git reset --hard origin/main
             cd deploy
-            # Write secrets to a separate file (more reliable than sed)
-            printf 'GOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nGOOGLE_REFRESH_TOKEN=%s\nGMAIL_SENDER=%s\n' \
+
+            touch .env
+
+            sed -i '/^GOOGLE_CLIENT_ID=/d' .env
+            sed -i '/^GOOGLE_CLIENT_SECRET=/d' .env
+            sed -i '/^GOOGLE_REFRESH_TOKEN=/d' .env
+            sed -i '/^GMAIL_SENDER=/d' .env
+
+            printf '\nGOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\nGOOGLE_REFRESH_TOKEN=%s\nGMAIL_SENDER=%s\n' \
               "${GOOGLE_CLIENT_ID}" "${GOOGLE_CLIENT_SECRET}" "${GOOGLE_REFRESH_TOKEN}" "${GMAIL_SENDER}" \
-              > .env.secrets
+              >> .env
+
+            docker compose down
             docker compose up -d --build
             docker compose exec -T -w /app/src api alembic -c /app/src/extensions/migrations/alembic.ini upgrade head
             docker compose ps

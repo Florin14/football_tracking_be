@@ -103,6 +103,7 @@ def build_message(
             data.update({key: value for key, value in template_data.items() if value is not None})
         html_body = render_template(data)
         text_body = "You have a new match. Please view this email in HTML."
+    logging.info("Building email with subject '%s' for recipients: %s, cc: %s, reply_to: %s, attachments: %d", req.subject, req.to, req.cc or [], req.reply_to or [], len(req.attachments or []))
 
     msg = EmailMessage()
     msg["Subject"] = req.subject

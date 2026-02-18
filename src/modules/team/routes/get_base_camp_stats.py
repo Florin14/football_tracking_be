@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
+from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
 from modules.attendance.models.attendance_model import AttendanceModel
@@ -21,7 +22,7 @@ def _normal_league_tournament_filter():
         or_(TournamentModel.groupCount.is_(None), TournamentModel.groupCount == 0),
         or_(
             TournamentModel.formatType.is_(None),
-            ~func.upper(TournamentModel.formatType).like("GROUP%"),
+            TournamentModel.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
         ),
     )
 

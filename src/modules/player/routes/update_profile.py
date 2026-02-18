@@ -1,4 +1,4 @@
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
@@ -28,6 +28,13 @@ async def update_player_profile(
         player.name = data.name
 
     if data.email is not None:
+        if data.email and data.email != player.email:
+            existing = db.query(PlayerModel).filter(
+                PlayerModel.email == data.email,
+                PlayerModel.id != player.id
+            ).first()
+            if existing:
+                raise HTTPException(status_code=409, detail="EMAIL_ALREADY_IN_USE")
         player.email = data.email
 
     if data.position is not None:

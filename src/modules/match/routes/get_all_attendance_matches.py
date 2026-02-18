@@ -1,8 +1,9 @@
 from datetime import datetime
 from fastapi import Depends
-from sqlalchemy import or_, func
+from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload, aliased
 
+from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
 from project_helpers.schemas import PaginationParams
@@ -35,7 +36,7 @@ async def get_matches(
         .filter(
             or_(
                 tournament_alias.formatType.is_(None),
-                ~func.upper(tournament_alias.formatType).like("GROUP%"),
+                tournament_alias.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         )
     )

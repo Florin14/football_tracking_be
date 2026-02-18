@@ -1,4 +1,4 @@
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from extensions import get_db
@@ -24,6 +24,12 @@ async def add_base_camp_player(
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if team is None:
         return ErrorException(error=Error.TEAM_INSTANCE_NOT_FOUND)
+
+    if data.email and not data.email.endswith("@generated.local"):
+        existing = db.query(PlayerModel).filter(PlayerModel.email == data.email).first()
+        if existing:
+            raise HTTPException(status_code=409, detail="EMAIL_ALREADY_IN_USE")
+
     player = PlayerModel(**data.model_dump(), password=password, teamId=team.id, role=PlatformRoles.PLAYER)
     db.add(player)
     db.commit()

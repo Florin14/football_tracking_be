@@ -70,6 +70,13 @@ class AttendanceFilter(FilterSchema):
     sortBy: str = "recordedAt"
 
 
+class PlayerAttendanceConsolidatedResponse(BaseSchema):
+    matches: list = []
+    tournaments: list = []
+    trainings: list = []
+    attendance: List[AttendanceResponse] = []
+
+
 class AttendanceQueryParams(PaginationParams):
     scope: Optional[str] = None
     matchId: Optional[int] = Field(None, validation_alias=AliasChoices("matchId", "match_id"))

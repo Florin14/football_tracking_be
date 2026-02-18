@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 
 from constants.player_positions import PlayerPositions
 from constants.preferred_language import PreferredLanguage
+from constants.preferred_theme import PreferredTheme
 from extensions import BaseModel
 
 
@@ -15,6 +16,7 @@ class PlayerPreferencesModel(BaseModel):
     playerId = Column(BigInteger, ForeignKey("players.id", ondelete="CASCADE"), nullable=False, unique=True, name="player_id")
     preferredPosition = Column(Enum(PlayerPositions), nullable=True, name="preferred_position")
     preferredLanguage = Column(Enum(PreferredLanguage), nullable=True, name="preferred_language")
+    preferredTheme = Column(Enum(PreferredTheme), nullable=True, name="preferred_theme")
     nickname = Column(String(50), nullable=True)
     receiveEmailNotifications = Column(Boolean, nullable=False, default=True, name="receive_email_notifications")
     receiveMatchReminders = Column(Boolean, nullable=False, default=True, name="receive_match_reminders")

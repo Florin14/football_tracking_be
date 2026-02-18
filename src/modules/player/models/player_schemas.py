@@ -52,6 +52,7 @@ class PlayerUpdate(BaseSchema):
 class PlayerPreferencesUpdate(BaseSchema):
     preferredPosition: Optional[str] = None
     preferredLanguage: Optional[str] = None
+    preferredTheme: Optional[str] = None
     nickname: Optional[str] = Field(None, max_length=50)
     receiveEmailNotifications: Optional[bool] = None
     receiveMatchReminders: Optional[bool] = None
@@ -60,6 +61,7 @@ class PlayerPreferencesUpdate(BaseSchema):
 class PlayerPreferencesResponse(BaseSchema):
     preferredPosition: Optional[str] = None
     preferredLanguage: Optional[str] = None
+    preferredTheme: Optional[str] = None
     nickname: Optional[str] = None
     receiveEmailNotifications: Optional[bool] = True
     receiveMatchReminders: Optional[bool] = True

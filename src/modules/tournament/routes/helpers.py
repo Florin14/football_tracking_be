@@ -120,4 +120,3 @@ if __name__ == "__main__":
     teams = generate_teams(file_path)
     print("Team 1:", teams["team1"])
     print("Team 2:", teams["team2"])
-    print("Balance Difference:", teams["balance_difference"])

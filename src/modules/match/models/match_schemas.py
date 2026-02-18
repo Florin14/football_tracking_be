@@ -54,6 +54,8 @@ class ScoreUpdate(BaseSchema):
 
 class MatchItem(BaseSchema):
     id: int
+    team1Id: int
+    team2Id: int
     team1Name: str
     team2Name: str
     team1Logo: Optional[str] = Field(None, example="")

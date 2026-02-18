@@ -29,13 +29,11 @@ async def update_player(
             PlayerModel.id != player.id
         ).first()
         if existing_player:
-            raise HTTPException(status_code=409, detail="Email already in use")
+            raise HTTPException(status_code=409, detail="EMAIL_ALREADY_IN_USE")
         player.email = data.email
 
-        is_first_email_assignment = (not previous_email) or previous_email.endswith("@generated.local")
         should_send_welcome_email = (
-            is_first_email_assignment
-            and data.email != previous_email
+            data.email != previous_email
             and not data.email.endswith("@generated.local")
         )
 

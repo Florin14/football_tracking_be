@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
+from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
 from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse, AttendanceQueryParams
@@ -41,8 +42,8 @@ async def get_attendance_resources(
     
     query = query.filter(
         or_(
-            TournamentModel.groupCount.is_(None),
-            TournamentModel.groupCount == 0
+            TournamentModel.formatType.is_(None),
+            TournamentModel.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
         )
     )
 

@@ -1,9 +1,10 @@
 from fastapi import Depends, HTTPException, status
-from sqlalchemy import case, func, or_
+from sqlalchemy import case, or_
 from sqlalchemy.orm import Session, aliased
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
+from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
 from modules.attendance.models.attendance_schemas import AttendanceGroupedListResponse, AttendanceQueryParams
@@ -88,12 +89,12 @@ async def get_attendance(
         query = query.filter(
             or_(
                 direct_tournament.formatType.is_(None),
-                ~func.upper(direct_tournament.formatType).like("GROUP%"),
+                direct_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         ).filter(
             or_(
                 league_tournament.formatType.is_(None),
-                ~func.upper(league_tournament.formatType).like("GROUP%"),
+                league_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         )
 

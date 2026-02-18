@@ -1,28 +1,12 @@
-from typing import List, Optional
+from fastapi import BackgroundTasks, HTTPException
 
-from fastapi import BackgroundTasks, HTTPException, Depends
-from pydantic import EmailStr, Field
-
-from constants.platform_roles import PlatformRoles
 from modules.match.routes.router import emailRouter
-from project_helpers.dependencies import JwtRequired
-from project_helpers.emails_handling import build_message, send_via_gmail_oauth2_safe, GMAIL_SENDER
-from project_helpers.schemas import BaseSchema
-
-
-class Attachment(BaseSchema):
-    filename: str
-    content_base64: str
-    mime_type: str = "application/octet-stream"
-
-
-class SendEmailRequest(BaseSchema):
-    to: List[EmailStr] = Field(..., description="List of recipients")
-    subject: str = Field(..., description="Email subject")
-    cc: Optional[List[EmailStr]] = None
-    bcc: Optional[List[EmailStr]] = None
-    reply_to: Optional[EmailStr] = None
-    attachments: Optional[List[Attachment]] = None
+from project_helpers.emails_handling import (
+    SendEmailRequest,
+    build_message,
+    send_via_gmail_oauth2_safe,
+    GMAIL_SENDER,
+)
 
 
 @emailRouter.post("-send")

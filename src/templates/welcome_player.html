@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="{{ lang | default('ro') }}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% if lang == 'en' %}Welcome to Base Camp!{% else %}Bine ai venit la Base Camp!{% endif %}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0B1121;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0B1121;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+
+          <!-- HEADER -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1A2744 0%,#0F1B30 100%);padding:40px 32px 28px;text-align:center;border-bottom:1px solid rgba(46,155,255,0.15);">
+              {% if base_camp_logo %}
+              <img src="data:image/jpeg;base64,{{ base_camp_logo }}" alt="Base Camp" width="80" height="80" style="width:80px;height:80px;border-radius:20px;border:2px solid rgba(46,155,255,0.4);object-fit:cover;display:block;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,0,0,0.4);" />
+              {% endif %}
+              <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
+                {% if lang == 'en' %}Welcome to the team!{% else %}Bine ai venit in echipa!{% endif %}
+              </h1>
+              <p style="margin:10px 0 0;color:#8DB4E8;font-size:14px;font-weight:500;">
+                {% if lang == 'en' %}Your account has been created{% else %}Contul tau a fost creat{% endif %}
+              </p>
+            </td>
+          </tr>
+
+          <!-- GREETING -->
+          <tr>
+            <td style="background:#111B2E;padding:28px 32px 8px;text-align:center;">
+              <p style="margin:0;color:#E8F4FD;font-size:16px;font-weight:400;line-height:1.6;">
+                {% if lang == 'en' %}
+                  Hi <strong style="color:#FFFFFF;">{{ player_name }}</strong>, welcome to <strong style="color:#2E9BFF;">Base Camp Football</strong>! Below you'll find your login credentials.
+                {% else %}
+                  Salut <strong style="color:#FFFFFF;">{{ player_name }}</strong>, bine ai venit la <strong style="color:#2E9BFF;">Base Camp Football</strong>! Mai jos gasesti datele tale de autentificare.
+                {% endif %}
+              </p>
+            </td>
+          </tr>
+
+          <!-- CREDENTIALS CARD -->
+          <tr>
+            <td style="background:#111B2E;padding:20px 32px 28px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,rgba(26,39,68,0.9),rgba(16,25,45,0.85));border:1px solid rgba(46,155,255,0.2);border-radius:16px;overflow:hidden;">
+                <tr>
+                  <td style="padding:20px 24px;border-bottom:1px solid rgba(46,155,255,0.1);">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="28" valign="middle">
+                          <span style="font-size:18px;">&#128231;</span>
+                        </td>
+                        <td valign="middle" style="padding-left:10px;">
+                          <p style="margin:0;color:#8DB4E8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">Email</p>
+                          <p style="margin:3px 0 0;color:#E8F4FD;font-size:15px;font-weight:600;">{{ email }}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="28" valign="middle">
+                          <span style="font-size:18px;">&#128274;</span>
+                        </td>
+                        <td valign="middle" style="padding-left:10px;">
+                          <p style="margin:0;color:#8DB4E8;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
+                            {% if lang == 'en' %}Password{% else %}Parola{% endif %}
+                          </p>
+                          <p style="margin:3px 0 0;color:#E8F4FD;font-size:15px;font-weight:700;font-family:monospace;letter-spacing:0.05em;background:rgba(46,155,255,0.08);display:inline-block;padding:4px 12px;border-radius:8px;border:1px solid rgba(46,155,255,0.15);">{{ password }}</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- SECURITY NOTE -->
+          <tr>
+            <td style="background:#111B2E;padding:0 32px 24px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,167,38,0.08);border:1px solid rgba(255,167,38,0.2);border-radius:12px;">
+                <tr>
+                  <td style="padding:14px 18px;">
+                    <table role="presentation" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="24" valign="top">
+                          <span style="font-size:16px;">&#9888;&#65039;</span>
+                        </td>
+                        <td valign="middle" style="padding-left:8px;">
+                          <p style="margin:0;color:#FFB74D;font-size:12px;font-weight:600;line-height:1.5;">
+                            {% if lang == 'en' %}
+                              We recommend changing your password after the first login.
+                            {% else %}
+                              Iti recomandam sa iti schimbi parola dupa prima autentificare.
+                            {% endif %}
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- CTA BUTTON -->
+          {% if platform_url %}
+          <tr>
+            <td style="background:#111B2E;padding:0 32px 32px;text-align:center;">
+              <a href="{{ platform_url }}" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#2E9BFF 0%,#5DB7FF 100%);color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:700;padding:14px 40px;border-radius:14px;box-shadow:0 8px 24px rgba(46,155,255,0.35);letter-spacing:0.02em;">
+                {% if lang == 'en' %}Go to Platform{% else %}Acceseaza Platforma{% endif %} &#8594;
+              </a>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0D1525 0%,#0B1121 100%);padding:20px 32px;text-align:center;border-top:1px solid rgba(46,155,255,0.1);">
+              <p style="margin:0 0 6px;color:#6B8BB8;font-size:11px;">
+                {% if lang == 'en' %}This email was sent automatically by{% else %}Acest email a fost trimis automat de{% endif %}
+              </p>
+              <p style="margin:0;color:#8DB4E8;font-size:12px;font-weight:600;">Base Camp Football</p>
+              {% if platform_url %}
+              <p style="margin:8px 0 0;">
+                <a href="{{ platform_url }}" target="_blank" style="color:#2E9BFF;font-size:11px;text-decoration:none;">{{ platform_url }}</a>
+              </p>
+              {% endif %}
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

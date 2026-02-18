@@ -1,10 +1,9 @@
-import logging
+from collections import defaultdict
 
 from fastapi import BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from constants.platform_roles import PlatformRoles
-from constants.match_state import MatchState
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
     MatchModel, MatchAdd, MatchResponse
@@ -12,12 +11,7 @@ from modules.match.models import (
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
-from project_helpers.emails_handling import (
-    SendEmailRequest as EmailSendRequest,
-    build_message,
-    send_via_gmail_oauth2_safe,
-    validate_config,
-)
+from project_helpers.emails_handling import send_match_notification_emails
 from constants.notification_type import NotificationType
 from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import JwtRequired
@@ -123,36 +117,26 @@ async def add_match(
         .first()
     )
 
+    from modules.player.models.player_preferences_model import PlayerPreferencesModel
+
     recipient_rows = (
-        db.query(PlayerModel.email)
+        db.query(PlayerModel.email, PlayerPreferencesModel.preferredLanguage)
+        .outerjoin(PlayerPreferencesModel, PlayerPreferencesModel.playerId == PlayerModel.id)
         .filter(
             PlayerModel.teamId.in_(team_ids),
             PlayerModel.email.isnot(None),
         )
         .all()
     )
-    recipients = sorted({email for (email,) in recipient_rows if email})
-    if recipients:
-        try:
-            validate_config()
-        except RuntimeError as exc:
-            logging.warning("Email not sent for match %s: %s", match.id, exc)
-        else:
-            subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
-            match_datetime = match.timestamp.strftime("%Y-%m-%d %H:%M")
-            template_data = {
-                "title": "Match scheduled",
-                "message": "A new football match has been created.",
-                "team1_name": match.team1.name,
-                "team2_name": match.team2.name,
-                "match_datetime": match_datetime,
-                "location": match.location,
-                "league_name": match.league.name if match.league else "TBD",
-                "round": match.round,
-            }
-            email_req = EmailSendRequest(to=recipients, subject=subject)
-            msg = build_message(email_req, template_data=template_data)
-            bg.add_task(send_via_gmail_oauth2_safe, msg)
+
+    lang_groups = defaultdict(list)
+    for email, pref_lang in recipient_rows:
+        if not email or email.endswith("@generated.local"):
+            continue
+        lang = pref_lang.value.lower() if pref_lang else "ro"
+        lang_groups[lang].append(email)
+
+    send_match_notification_emails(bg, db, match, lang_groups)
 
     # Create NEW_MATCH notifications for default team players
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()

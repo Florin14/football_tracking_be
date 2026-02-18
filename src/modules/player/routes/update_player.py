@@ -1,5 +1,3 @@
-import logging
-
 from fastapi import BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -8,13 +6,7 @@ from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerResponse, PlayerUpdate
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
-from project_helpers.emails_handling import (
-    FRONTEND_URL,
-    SendEmailRequest as EmailSendRequest,
-    build_message,
-    send_via_gmail_oauth2_safe,
-    validate_config,
-)
+from project_helpers.emails_handling import send_welcome_email
 from .router import router
 
 
@@ -63,24 +55,7 @@ async def update_player(
     db.refresh(player)
 
     if should_send_welcome_email:
-        password = "fotbal@2025"
-        try:
-            validate_config()
-        except RuntimeError as exc:
-            logging.warning("Welcome email not sent for player %s: %s", player.id, exc)
-        else:
-            template_data = {
-                "player_name": player.name,
-                "email": player.email,
-                "password": password,
-                "platform_url": FRONTEND_URL,
-            }
-            email_req = EmailSendRequest(
-                to=[player.email],
-                subject="Welcome to Football Tracking!",
-            )
-            msg = build_message(email_req, template_data=template_data, template_name="welcome_player.html")
-            bg.add_task(send_via_gmail_oauth2_safe, msg)
+        send_welcome_email(bg, db, player)
 
     return player
 

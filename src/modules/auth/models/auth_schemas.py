@@ -20,6 +20,11 @@ class LoginResponse(BaseSchema):
     refreshToken: Optional[str] = None
 
 
+class ChangePasswordBody(BaseSchema):
+    currentPassword: str
+    newPassword: str
+
+
 class RefreshTokenResponse(BaseSchema):
     message: Optional[str] = Field("Process was succesful", example="Process was succesful")
     accessToken: Optional[str] = None

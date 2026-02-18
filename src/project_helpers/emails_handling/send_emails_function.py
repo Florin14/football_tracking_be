@@ -51,14 +51,18 @@ jinja_env = Environment(
 )
 TEMPLATE_NAME = "match_notification.html"
 DEFAULT_TEMPLATE_DATA = {
-    "title": "Match scheduled",
-    "message": "A new football match has been created.",
-    "team1_name": "Team 1",
-    "team2_name": "Team 2",
-    "match_datetime": "TBD",
-    "location": "TBD",
-    "league_name": "TBD",
+    "lang": "ro",
+    "team1_name": "Echipa 1",
+    "team2_name": "Echipa 2",
+    "team1_logo": None,
+    "team2_logo": None,
+    "match_datetime": "De stabilit",
+    "location": "De stabilit",
+    "league_name": "De stabilit",
     "round": None,
+    "match_url": None,
+    "base_camp_logo": None,
+    "platform_url": FRONTEND_URL,
 }
 
 # ----------------- Models -----------------
@@ -99,6 +103,7 @@ def build_message(
             data.update({key: value for key, value in template_data.items() if value is not None})
         html_body = render_template(data)
         text_body = "You have a new match. Please view this email in HTML."
+    logging.info("Building email with subject '%s' for recipients: %s, cc: %s, reply_to: %s, attachments: %d", req.subject, req.to, req.cc or [], req.reply_to or [], len(req.attachments or []))
 
     msg = EmailMessage()
     msg["Subject"] = req.subject
@@ -132,8 +137,6 @@ def get_access_token() -> str:
     now = int(time())
     if _access_token_cache["token"] and now < _access_token_cache["exp"] - 30:
         return _access_token_cache["token"]
-    logging.info('GOOGLE_CLIENT_SECRET: %s', GOOGLE_CLIENT_SECRET)
-
     try:
         resp = requests.post(
             TOKEN_URL,
@@ -198,3 +201,89 @@ async def send_via_gmail_oauth2_safe(msg: EmailMessage):
         await send_via_gmail_oauth2(msg)
     except Exception as exc:
         logging.exception("Email send failed: %s", exc)
+
+
+# ----------------- High-Level Helpers -----------------
+def _get_base_camp_logo(db) -> Optional[str]:
+    from modules.team.models.team_model import TeamModel
+    default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+    if default_team and default_team.logo:
+        return base64.b64encode(default_team.logo).decode("utf-8")
+    return None
+
+
+def send_welcome_email(bg, db, player, password: str = "fotbal@2025"):
+    """Queue a welcome email for a player. Skips generated emails and missing config."""
+    if not player.email or player.email.endswith("@generated.local"):
+        return
+
+    try:
+        validate_config()
+    except RuntimeError as exc:
+        logging.warning("Welcome email not sent for player %s: %s", player.id, exc)
+        return
+
+    from modules.player.models.player_preferences_model import PlayerPreferencesModel
+    prefs = db.query(PlayerPreferencesModel).filter(PlayerPreferencesModel.playerId == player.id).first()
+    lang = prefs.preferredLanguage.value.lower() if prefs and prefs.preferredLanguage else "ro"
+
+    base_camp_logo = _get_base_camp_logo(db)
+    subject = "Welcome to Base Camp Football!" if lang == "en" else "Bine ai venit la Base Camp Football!"
+    template_data = {
+        "lang": lang,
+        "player_name": player.name,
+        "email": player.email,
+        "password": password,
+        "platform_url": FRONTEND_URL,
+        "base_camp_logo": base_camp_logo,
+    }
+    email_req = SendEmailRequest(to=[player.email], subject=subject)
+    msg = build_message(email_req, template_data=template_data, template_name="welcome_player.html")
+    bg.add_task(send_via_gmail_oauth2_safe, msg)
+
+
+def send_match_notification_emails(bg, db, match, lang_groups: Dict[str, List[str]]):
+    """Queue match notification emails grouped by language. Skips if no recipients or missing config."""
+    if not lang_groups:
+        return
+
+    try:
+        validate_config()
+    except RuntimeError as exc:
+        logging.warning("Email not sent for match %s: %s", match.id, exc)
+        return
+
+    base_camp_logo = _get_base_camp_logo(db)
+    team1_logo = base64.b64encode(match.team1.logo).decode("utf-8") if match.team1.logo else None
+    team2_logo = base64.b64encode(match.team2.logo).decode("utf-8") if match.team2.logo else None
+    match_url = f"{FRONTEND_URL}/matches/{match.id}"
+
+    for lang, emails in lang_groups.items():
+        if lang == "en":
+            fmt_datetime = match.timestamp.strftime("%A, %B %d, %Y at %H:%M")
+            subject = f"New match: {match.team1.name} vs {match.team2.name}"
+        else:
+            days_ro = ["Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata", "Duminica"]
+            months_ro = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+                         "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"]
+            dt = match.timestamp
+            fmt_datetime = f"{days_ro[dt.weekday()]}, {dt.day} {months_ro[dt.month]} {dt.year}, ora {dt.strftime('%H:%M')}"
+            subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
+
+        template_data = {
+            "lang": lang,
+            "team1_name": match.team1.name,
+            "team2_name": match.team2.name,
+            "team1_logo": team1_logo,
+            "team2_logo": team2_logo,
+            "match_datetime": fmt_datetime,
+            "location": match.location or ("TBD" if lang == "en" else "De stabilit"),
+            "league_name": match.league.name if match.league else ("TBD" if lang == "en" else "De stabilit"),
+            "round": match.round,
+            "match_url": match_url,
+            "base_camp_logo": base_camp_logo,
+            "platform_url": FRONTEND_URL,
+        }
+        email_req = SendEmailRequest(to=sorted(emails), subject=subject)
+        msg = build_message(email_req, template_data=template_data)
+        bg.add_task(send_via_gmail_oauth2_safe, msg)

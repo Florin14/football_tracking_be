@@ -2,7 +2,6 @@ from typing import List, Optional
 
 from pydantic import AliasChoices, Field, validator
 
-from modules.player.models.player_schemas import PlayerResponse
 from project_helpers.functions import process_and_convert_image_to_base64
 from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 
@@ -90,7 +89,7 @@ class TeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    players: Optional[List[PlayerResponse]] = []
+    players: Optional[List["PlayerResponse"]] = []
     logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)
@@ -106,7 +105,7 @@ class BaseCampTeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
-    players: Optional[List[PlayerResponse]] = []
+    players: Optional[List["PlayerResponse"]] = []
     logo: Optional[str] = Field(None, example="")
 
     @validator("logo", pre=False, always=True)

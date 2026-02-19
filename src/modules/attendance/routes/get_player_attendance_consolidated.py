@@ -15,7 +15,6 @@ from modules.attendance.models.attendance_schemas import (
 )
 from modules.match.models.match_model import MatchModel
 from modules.match.models.match_schemas import MatchItem
-from modules.player.models.player_model import PlayerModel
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
@@ -30,6 +29,7 @@ def _build_flat_attendance(attendance_rows, db):
     team_cache = {}
     match_cache = {}
     league_cache = {}
+    from modules.player.models.player_model import PlayerModel
 
     results = []
     for attendance in attendance_rows:

@@ -22,7 +22,7 @@ from extensions.auth_jwt.exceptions import (
     CSRFError,
 )
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
-from modules import authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter, reportsRouter
+from modules import agentRouter, authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter, reportsRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
 from modules.user.models.user_model import UserModel
 from modules.admin.models.admin_model import AdminModel
@@ -265,7 +265,7 @@ common_responses = {
     422: {"model": ErrorSchema},
     404: {"model": ErrorSchema},
 }
-for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter, reportsRouter):
+for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter, reportsRouter, agentRouter):
     api.include_router(router, responses=common_responses)
 
 

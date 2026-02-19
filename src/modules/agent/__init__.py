@@ -1,4 +1,3 @@
-"""Agent module package.
+from .routes import agentRouter
 
-Avoid eager imports to prevent circular dependencies.
-"""
+__all__ = ["agentRouter"]

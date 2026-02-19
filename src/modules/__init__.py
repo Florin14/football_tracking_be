@@ -1,4 +1,5 @@
 from .admin import *
+from .agent import *
 from .auth import *
 from .attendance import *
 from .match import *

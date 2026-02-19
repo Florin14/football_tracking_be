@@ -23,4 +23,10 @@ def get_matches_resources(
         .all()
     )
 
-    return MatchResourcesResponse(leagues=leagues)
+    all_teams = (
+        db.query(TeamModel)
+        .order_by(func.lower(TeamModel.name))
+        .all()
+    )
+
+    return MatchResourcesResponse(leagues=leagues, allTeams=all_teams)

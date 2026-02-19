@@ -41,7 +41,9 @@ async def add_match(
         )
 
     league_id = data.leagueId
-    if league_id:
+    if data.friendly:
+        league_id = None
+    elif league_id:
         league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
         if not league:
             raise HTTPException(

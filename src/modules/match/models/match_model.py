@@ -20,6 +20,7 @@ class MatchModel(BaseModel):
     state = Column(Enum(MatchState), default=MatchState.SCHEDULED)
     leagueId = Column(BigInteger, ForeignKey("leagues.id"), nullable=True, name="league_id")
     round = Column(Integer, nullable=True, name="round")
+    youtubeUrl = Column(String, nullable=True, name="youtube_url")
 
     team1 = relationship("TeamModel", foreign_keys=[team1Id])
     team2 = relationship("TeamModel", foreign_keys=[team2Id])

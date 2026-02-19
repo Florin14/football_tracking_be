@@ -101,6 +101,7 @@ async def add_match(
         timestamp=data.timestamp,
         leagueId=league_id,
         round=data.round,
+        youtubeUrl=data.youtubeUrl,
     )
 
     db.add(match)

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, joinedload
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
-from modules.match.models.match_model import MatchModel
+
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
 from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel
@@ -329,6 +329,7 @@ async def get_group_standings(
         .filter(TournamentGroupMatchModel.groupId.in_(group_ids))
         .all()
     )
+    from modules.match.models.match_model import MatchModel
     matches_by_group: dict[int, list[MatchModel]] = {}
     for item in group_matches:
         if not item.match:

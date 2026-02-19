@@ -5,7 +5,6 @@ from sqlalchemy.orm import relationship
 
 from constants.match_state import MatchState
 from extensions import BaseModel
-from modules.attendance.models.attendance_model import AttendanceModel  # noqa: F401
 
 
 class MatchModel(BaseModel):

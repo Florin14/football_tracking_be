@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
-from modules.player.models.player_model import PlayerModel
 from modules.ranking.models import RankingModel
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
@@ -16,6 +15,7 @@ async def delete_ranking(
     db: Session = Depends(get_db),
 ):
     """Delete a tournament"""
+    from modules.player.models.player_model import PlayerModel
     # Remove all players from team first
     db.query(PlayerModel).filter(PlayerModel.teamId == tournament.id).update({"teamId": None})
 

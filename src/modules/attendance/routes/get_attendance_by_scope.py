@@ -11,7 +11,6 @@ from modules.attendance.models.attendance_schemas import AttendanceGroupedListRe
 from modules.match.models import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.tournament.models.league_model import LeagueModel
-from modules.player.models.player_model import PlayerModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.team.models import TeamModel
 from .attendance_grouping import build_grouped_attendance
@@ -107,6 +106,7 @@ async def get_attendance_by_scope(
                 )
                 if tournament and tournament.formatType in (TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT):
                     should_add_missing = False
+            from modules.player.models.player_model import PlayerModel
 
             if should_add_missing:
                 players_query = db.query(PlayerModel).filter(

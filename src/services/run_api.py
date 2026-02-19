@@ -191,6 +191,12 @@ def _ensure_default_admin_user(db: SessionLocal) -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Resolve Pydantic forward references now that all modules are loaded.
+    from modules.player.models.player_schemas import PlayerResponse
+    from modules.team.models.team_schemas import TeamResponse, BaseCampTeamResponse
+    TeamResponse.model_rebuild(_types_namespace={"PlayerResponse": PlayerResponse})
+    BaseCampTeamResponse.model_rebuild(_types_namespace={"PlayerResponse": PlayerResponse})
+
     # startup logic
     logging.basicConfig(
         format="%(asctime)s - [%(levelname)s]: %(message)s",

@@ -10,7 +10,6 @@ from modules.attendance.models.attendance_schemas import (
 )
 from constants.attendance_status import AttendanceStatus
 from modules.match.models import MatchModel
-from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 
@@ -19,6 +18,8 @@ def build_grouped_attendance(
     attendance_rows: List[AttendanceModel],
     db: Session,
 ) -> List[AttendancePlayerGroupResponse]:
+    from modules.player.models.player_model import PlayerModel
+
     player_cache: Dict[int, Optional[PlayerModel]] = {}
     team_cache: Dict[int, Optional[TeamModel]] = {}
     match_cache: Dict[int, Optional[MatchModel]] = {}

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
 from modules.attendance.models.attendance_model import AttendanceModel
-from modules.match.models.match_model import MatchModel
 from modules.team.models import TeamModel
+
+if TYPE_CHECKING:
+    from modules.match.models.match_model import MatchModel
 
 
 def ensure_match_attendance_for_default_team(db: Session, match: MatchModel) -> None:

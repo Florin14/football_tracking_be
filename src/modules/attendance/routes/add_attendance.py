@@ -10,7 +10,6 @@ from extensions.sqlalchemy import get_db
 from modules.attendance.models.attendance_schemas import AttendanceResponse, AttendanceUpsert
 from modules.match.models.match_model import MatchModel
 from modules.attendance.models.attendance_model import AttendanceModel
-from modules.player.models.player_model import PlayerModel
 from modules.team.models import TeamModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.training.models import TrainingSessionModel
@@ -84,6 +83,7 @@ async def upsert_attendance(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Training session with ID {data.trainingSessionId} not found"
             )
+    from modules.player.models.player_model import PlayerModel
 
     player = db.query(PlayerModel).filter(PlayerModel.id == data.playerId).first()
     if not player:

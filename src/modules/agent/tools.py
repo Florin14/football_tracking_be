@@ -1,51 +1,351 @@
-# app/tools.py
+"""Database query tools for the agent. Pure SQLAlchemy, no Redis."""
+from __future__ import annotations
+
+from datetime import datetime
 from typing import Optional
 
-from fastapi import Depends
-from sqlalchemy import select, func
-# from app.db import SessionLocal, t_players, t_matches, t_events, t_standings, t_leagues, t_teams, t_mv_player_season
-import redis, json, os
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select, text
+from sqlalchemy.orm import Session, aliased
 
-from extensions import SessionLocal, get_db
-from modules.match.models.match_model import MatchModel
+from constants.card_type import CardType
+from constants.match_state import MatchState
+from constants.attendance_scope import AttendanceScope
+from constants.attendance_status import AttendanceStatus
 from modules.match.models.goal_model import GoalModel
+from modules.match.models.match_model import MatchModel
+from modules.match.models.card_model import CardModel
+from modules.player.models.player_model import PlayerModel
 from modules.ranking.models.ranking_model import RankingModel
+from modules.team.models.team_model import TeamModel
+from modules.tournament.models.league_model import LeagueModel
+from modules.user.models.user_model import UserModel
+from modules.attendance.models.attendance_model import AttendanceModel
 
-r = redis.Redis.from_url(os.getenv("REDIS_URL","redis://localhost:6379"), decode_responses=True)
 
-def cache(key: str, ttl: int, f):
-    val = r.get(key)
-    if val: return json.loads(val)
-    data = f()
-    r.setex(key, ttl, json.dumps(data))
-    return data
+def _get_default_team(db: Session) -> TeamModel | None:
+    team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+    if not team:
+        team = db.query(TeamModel).first()
+    return team
 
-def get_player_goals(player_id: int, season: str | None = None, leagueId: int | None = None, league_id: int | None = None, db: Session = Depends(get_db), ):
+
+def _finished_filter():
+    return or_(
+        MatchModel.state == MatchState.FINISHED,
+        MatchModel.scoreTeam1.isnot(None) & MatchModel.scoreTeam2.isnot(None),
+    )
+
+
+def get_top_scorers(db: Session, league_id: int | None = None, limit: int = 5) -> dict:
+    q = (
+        db.query(
+            GoalModel.playerId,
+            func.count(GoalModel.id).label("goals"),
+        )
+        .filter(GoalModel.playerId.isnot(None))
+    )
+    if league_id:
+        q = q.join(MatchModel, MatchModel.id == GoalModel.matchId).filter(
+            MatchModel.leagueId == league_id
+        )
+    q = q.group_by(GoalModel.playerId).order_by(func.count(GoalModel.id).desc()).limit(limit)
+    rows = q.all()
+
+    if not rows:
+        return {"found": False, "players": []}
+
+    player_ids = [r.playerId for r in rows]
+    players = {
+        p.id: p.name
+        for p in db.query(PlayerModel).filter(PlayerModel.id.in_(player_ids)).all()
+    }
+    result = []
+    for r in rows:
+        result.append({
+            "name": players.get(r.playerId, "Necunoscut"),
+            "goals": r.goals,
+            "playerId": r.playerId,
+        })
+    return {"found": True, "players": result}
+
+
+def get_top_assists(db: Session, league_id: int | None = None, limit: int = 5) -> dict:
+    q = (
+        db.query(
+            GoalModel.assistPlayerId,
+            func.count(GoalModel.id).label("assists"),
+        )
+        .filter(GoalModel.assistPlayerId.isnot(None))
+    )
+    if league_id:
+        q = q.join(MatchModel, MatchModel.id == GoalModel.matchId).filter(
+            MatchModel.leagueId == league_id
+        )
+    q = q.group_by(GoalModel.assistPlayerId).order_by(func.count(GoalModel.id).desc()).limit(limit)
+    rows = q.all()
+
+    if not rows:
+        return {"found": False, "players": []}
+
+    player_ids = [r.assistPlayerId for r in rows]
+    players = {
+        p.id: p.name
+        for p in db.query(PlayerModel).filter(PlayerModel.id.in_(player_ids)).all()
+    }
+    result = []
+    for r in rows:
+        result.append({
+            "name": players.get(r.assistPlayerId, "Necunoscut"),
+            "assists": r.assists,
+            "playerId": r.assistPlayerId,
+        })
+    return {"found": True, "players": result}
+
+
+def get_player_goals(db: Session, player_id: int, league_id: int | None = None) -> dict:
     q = select(func.count()).select_from(GoalModel).where(GoalModel.playerId == player_id)
-    if season or league_id:
-        q = q.join(MatchModel, MatchModel.id == GoalModel.matchId)
-        if season:
-            q = q.where(MatchModel.leagueId == season)
-        if league_id:
-            q = q.where(MatchModel.leagueId == league_id)
+    if league_id:
+        q = q.join(MatchModel, MatchModel.id == GoalModel.matchId).where(
+            MatchModel.leagueId == league_id
+        )
     total = db.execute(q).scalar_one()
-    scope = f"sezon {season}" if season else "all-time"
-    if league_id: scope += " • liga selectată"
-    return {"goals": int(total), "scope": scope}
+    return {"goals": int(total)}
 
-def gap_to_leader(league_id: str, season: str, team_id: str):
-    key = f"gap:{league_id}:{season}:{team_id}"
-    def _q():
-        with SessionLocal() as s:
-            leader = s.execute(select(RankingModel.teamId, RankingModel.points)
-                               .where(RankingModel.leagueId==league_id, RankingModel.season==season)
-                               .order_by(RankingModel.points.desc(), RankingModel.goal_diff.desc())
-                               .limit(1)).first()
-            me = s.execute(select(RankingModel.points).where(
-                RankingModel.league_id==league_id, RankingModel.season==season, RankingModel.teamId==team_id
-            )).first()
-            if not leader or not me: return {"found": False}
-            return {"found": True, "leader_team_id": leader.team_id,
-                    "gap": int(leader.points - me.points)}
-    return cache(key, 30, _q)
+
+def get_player_stats(db: Session, player_id: int) -> dict:
+    player = db.query(PlayerModel).filter(PlayerModel.id == player_id).first()
+    if not player:
+        return {"found": False}
+
+    goals = int(player.goalsCount or 0)
+    yellow = int(player.yellowCardsCount or 0)
+    red = int(player.redCardsCount or 0)
+    appearances = int(player.appearancesCount or 0)
+
+    # Count assists
+    assists = db.query(func.count(GoalModel.id)).filter(
+        GoalModel.assistPlayerId == player_id
+    ).scalar() or 0
+
+    return {
+        "found": True,
+        "name": player.name,
+        "position": player.position.value if player.position else "N/A",
+        "team": player.teamName or "N/A",
+        "shirtNumber": player.shirtNumber,
+        "rating": player.rating,
+        "goals": goals,
+        "assists": int(assists),
+        "yellowCards": yellow,
+        "redCards": red,
+        "appearances": appearances,
+        "playerId": player.id,
+    }
+
+
+def get_standings(db: Session, league_id: int | None = None) -> dict:
+    if not league_id:
+        # Get the most recent league
+        league = db.query(LeagueModel).order_by(LeagueModel.id.desc()).first()
+        if not league:
+            return {"found": False, "rankings": []}
+        league_id = league.id
+        league_name = league.name
+        season = league.season
+    else:
+        league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
+        league_name = league.name if league else "N/A"
+        season = league.season if league else "N/A"
+
+    rankings = (
+        db.query(RankingModel)
+        .filter(RankingModel.leagueId == league_id)
+        .order_by(RankingModel.points.desc(), (RankingModel.goalsScored - RankingModel.goalsConceded).desc())
+        .all()
+    )
+    if not rankings:
+        return {"found": False, "rankings": [], "leagueName": league_name}
+
+    result = []
+    for i, r in enumerate(rankings, 1):
+        team = db.query(TeamModel).filter(TeamModel.id == r.teamId).first()
+        result.append({
+            "position": i,
+            "team": team.name if team else "N/A",
+            "points": r.points,
+            "played": r.gamesPlayed,
+            "won": r.gamesWon,
+            "drawn": r.gamesTied,
+            "lost": r.gamesLost,
+            "gf": r.goalsScored,
+            "ga": r.goalsConceded,
+            "gd": r.goalsScored - r.goalsConceded,
+        })
+    return {"found": True, "rankings": result, "leagueName": league_name, "season": season}
+
+
+def get_next_matches(db: Session, team_id: int | None = None, limit: int = 5) -> dict:
+    now = datetime.utcnow()
+    q = db.query(MatchModel).filter(
+        MatchModel.state == MatchState.SCHEDULED,
+        MatchModel.scoreTeam1.is_(None),
+        MatchModel.timestamp > now,
+    )
+    if team_id:
+        q = q.filter(or_(MatchModel.team1Id == team_id, MatchModel.team2Id == team_id))
+
+    matches = q.order_by(MatchModel.timestamp.asc()).limit(limit).all()
+    if not matches:
+        return {"found": False, "matches": []}
+
+    result = []
+    for m in matches:
+        league_name = None
+        if m.league:
+            league_name = m.league.name
+        result.append({
+            "id": m.id,
+            "team1": m.team1.name if m.team1 else "N/A",
+            "team2": m.team2.name if m.team2 else "N/A",
+            "date": m.timestamp.strftime("%d %b %Y, %H:%M"),
+            "league": league_name,
+        })
+    return {"found": True, "matches": result}
+
+
+def get_recent_results(db: Session, team_id: int | None = None, limit: int = 5) -> dict:
+    q = db.query(MatchModel).filter(_finished_filter())
+    if team_id:
+        q = q.filter(or_(MatchModel.team1Id == team_id, MatchModel.team2Id == team_id))
+
+    matches = q.order_by(MatchModel.timestamp.desc()).limit(limit).all()
+    if not matches:
+        return {"found": False, "matches": []}
+
+    result = []
+    for m in matches:
+        s1 = m.scoreTeam1 if m.scoreTeam1 is not None else 0
+        s2 = m.scoreTeam2 if m.scoreTeam2 is not None else 0
+        league_name = m.league.name if m.league else None
+        result.append({
+            "id": m.id,
+            "team1": m.team1.name if m.team1 else "N/A",
+            "team2": m.team2.name if m.team2 else "N/A",
+            "score": f"{s1}-{s2}",
+            "date": m.timestamp.strftime("%d %b %Y"),
+            "league": league_name,
+        })
+    return {"found": True, "matches": result}
+
+
+def get_most_cards(db: Session, card_type: CardType | None = None, limit: int = 5) -> dict:
+    q = db.query(
+        CardModel.playerId,
+        func.count(CardModel.id).label("cards"),
+    )
+    if card_type:
+        q = q.filter(CardModel.cardType == card_type)
+    q = q.group_by(CardModel.playerId).order_by(func.count(CardModel.id).desc()).limit(limit)
+    rows = q.all()
+
+    if not rows:
+        return {"found": False, "players": []}
+
+    player_ids = [r.playerId for r in rows]
+    players = {
+        p.id: p.name
+        for p in db.query(PlayerModel).filter(PlayerModel.id.in_(player_ids)).all()
+    }
+
+    type_label = ""
+    if card_type == CardType.YELLOW:
+        type_label = " galbene"
+    elif card_type == CardType.RED:
+        type_label = " rosii"
+
+    result = []
+    for r in rows:
+        result.append({
+            "name": players.get(r.playerId, "Necunoscut"),
+            "cards": r.cards,
+            "playerId": r.playerId,
+        })
+    return {"found": True, "players": result, "typeLabel": type_label}
+
+
+def get_team_info(db: Session, team_id: int | None = None) -> dict:
+    if team_id:
+        team = db.query(TeamModel).filter(TeamModel.id == team_id).first()
+    else:
+        team = _get_default_team(db)
+
+    if not team:
+        return {"found": False}
+
+    player_count = db.query(func.count(PlayerModel.id)).filter(
+        PlayerModel.teamId == team.id
+    ).scalar() or 0
+
+    return {
+        "found": True,
+        "name": team.name,
+        "location": team.location,
+        "playerCount": int(player_count),
+        "teamId": team.id,
+    }
+
+
+def resolve_player(db: Session, raw: str, limit: int = 3) -> list[dict]:
+    if not raw:
+        return []
+    raw = raw.strip()
+    # Try pg_trgm similarity first
+    try:
+        rows = db.execute(text("""
+            SELECT p.id AS id, u.name AS name, similarity(u.name, :q) AS score
+            FROM players p
+            JOIN users u ON u.id = p.id
+            WHERE u.name % :q
+            ORDER BY score DESC
+            LIMIT :limit
+        """), {"q": raw, "limit": limit}).mappings().all()
+        if rows:
+            return [dict(r) for r in rows]
+    except Exception:
+        pass
+
+    # Fallback: ILIKE
+    rows = db.execute(text("""
+        SELECT p.id AS id, u.name AS name, 0.5 AS score
+        FROM players p
+        JOIN users u ON u.id = p.id
+        WHERE lower(u.name) LIKE :like
+        LIMIT :limit
+    """), {"like": f"%{raw.lower()}%", "limit": limit}).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def resolve_team(db: Session, raw: str, limit: int = 3) -> list[dict]:
+    if not raw:
+        return []
+    raw = raw.strip()
+    try:
+        rows = db.execute(text("""
+            SELECT id, name, similarity(name, :q) AS score
+            FROM teams
+            WHERE name % :q
+            ORDER BY score DESC
+            LIMIT :limit
+        """), {"q": raw, "limit": limit}).mappings().all()
+        if rows:
+            return [dict(r) for r in rows]
+    except Exception:
+        pass
+
+    rows = db.execute(text("""
+        SELECT id, name, 0.5 AS score
+        FROM teams
+        WHERE lower(name) LIKE :like
+        LIMIT :limit
+    """), {"like": f"%{raw.lower()}%", "limit": limit}).mappings().all()
+    return [dict(r) for r in rows]

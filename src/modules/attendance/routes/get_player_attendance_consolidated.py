@@ -144,7 +144,7 @@ async def get_player_attendance_consolidated(
     # --- Tournaments: only formatType IS NULL (simple tournaments) ---
     tournament_rows = (
         db.query(TournamentModel)
-        .filter(TournamentModel.formatType.is_(None))
+        .filter(TournamentModel.formatType.isnot_(None))
         .order_by(TournamentModel.name)
         .all()
     )

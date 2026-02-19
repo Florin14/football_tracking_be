@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from sqlalchemy import and_, or_
+from typing import TYPE_CHECKING
 
 from constants.match_state import MatchState
-from modules.match.models.match_model import MatchModel
+
+if TYPE_CHECKING:
+    from modules.match.models.match_model import MatchModel
 
 
 def match_is_completed_expr(match_cls=MatchModel):

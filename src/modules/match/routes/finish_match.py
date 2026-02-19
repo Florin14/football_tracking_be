@@ -67,9 +67,16 @@ async def finish_match(
         ]
         create_player_notifications(
             db, default_player_ids,
-            f"Result: {team1_name} {match.scoreTeam1}-{match.scoreTeam2} {team2_name}",
-            "Match has been marked as finished",
+            "notification.matchResult",
+            "",
             NotificationType.MATCH_RESULT,
+            params={
+                "team1": team1_name,
+                "team2": team2_name,
+                "score1": str(match.scoreTeam1),
+                "score2": str(match.scoreTeam2),
+                "matchId": match.id,
+            },
         )
 
     recalculate_match_rankings(db, match)

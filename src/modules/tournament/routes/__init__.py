@@ -13,5 +13,6 @@ from .tournament_knockout_routes import *
 from .tournament_plan import *
 from .assign_league_teams import *
 from .update_tournament import *
+from .update_league import *
 from .delete_tournament import *
 from .get_tournament import *

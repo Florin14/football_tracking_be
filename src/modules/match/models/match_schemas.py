@@ -27,9 +27,11 @@ class MatchAdd(BaseSchema):
     team1Id: int = Field(..., example=1)
     team2Id: int = Field(..., example=2)
     leagueId: Optional[int] = Field(None, example=1)
+    friendly: bool = Field(False, example=False)
     round: Optional[int] = Field(None, ge=1, example=1)
     location: Optional[str] = Field(None, min_length=1, example="Stadium Arena")
     timestamp: datetime = Field(..., example="2024-12-25T15:00:00")
+    youtubeUrl: Optional[str] = Field(None, example="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
 
 class GoalAdd(BaseSchema):
     playerId: int = Field(..., example=1)
@@ -46,6 +48,7 @@ class MatchUpdate(BaseSchema):
     state: Optional[str] = None
     goals: Optional[List[GoalAdd]] = None
     round: Optional[int] = Field(None, ge=1)
+    youtubeUrl: Optional[str] = None
 
 
 class ScoreUpdate(BaseSchema):
@@ -69,6 +72,7 @@ class MatchItem(BaseSchema):
     scoreTeam2: Optional[int] = None
     state: str
     round: Optional[int] = None
+    youtubeUrl: Optional[str] = None
 
     @validator("team1Logo", "team2Logo", "leagueLogo", pre=False, always=True)
     def decode_logo_from_base64(cls, value):
@@ -106,6 +110,7 @@ class MatchResponse(BaseSchema):
     state: str
     goals: Optional[List[GoalResponse]] = []
     round: Optional[int] = None
+    youtubeUrl: Optional[str] = None
 
 
 class MatchFilter(FilterSchema):
@@ -146,3 +151,4 @@ class LeagueOut(BaseSchema):
 
 class MatchResourcesResponse(BaseSchema):
     leagues: List[LeagueOut]
+    allTeams: List[TeamOut] = []

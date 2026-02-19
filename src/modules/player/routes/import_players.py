@@ -1,14 +1,14 @@
 from io import BytesIO
 
 import pandas as pd
-from fastapi import BackgroundTasks, Depends, UploadFile
+from fastapi import BackgroundTasks, Depends, Request, UploadFile
 from sqlalchemy.orm import Session
 
 from extensions import get_db
 from constants.platform_roles import PlatformRoles
 from modules.player.models.player_model import PlayerModel
 from project_helpers.dependencies import JwtRequired
-from project_helpers.emails_handling import send_welcome_email
+from project_helpers.emails_handling import send_welcome_email, get_admin_lang
 from project_helpers.responses import ConfirmationResponse
 from .router import router
 
@@ -16,6 +16,7 @@ from .router import router
 @router.post("-import", response_model=ConfirmationResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def import_players(
     file: UploadFile,
+    request: Request,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -41,8 +42,9 @@ async def import_players(
     db.add_all(players)
     db.commit()
 
+    admin_lang = get_admin_lang(db, request.state.user)
     for player in players:
-        send_welcome_email(bg, db, player, password)
+        send_welcome_email(bg, db, player, password, lang=admin_lang)
 
     return ConfirmationResponse()
 

@@ -103,18 +103,27 @@ async def update_match_score(
         # GOAL_SCORED for the scorer
         create_player_notifications(
             db, [g.playerId],
-            f"You scored a goal!",
-            f"Goal in minute {g.minute or '?'}" + (f": {g.description}" if g.description else ""),
+            "notification.goalScored",
+            "",
             NotificationType.GOAL_SCORED,
+            params={
+                "minute": str(g.minute or "?"),
+                "matchId": match.id,
+            },
         )
         # GOAL_CONCEDED for default team players (if the opponent scored against them)
         if default_team_id and g.teamId != default_team_id and default_team_id in (match.team1Id, match.team2Id):
             conceded_ids = [pid for pid in default_player_ids if pid != g.playerId]
             create_player_notifications(
                 db, conceded_ids,
-                f"Goal conceded: {scorer_name} scored",
-                f"Minute {g.minute or '?'}" + (f": {g.description}" if g.description else ""),
+                "notification.goalConceded",
+                "",
                 NotificationType.GOAL_CONCEDED,
+                params={
+                    "scorer": scorer_name,
+                    "minute": str(g.minute or "?"),
+                    "matchId": match.id,
+                },
             )
 
     team1_goals = len([g for g in data.goals if g.teamId == match.team1Id])

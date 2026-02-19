@@ -1,4 +1,4 @@
-from fastapi import BackgroundTasks, Depends, HTTPException
+from fastapi import BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from extensions import get_db
@@ -7,7 +7,7 @@ from modules.player.models.player_schemas import PlayerAdd
 from modules.team.models.team_model import TeamModel
 from modules.player.models.player_schemas import PlayerResponse
 from project_helpers.dependencies import JwtRequired
-from project_helpers.emails_handling import send_welcome_email
+from project_helpers.emails_handling import send_welcome_email, get_admin_lang
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
 from .router import router
@@ -17,6 +17,7 @@ from ..models.player_model import PlayerModel
 @router.post("/base-camp", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_base_camp_player(
     data: PlayerAdd,
+    request: Request,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -35,6 +36,7 @@ async def add_base_camp_player(
     db.commit()
     db.refresh(player)
 
-    send_welcome_email(bg, db, player, password)
+    admin_lang = get_admin_lang(db, request.state.user)
+    send_welcome_email(bg, db, player, password, lang=admin_lang)
 
     return player

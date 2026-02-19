@@ -1,6 +1,4 @@
-from collections import defaultdict
-
-from fastapi import BackgroundTasks, Depends, HTTPException, status
+from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload
 
 from constants.platform_roles import PlatformRoles
@@ -11,7 +9,7 @@ from modules.match.models import (
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
-from project_helpers.emails_handling import send_match_notification_emails
+from project_helpers.emails_handling import send_match_notification_emails, get_admin_lang
 from constants.notification_type import NotificationType
 from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import JwtRequired
@@ -21,6 +19,7 @@ from .router import router
 @router.post("/", response_model=MatchResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def add_match(
     data: MatchAdd,
+    request: Request,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
@@ -41,7 +40,9 @@ async def add_match(
         )
 
     league_id = data.leagueId
-    if league_id:
+    if data.friendly:
+        league_id = None
+    elif league_id:
         league = db.query(LeagueModel).filter(LeagueModel.id == league_id).first()
         if not league:
             raise HTTPException(
@@ -101,6 +102,7 @@ async def add_match(
         timestamp=data.timestamp,
         leagueId=league_id,
         round=data.round,
+        youtubeUrl=data.youtubeUrl,
     )
 
     db.add(match)
@@ -117,11 +119,8 @@ async def add_match(
         .first()
     )
 
-    from modules.player.models.player_preferences_model import PlayerPreferencesModel
-
     recipient_rows = (
-        db.query(PlayerModel.email, PlayerPreferencesModel.preferredLanguage)
-        .outerjoin(PlayerPreferencesModel, PlayerPreferencesModel.playerId == PlayerModel.id)
+        db.query(PlayerModel.email)
         .filter(
             PlayerModel.teamId.in_(team_ids),
             PlayerModel.email.isnot(None),
@@ -129,14 +128,13 @@ async def add_match(
         .all()
     )
 
-    lang_groups = defaultdict(list)
-    for email, pref_lang in recipient_rows:
-        if not email or email.endswith("@generated.local"):
-            continue
-        lang = pref_lang.value.lower() if pref_lang else "ro"
-        lang_groups[lang].append(email)
+    recipients = [
+        email for (email,) in recipient_rows
+        if email and not email.endswith("@generated.local")
+    ]
 
-    send_match_notification_emails(bg, db, match, lang_groups)
+    admin_lang = get_admin_lang(db, request.state.user)
+    send_match_notification_emails(bg, db, match, recipients, lang=admin_lang)
 
     # Create NEW_MATCH notifications for default team players
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
@@ -149,9 +147,16 @@ async def add_match(
         create_player_notifications(
             db,
             default_player_ids,
-            f"New match: {match.team1.name} vs {match.team2.name}",
-            f"Match scheduled at {match.location or 'TBD'} on {match.timestamp.strftime('%Y-%m-%d %H:%M')}",
+            "notification.newMatch",
+            "",
             NotificationType.NEW_MATCH,
+            params={
+                "team1": match.team1.name,
+                "team2": match.team2.name,
+                "matchId": match.id,
+                "location": match.location or "",
+                "date": match.timestamp.strftime("%Y-%m-%d %H:%M"),
+            },
         )
         db.commit()
 

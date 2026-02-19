@@ -36,6 +36,9 @@ async def update_match(
     if match_data.timestamp:
         match.timestamp = match_data.timestamp
 
+    if match_data.youtubeUrl is not None:
+        match.youtubeUrl = match_data.youtubeUrl if match_data.youtubeUrl != "" else None
+
     if match_data.round is not None:
         if not match.leagueId:
             raise HTTPException(

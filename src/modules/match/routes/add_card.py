@@ -65,13 +65,19 @@ async def add_card(
     db.add(card)
 
     # Card notification for the player
-    card_label = "Yellow card" if card_type == CardType.YELLOW else "Red card"
-    notification_type = NotificationType.YELLOW_CARD if card_type == CardType.YELLOW else NotificationType.RED_CARD
+    is_yellow = card_type == CardType.YELLOW
+    notification_type = NotificationType.YELLOW_CARD if is_yellow else NotificationType.RED_CARD
+    name_key = "notification.yellowCard" if is_yellow else "notification.redCard"
     create_player_notifications(
         db, [data.playerId],
-        f"{card_label} for {player.name}",
-        f"Minute {data.minute or '?'}",
+        name_key,
+        "",
         notification_type,
+        params={
+            "player": player.name,
+            "minute": str(data.minute or "?"),
+            "matchId": match.id,
+        },
     )
 
     db.commit()

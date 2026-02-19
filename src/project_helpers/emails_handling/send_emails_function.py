@@ -212,7 +212,16 @@ def _get_base_camp_logo(db) -> Optional[str]:
     return None
 
 
-def send_welcome_email(bg, db, player, password: str = "fotbal@2025"):
+def get_admin_lang(db, user) -> str:
+    """Get the preferred language of the admin/user triggering the action."""
+    from modules.player.models.player_preferences_model import PlayerPreferencesModel
+    prefs = db.query(PlayerPreferencesModel).filter(PlayerPreferencesModel.playerId == user.id).first()
+    if prefs and prefs.preferredLanguage:
+        return prefs.preferredLanguage.value.lower()
+    return "ro"
+
+
+def send_welcome_email(bg, db, player, password: str = "fotbal@2025", lang: str = "ro"):
     """Queue a welcome email for a player. Skips generated emails and missing config."""
     if not player.email or player.email.endswith("@generated.local"):
         return
@@ -222,10 +231,6 @@ def send_welcome_email(bg, db, player, password: str = "fotbal@2025"):
     except RuntimeError as exc:
         logging.warning("Welcome email not sent for player %s: %s", player.id, exc)
         return
-
-    from modules.player.models.player_preferences_model import PlayerPreferencesModel
-    prefs = db.query(PlayerPreferencesModel).filter(PlayerPreferencesModel.playerId == player.id).first()
-    lang = prefs.preferredLanguage.value.lower() if prefs and prefs.preferredLanguage else "ro"
 
     base_camp_logo = _get_base_camp_logo(db)
     subject = "Welcome to Base Camp Football!" if lang == "en" else "Bine ai venit la Base Camp Football!"
@@ -242,9 +247,9 @@ def send_welcome_email(bg, db, player, password: str = "fotbal@2025"):
     bg.add_task(send_via_gmail_oauth2_safe, msg)
 
 
-def send_match_notification_emails(bg, db, match, lang_groups: Dict[str, List[str]]):
-    """Queue match notification emails grouped by language. Skips if no recipients or missing config."""
-    if not lang_groups:
+def send_match_notification_emails(bg, db, match, recipients: List[str], lang: str = "ro"):
+    """Queue match notification emails in the given language. Skips if no recipients or missing config."""
+    if not recipients:
         return
 
     try:
@@ -258,32 +263,31 @@ def send_match_notification_emails(bg, db, match, lang_groups: Dict[str, List[st
     team2_logo = base64.b64encode(match.team2.logo).decode("utf-8") if match.team2.logo else None
     match_url = f"{FRONTEND_URL}/matches/{match.id}"
 
-    for lang, emails in lang_groups.items():
-        if lang == "en":
-            fmt_datetime = match.timestamp.strftime("%A, %B %d, %Y at %H:%M")
-            subject = f"New match: {match.team1.name} vs {match.team2.name}"
-        else:
-            days_ro = ["Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata", "Duminica"]
-            months_ro = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
-                         "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"]
-            dt = match.timestamp
-            fmt_datetime = f"{days_ro[dt.weekday()]}, {dt.day} {months_ro[dt.month]} {dt.year}, ora {dt.strftime('%H:%M')}"
-            subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
+    if lang == "en":
+        fmt_datetime = match.timestamp.strftime("%A, %B %d, %Y at %H:%M")
+        subject = f"New match: {match.team1.name} vs {match.team2.name}"
+    else:
+        days_ro = ["Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata", "Duminica"]
+        months_ro = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
+                     "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"]
+        dt = match.timestamp
+        fmt_datetime = f"{days_ro[dt.weekday()]}, {dt.day} {months_ro[dt.month]} {dt.year}, ora {dt.strftime('%H:%M')}"
+        subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
 
-        template_data = {
-            "lang": lang,
-            "team1_name": match.team1.name,
-            "team2_name": match.team2.name,
-            "team1_logo": team1_logo,
-            "team2_logo": team2_logo,
-            "match_datetime": fmt_datetime,
-            "location": match.location or ("TBD" if lang == "en" else "De stabilit"),
-            "league_name": match.league.name if match.league else ("TBD" if lang == "en" else "De stabilit"),
-            "round": match.round,
-            "match_url": match_url,
-            "base_camp_logo": base_camp_logo,
-            "platform_url": FRONTEND_URL,
-        }
-        email_req = SendEmailRequest(to=sorted(emails), subject=subject)
-        msg = build_message(email_req, template_data=template_data)
-        bg.add_task(send_via_gmail_oauth2_safe, msg)
+    template_data = {
+        "lang": lang,
+        "team1_name": match.team1.name,
+        "team2_name": match.team2.name,
+        "team1_logo": team1_logo,
+        "team2_logo": team2_logo,
+        "match_datetime": fmt_datetime,
+        "location": match.location or ("TBD" if lang == "en" else "De stabilit"),
+        "league_name": match.league.name if match.league else ("TBD" if lang == "en" else "De stabilit"),
+        "round": match.round,
+        "match_url": match_url,
+        "base_camp_logo": base_camp_logo,
+        "platform_url": FRONTEND_URL,
+    }
+    email_req = SendEmailRequest(to=sorted(recipients), subject=subject)
+    msg = build_message(email_req, template_data=template_data)
+    bg.add_task(send_via_gmail_oauth2_safe, msg)

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
-from modules.match.models.match_model import MatchModel
 from modules.team.models import TeamModel
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
@@ -208,6 +207,8 @@ async def add_tournament_groups_bulk(
     data: TournamentGroupBulkCreateRequest,
     db: Session = Depends(get_db),
 ):
+    from modules.match.models.match_model import MatchModel
+
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
         raise HTTPException(
@@ -336,6 +337,8 @@ async def add_knockout_match(
     data: TournamentKnockoutMatchAdd,
     db: Session = Depends(get_db),
 ):
+    from modules.match.models.match_model import MatchModel
+
     tournament = db.query(TournamentModel).filter(TournamentModel.id == tournament_id).first()
     if not tournament:
         raise HTTPException(

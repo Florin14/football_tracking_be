@@ -7,10 +7,7 @@ from constants.attendance_status import AttendanceStatus
 from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
-from modules.attendance.models.attendance_model import AttendanceModel
-from modules.match.models.goal_model import GoalModel
-from modules.match.models.match_model import MatchModel
-from modules.player.models.player_model import PlayerModel
+
 from modules.team.models import BaseCampStatsResponse, PlayerStatItem, TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
@@ -34,6 +31,10 @@ async def get_base_camp_stats(
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if not team:
         return BaseCampStatsResponse()
+    from modules.match.models.match_model import MatchModel
+    from modules.match.models.goal_model import GoalModel
+    from modules.player.models.player_model import PlayerModel
+    from modules.attendance.models.attendance_model import AttendanceModel
 
     normal_league_filter = _normal_league_tournament_filter()
 

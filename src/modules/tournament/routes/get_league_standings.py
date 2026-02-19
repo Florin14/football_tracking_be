@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session, joinedload
 
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
-from modules.match.models.match_model import MatchModel
 from modules.match.services.match_status import is_match_completed
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
@@ -24,7 +23,7 @@ from .router import router
 
 def _build_group_standings(
     group: TournamentGroupModel,
-    matches: list[MatchModel],
+    matches: list[dict],
     league_team_ids: set[int],
 ) -> list[dict]:
     standings: dict[int, dict] = {}
@@ -123,6 +122,7 @@ async def get_league_standings(
         )
         .all()
     )
+    from modules.match.models.match_model import MatchModel
 
     group_ids = [group.id for group in groups]
     group_matches = (

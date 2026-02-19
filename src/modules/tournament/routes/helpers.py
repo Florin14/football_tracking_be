@@ -119,4 +119,4 @@ if __name__ == "__main__":
     file_path = 'sambata.xlsx'
     teams = generate_teams(file_path)
     print("Team 1:", teams["team1"])
-    print("")
+    print("Team 2:", teams["team2"])

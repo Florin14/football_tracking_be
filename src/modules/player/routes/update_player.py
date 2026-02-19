@@ -1,4 +1,4 @@
-from fastapi import BackgroundTasks, Depends, HTTPException
+from fastapi import BackgroundTasks, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from constants.platform_roles import PlatformRoles
@@ -6,13 +6,14 @@ from extensions import get_db
 from modules.player.models.player_model import PlayerModel
 from modules.player.models.player_schemas import PlayerResponse, PlayerUpdate
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
-from project_helpers.emails_handling import send_welcome_email
+from project_helpers.emails_handling import send_welcome_email, get_admin_lang
 from .router import router
 
 
 @router.put("/{id:int}", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
 async def update_player(
     data: PlayerUpdate,
+    request: Request,
     bg: BackgroundTasks,
     player: PlayerModel = Depends(GetInstanceFromPath(PlayerModel)),
     db: Session = Depends(get_db),
@@ -53,7 +54,8 @@ async def update_player(
     db.refresh(player)
 
     if should_send_welcome_email:
-        send_welcome_email(bg, db, player)
+        admin_lang = get_admin_lang(db, request.state.user)
+        send_welcome_email(bg, db, player, lang=admin_lang)
 
     return player
 

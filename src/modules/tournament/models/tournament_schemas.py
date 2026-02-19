@@ -46,6 +46,18 @@ class LeagueAdd(BaseSchema):
         return value
 
 
+class LeagueUpdate(BaseSchema):
+    logo: Optional[bytes] = Field(None)
+
+    @validator("logo", pre=False, always=True)
+    def encode_image_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return process_and_convert_image_to_base64(value, 316)
+        return value
+
+
 class TournamentAdd(BaseSchema):
     name: str = Field(..., max_length=50, example="Base Camp")
     description: Optional[str] = Field(None, max_length=200, example="Tournament")

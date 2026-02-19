@@ -1,5 +1,6 @@
+import json
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -29,9 +30,19 @@ def create_player_notifications(
     description: str,
     notification_type: NotificationType,
     created_at: datetime | None = None,
+    params: Optional[Dict] = None,
 ) -> List[NotificationModel]:
     if not player_ids:
         return []
+
+    # If params provided, JSON-serialize into description so the frontend
+    # can translate the notification and extract entity IDs for navigation.
+    stored_description = description
+    if params is not None:
+        try:
+            stored_description = json.dumps(params, ensure_ascii=False)
+        except (TypeError, ValueError):
+            stored_description = description
 
     batch_created_at = created_at or datetime.utcnow()
     recipients = {player_id for player_id in player_ids if player_id is not None}
@@ -40,7 +51,7 @@ def create_player_notifications(
     notifications = [
         NotificationModel(
             name=name,
-            description=description,
+            description=stored_description,
             userId=user_id,
             type=notification_type,
             createdAt=batch_created_at,

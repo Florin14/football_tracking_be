@@ -9,7 +9,10 @@ if TYPE_CHECKING:
     from modules.match.models.match_model import MatchModel
 
 
-def match_is_completed_expr(match_cls=MatchModel):
+def match_is_completed_expr(match_cls=None):
+    if match_cls is None:
+        from modules.match.models.match_model import MatchModel
+        match_cls = MatchModel
     return or_(
         match_cls.state == MatchState.FINISHED,
         and_(

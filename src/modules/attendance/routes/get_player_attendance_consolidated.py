@@ -141,10 +141,15 @@ async def get_player_attendance_consolidated(
     )
     matches = [MatchItem.model_validate(m) for m in match_rows]
 
-    # --- Tournaments: only formatType IS NULL (simple tournaments) ---
+    # --- Tournaments: exclude null formatType and group-based formats ---
     tournament_rows = (
         db.query(TournamentModel)
-        .filter(TournamentModel.formatType.isnot(None))
+        .filter(
+            TournamentModel.formatType.isnot(None),
+            TournamentModel.formatType.notin_(
+                [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
+            ),
+        )
         .order_by(TournamentModel.name)
         .all()
     )

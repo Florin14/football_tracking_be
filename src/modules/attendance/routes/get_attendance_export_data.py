@@ -13,7 +13,6 @@ from modules.attendance.models.attendance_schemas import (
     ExportPlayerRow,
 )
 from modules.match.models.match_model import MatchModel
-from modules.player.models.player_model import PlayerModel
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
@@ -114,6 +113,8 @@ async def get_attendance_export_data(
     ]
 
     # 5. Query players in the baseCamp team, sorted by name
+    from modules.player.models.player_model import PlayerModel
+
     players_query = db.query(PlayerModel).order_by(PlayerModel.name)
     if resolved_team_id:
         players_query = players_query.filter(PlayerModel.teamId == resolved_team_id)

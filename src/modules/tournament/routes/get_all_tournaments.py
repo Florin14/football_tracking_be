@@ -19,6 +19,9 @@ async def get_tournaments(
 
     query = apply_search(query, TournamentModel.name, params.search)
 
+    if params.excludeNullFormat:
+        query = query.filter(TournamentModel.formatType.isnot(None))
+
     tournaments = params.apply(query).all()
 
     return TournamentListResponse(data=tournaments)

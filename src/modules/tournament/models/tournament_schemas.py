@@ -97,6 +97,7 @@ class TournamentFilter(FilterSchema):
 
 class TournamentListParams(PaginationParams):
     search: Optional[str] = None
+    excludeNullFormat: Optional[bool] = None
 
 
 class LeagueListParams(PaginationParams):

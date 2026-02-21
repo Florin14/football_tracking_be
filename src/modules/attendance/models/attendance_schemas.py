@@ -77,6 +77,24 @@ class PlayerAttendanceConsolidatedResponse(BaseSchema):
     attendance: List[AttendanceResponse] = []
 
 
+class ExportEventColumn(BaseSchema):
+    type: str
+    label: str
+    date: str
+    eventId: int
+
+
+class ExportPlayerRow(BaseSchema):
+    playerId: int
+    playerName: str
+    statuses: list
+
+
+class AttendanceExportResponse(BaseSchema):
+    columns: list
+    players: list
+
+
 class AttendanceQueryParams(PaginationParams):
     scope: Optional[str] = None
     matchId: Optional[int] = Field(None, validation_alias=AliasChoices("matchId", "match_id"))

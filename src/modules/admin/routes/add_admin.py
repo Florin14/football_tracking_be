@@ -14,7 +14,7 @@ async def create_admin(
     admin: AdminAdd,
     db: Session = Depends(get_db),
 ):
-    password = admin.password if admin.password else "fotbal@2025"
+    password = admin.password if admin.password else "BasecampPlayer123!"
     admin = AdminModel(**admin.model_dump(), password=password)
     db.add(admin)
     db.commit()

@@ -176,14 +176,14 @@ def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
 
 
 def _ensure_default_admin_user(db: SessionLocal) -> None:
-    default_email = "admin@gmail.com"
+    default_email = "admin@fcbasecamp.ro"
     exists = db.query(UserModel).filter(UserModel.email == default_email).first()
     if exists:
         return
     admin = AdminModel(
-        name="Admin",
+        name="Administrator Platforma",
         email=default_email,
-        password="parola1234",
+        password="BasecampAdmin123!",
     )
     db.add(admin)
     db.commit()

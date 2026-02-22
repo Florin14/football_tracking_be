@@ -221,7 +221,7 @@ def get_admin_lang(db, user) -> str:
     return "ro"
 
 
-def send_welcome_email(bg, db, player, password: str = "fotbal@2025", lang: str = "ro"):
+def send_welcome_email(bg, db, player, password: str = "BasecampPlayer123!", lang: str = "ro"):
     """Queue a welcome email for a player. Skips generated emails and missing config."""
     if not player.email or player.email.endswith("@generated.local"):
         return

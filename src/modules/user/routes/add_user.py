@@ -14,7 +14,7 @@ async def create_user(
     user: UserAdd,
     db: Session = Depends(get_db),
 ):
-    password = user.password if user.password else "fotbal@2025"
+    password = user.password if user.password else "BasecampPlayer123!"
     user = UserModel(**user.model_dump(), password=password)
     db.add(user)
     db.commit()

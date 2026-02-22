@@ -10,6 +10,7 @@ from modules.tournament.models.league_team_model import LeagueTeamModel
 from modules.tournament.models.tournament_group_match_model import TournamentGroupMatchModel
 from modules.tournament.models.tournament_group_model import TournamentGroupModel
 from modules.tournament.models.tournament_group_team_model import TournamentGroupTeamModel
+from modules.tournament.models.tournament_knockout_config_model import TournamentKnockoutConfigModel
 from modules.tournament.models.tournament_knockout_match_model import TournamentKnockoutMatchModel
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import (
@@ -186,6 +187,12 @@ async def get_league_standings(
             timestamp=match.timestamp,
         ))
 
+    knockout_config = (
+        db.query(TournamentKnockoutConfigModel)
+        .filter(TournamentKnockoutConfigModel.tournamentId == tournament.id)
+        .first()
+    )
+
     return LeagueStandingsResponse(
         league=league,
         tournamentId=tournament.id,
@@ -193,6 +200,7 @@ async def get_league_standings(
         groupCount=tournament.groupCount,
         teamsPerGroup=tournament.teamsPerGroup,
         hasKnockout=tournament.hasKnockout,
+        qualifiersPerGroup=knockout_config.qualifiersPerGroup if knockout_config else None,
         groups=group_items,
         knockoutMatches=knockout_items,
     )

@@ -340,6 +340,7 @@ class LeagueStandingsResponse(BaseSchema):
     groupCount: Optional[int] = None
     teamsPerGroup: Optional[int] = None
     hasKnockout: Optional[bool] = None
+    qualifiersPerGroup: Optional[int] = None
     groups: List[TournamentGroupStandingsItem] = []
     knockoutMatches: List[TournamentKnockoutMatchItem] = []
 

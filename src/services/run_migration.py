@@ -63,8 +63,8 @@ def create_default_tournament(db_session) -> int | None:
         if not existingTournament:
             # Create Base Camp tournament
             allTimeTournament = TournamentModel(
-                name="CAMPIONATUL FIRMELOR ATS",
-                description="The default tournament of Base Camp football club",
+                name="ATS",
+                description="The default tournament of FC Base Camp football club",
                 isDefault=True  # Assuming you want to mark it as default
             )
             db_session.add(allTimeTournament)

@@ -74,6 +74,20 @@ _INTENT_PATTERNS: list[tuple[str, str, int]] = [
     (r"(cati|câti|cati|cate)\b.{0,15}(jucator|membr)", "team_info", 8),
     (r"(info\w*|detalii|componen).{0,15}(echip|team|lot)", "team_info", 7),
     (r"\b(echip|team|lot|squad)\b.{0,15}(noastr|mea|principal)", "team_info", 7),
+
+    # --- CRUD: add/edit match ---
+    (r"(adauga|creeaza|programeaza|fa|pune).{0,20}(meci|joc|partid)", "crud_add_match", 10),
+    (r"(modific|editeaz|schimb|actualizeaz).{0,20}(meci|joc|partid)", "crud_edit_match", 10),
+
+    # --- CRUD: add/edit team ---
+    (r"(adauga|creeaza|fa|pune).{0,20}(echip|team)", "crud_add_team", 10),
+    (r"(modific|editeaz|schimb|actualizeaz).{0,20}(echip|team)", "crud_edit_team", 10),
+
+    # --- CRUD: add goal ---
+    (r"(adauga|pune|inregistreaz).{0,20}(gol|goal)", "crud_add_goal", 10),
+
+    # --- CRUD: add card ---
+    (r"(adauga|pune|da|inregistreaz).{0,20}(cartonas|card)", "crud_add_card", 10),
 ]
 
 # Words to strip when extracting entity names
@@ -91,6 +105,8 @@ _STOP_WORDS = {
     "ultimele", "ultimul", "ultima", "urmatorul", "viitorul", "clasament",
     "clasamentul", "ranking", "puncte", "assist", "assisturi", "pase",
     "sezon", "sezonul", "liga", "imi", "eu",
+    "adauga", "creeaza", "programeaza", "modifica", "editeaza", "schimba",
+    "actualizeaza", "pune", "fa", "inregistreaza", "un", "o", "nou", "noua",
 }
 
 

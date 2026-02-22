@@ -86,12 +86,15 @@ async def get_attendance(
         query = query.outerjoin(match_for_league, AttendanceModel.matchId == match_for_league.id)
         query = query.outerjoin(league_for_match, match_for_league.leagueId == league_for_match.id)
         query = query.outerjoin(league_tournament, league_for_match.tournamentId == league_tournament.id)
+        # Exclude records directly linked to tournaments with NULL format
         query = query.filter(
             or_(
-                direct_tournament.formatType.is_(None),
+                AttendanceModel.tournamentId.is_(None),
                 direct_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
-        ).filter(
+        )
+        # Exclude match records linked via league to tournaments with GROUPS/GROUPS_KNOCKOUT
+        query = query.filter(
             or_(
                 league_tournament.formatType.is_(None),
                 league_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),

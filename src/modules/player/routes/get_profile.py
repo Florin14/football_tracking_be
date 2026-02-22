@@ -11,7 +11,7 @@ from project_helpers.exceptions import ErrorException
 from .router import router
 
 
-@router.get("/profile", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER]))])
+@router.get("/profile", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER, PlatformRoles.ADMIN]))])
 async def get_player_profile(
     request: Request,
     db: Session = Depends(get_db),

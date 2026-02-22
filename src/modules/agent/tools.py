@@ -325,6 +325,80 @@ def resolve_player(db: Session, raw: str, limit: int = 3) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def resolve_league(db: Session, raw: str, limit: int = 3) -> list[dict]:
+    if not raw:
+        return []
+    raw = raw.strip()
+    try:
+        rows = db.execute(text("""
+            SELECT id, name, similarity(name, :q) AS score
+            FROM leagues
+            WHERE name % :q
+            ORDER BY score DESC
+            LIMIT :limit
+        """), {"q": raw, "limit": limit}).mappings().all()
+        if rows:
+            return [dict(r) for r in rows]
+    except Exception:
+        pass
+
+    rows = db.execute(text("""
+        SELECT id, name, 0.5 AS score
+        FROM leagues
+        WHERE lower(name) LIKE :like
+        LIMIT :limit
+    """), {"like": f"%{raw.lower()}%", "limit": limit}).mappings().all()
+    return [dict(r) for r in rows]
+
+
+def resolve_match(db: Session, raw: str, limit: int = 3) -> list[dict]:
+    """Resolve a match by 'Team A vs Team B' pattern or by direct ID."""
+    if not raw:
+        return []
+    raw = raw.strip()
+
+    # Try direct ID
+    if raw.isdigit():
+        match = db.query(MatchModel).filter(MatchModel.id == int(raw)).first()
+        if match:
+            t1 = match.team1.name if match.team1 else "N/A"
+            t2 = match.team2.name if match.team2 else "N/A"
+            return [{"id": match.id, "name": f"{t1} vs {t2}", "score": 1.0}]
+        return []
+
+    # Try "Team A vs Team B" pattern
+    import re
+    parts = re.split(r'\s+(?:vs\.?|contra|impotriva|-)\s+', raw, maxsplit=1, flags=re.IGNORECASE)
+    if len(parts) == 2:
+        team1_candidates = resolve_team(db, parts[0].strip(), limit=1)
+        team2_candidates = resolve_team(db, parts[1].strip(), limit=1)
+        if team1_candidates and team2_candidates:
+            t1_id = team1_candidates[0]["id"]
+            t2_id = team2_candidates[0]["id"]
+            matches = (
+                db.query(MatchModel)
+                .filter(
+                    or_(
+                        (MatchModel.team1Id == t1_id) & (MatchModel.team2Id == t2_id),
+                        (MatchModel.team1Id == t2_id) & (MatchModel.team2Id == t1_id),
+                    )
+                )
+                .order_by(MatchModel.timestamp.desc())
+                .limit(limit)
+                .all()
+            )
+            return [
+                {
+                    "id": m.id,
+                    "name": f"{m.team1.name if m.team1 else 'N/A'} vs {m.team2.name if m.team2 else 'N/A'} ({m.timestamp.strftime('%d %b %Y')})",
+                    "score": 0.9,
+                }
+                for m in matches
+            ]
+
+    return []
+
+
 def resolve_team(db: Session, raw: str, limit: int = 3) -> list[dict]:
     if not raw:
         return []

@@ -13,7 +13,7 @@ from .preferences_helpers import apply_preferences
 from .router import router
 
 
-@router.put("/profile", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER]))])
+@router.put("/profile", response_model=PlayerProfileResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.PLAYER, PlatformRoles.ADMIN]))])
 async def update_player_profile(
     data: PlayerProfileUpdate,
     request: Request,

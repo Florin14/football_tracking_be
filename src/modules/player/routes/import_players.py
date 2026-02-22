@@ -20,7 +20,7 @@ async def import_players(
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    password = "fotbal@2025"
+    password = "BasecampPlayer123!"
     contents = await file.read()
     df = pd.read_excel(BytesIO(contents), sheet_name="Sheet1")
 

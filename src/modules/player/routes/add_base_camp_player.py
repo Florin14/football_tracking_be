@@ -21,7 +21,7 @@ async def add_base_camp_player(
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    password = "fotbal@2025"
+    password = "BasecampPlayer123!"
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if team is None:
         return ErrorException(error=Error.TEAM_INSTANCE_NOT_FOUND)

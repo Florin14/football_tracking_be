@@ -141,15 +141,10 @@ async def get_player_attendance_consolidated(
     )
     matches = [MatchItem.model_validate(m) for m in match_rows]
 
-    # --- Tournaments: exclude null formatType and group-based formats ---
+    # --- Tournaments: all with a non-null formatType ---
     tournament_rows = (
         db.query(TournamentModel)
-        .filter(
-            TournamentModel.formatType.isnot(None),
-            TournamentModel.formatType.notin_(
-                [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
-            ),
-        )
+        .filter(TournamentModel.formatType.isnot(None))
         .order_by(TournamentModel.name)
         .all()
     )
@@ -171,32 +166,17 @@ async def get_player_attendance_consolidated(
     if resolved_team_id:
         attendance_query = attendance_query.filter(AttendanceModel.teamId == resolved_team_id)
 
-    # Exclude attendance records linked to group-format tournaments
-    att_match_alias = aliased(MatchModel)
-    att_league_alias = aliased(LeagueModel)
-    att_tournament_alias = aliased(TournamentModel)
+    # Exclude attendance records linked to tournaments with NULL formatType
+    # (keep all records for tournaments with any non-null format)
     att_direct_tournament = aliased(TournamentModel)
 
     attendance_query = (
         attendance_query
         .outerjoin(att_direct_tournament, AttendanceModel.tournamentId == att_direct_tournament.id)
-        .outerjoin(att_match_alias, AttendanceModel.matchId == att_match_alias.id)
-        .outerjoin(att_league_alias, att_match_alias.leagueId == att_league_alias.id)
-        .outerjoin(att_tournament_alias, att_league_alias.tournamentId == att_tournament_alias.id)
         .filter(
             or_(
-                att_direct_tournament.formatType.is_(None),
-                att_direct_tournament.formatType.notin_(
-                    [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
-                ),
-            )
-        )
-        .filter(
-            or_(
-                att_tournament_alias.formatType.is_(None),
-                att_tournament_alias.formatType.notin_(
-                    [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
-                ),
+                AttendanceModel.tournamentId.is_(None),
+                att_direct_tournament.formatType.isnot(None),
             )
         )
     )

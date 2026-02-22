@@ -43,7 +43,7 @@ def _suggested_for(intent: str) -> list[str]:
             "Cine are cele mai multe goluri?",
             "Care e clasamentul?",
             "Cand e urmatorul meci?",
-            "Rezultatele ultimelor meciuri",
+            "Adauga un gol",
         ],
         "top_scorers": [
             "Cine are cele mai multe assisturi?",
@@ -98,9 +98,43 @@ def _suggested_for(intent: str) -> list[str]:
     ])
 
 
-def handle_message(db: Session, user_text: str) -> dict:
+def handle_message(db: Session, user_text: str, *, user=None, conversation_id: int | None = None) -> dict:
+    # Check for active CRUD session
+    if user and conversation_id:
+        from modules.agent.models.agent_crud_session_model import AgentCrudSessionModel
+        active_session = (
+            db.query(AgentCrudSessionModel)
+            .filter(
+                AgentCrudSessionModel.conversationId == conversation_id,
+                AgentCrudSessionModel.userId == user.id,
+                AgentCrudSessionModel.status == "in_progress",
+            )
+            .first()
+        )
+        if active_session:
+            from modules.agent.crud_flows import continue_crud_flow
+            return continue_crud_flow(db, user, user_text, active_session)
+
     intent = detect_intent(user_text)
     entity_name = extract_entity_name(user_text, intent)
+
+    # Handle CRUD intents
+    if intent.startswith("crud_"):
+        if not user:
+            return {
+                "type": "answer",
+                "text": "Trebuie sa fii autentificat pentru a efectua aceasta actiune.",
+                "suggestedQuestions": _suggested_for("help"),
+            }
+        from constants.platform_roles import PlatformRoles
+        if str(user.role) != str(PlatformRoles.ADMIN):
+            return {
+                "type": "answer",
+                "text": "Doar administratorii pot adauga sau modifica date prin chat.",
+                "suggestedQuestions": _suggested_for("help"),
+            }
+        from modules.agent.crud_flows import start_crud_flow
+        return start_crud_flow(db, user, intent, conversation_id, entity_name)
 
     # --- Greeting ---
     if intent == "greeting":
@@ -116,6 +150,7 @@ def handle_message(db: Session, user_text: str) -> dict:
             "type": "answer",
             "text": (
                 "Pot sa te ajut cu urmatoarele:\n\n"
+                "**Interogari:**\n"
                 "- Cine e golgheterul? (top marcatori)\n"
                 "- Cate goluri are [jucator]?\n"
                 "- Statistici [jucator]\n"
@@ -124,7 +159,12 @@ def handle_message(db: Session, user_text: str) -> dict:
                 "- Rezultatele ultimelor meciuri\n"
                 "- Cine are cele mai multe cartonase?\n"
                 "- Cine are cele mai multe assisturi?\n"
-                "- Informatii despre echipa"
+                "- Informatii despre echipa\n\n"
+                "**Actiuni (doar admin):**\n"
+                "- Adauga un gol\n"
+                "- Programeaza un meci\n"
+                "- Adauga o echipa\n"
+                "- Adauga un cartonas"
             ),
             "suggestedQuestions": _suggested_for("help"),
         }

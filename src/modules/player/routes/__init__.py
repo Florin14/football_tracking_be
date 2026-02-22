@@ -7,5 +7,6 @@ from .update_profile import *
 from .update_preferences import *
 from .import_players import *
 from .get_player import *
+from .get_player_match_history import *
 from .update_player import *
 from .delete_player import *

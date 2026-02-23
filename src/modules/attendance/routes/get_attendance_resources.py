@@ -42,7 +42,7 @@ async def get_attendance_resources(
     
     query = query.filter(
         or_(
-            TournamentModel.formatType.is_(None),
+            TournamentModel.formatType.in_([None, TournamentFormatType.LEAGUE]),
             TournamentModel.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
         )
     )

@@ -50,7 +50,7 @@ async def get_attendance_export_data(
         )
         .filter(
             or_(
-                tournament_alias.formatType.is_(None),
+                tournament_alias.formatType.in_([None, TournamentFormatType.LEAGUE]),
                 tournament_alias.formatType.notin_(
                     [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
                 ),

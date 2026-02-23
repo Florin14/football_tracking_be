@@ -116,7 +116,7 @@ async def get_player_attendance_consolidated(
         )
         .filter(
             or_(
-                tournament_alias.formatType.is_(None),
+                tournament_alias.formatType.in_([None, TournamentFormatType.LEAGUE]),
                 tournament_alias.formatType.notin_(
                     [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
                 ),
@@ -144,7 +144,7 @@ async def get_player_attendance_consolidated(
     # --- Tournaments: all with a non-null formatType ---
     tournament_rows = (
         db.query(TournamentModel)
-        .filter(TournamentModel.formatType.isnot(None))
+        .filter(TournamentModel.formatType.notin_([None, TournamentFormatType.LEAGUE]))
         .order_by(TournamentModel.name)
         .all()
     )
@@ -175,7 +175,7 @@ async def get_player_attendance_consolidated(
         .outerjoin(att_direct_tournament, AttendanceModel.tournamentId == att_direct_tournament.id)
         .filter(
             or_(
-                AttendanceModel.tournamentId.is_(None),
+                AttendanceModel.tournamentId.in_([None, TournamentFormatType.LEAGUE]),
                 att_direct_tournament.formatType.isnot(None),
             )
         )

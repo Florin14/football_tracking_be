@@ -156,12 +156,12 @@ async def get_attendance_by_scope(
         query = query.outerjoin(league_tournament, league_for_match.tournamentId == league_tournament.id)
         query = query.filter(
             or_(
-                direct_tournament.formatType.is_(None),
+                direct_tournament.formatType.in_([None, TournamentFormatType.LEAGUE]),
                 direct_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         ).filter(
             or_(
-                league_tournament.formatType.is_(None),
+                league_tournament.formatType.in_([None, TournamentFormatType.LEAGUE]),
                 league_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         )

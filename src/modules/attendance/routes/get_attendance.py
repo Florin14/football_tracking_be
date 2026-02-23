@@ -96,7 +96,7 @@ async def get_attendance(
         # Exclude match records linked via league to tournaments with GROUPS/GROUPS_KNOCKOUT
         query = query.filter(
             or_(
-                league_tournament.formatType.is_(None),
+                league_tournament.formatType.in_([None, TournamentFormatType.LEAGUE]),
                 league_tournament.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
             )
         )

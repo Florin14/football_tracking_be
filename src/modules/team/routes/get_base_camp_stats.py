@@ -18,7 +18,7 @@ def _normal_league_tournament_filter():
     return and_(
         or_(TournamentModel.groupCount.is_(None), TournamentModel.groupCount == 0),
         or_(
-            TournamentModel.formatType.is_(None),
+            TournamentModel.formatType.in_([None, TournamentFormatType.LEAGUE]),
             TournamentModel.formatType.notin_([TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]),
         ),
     )

@@ -6,6 +6,7 @@ from project_helpers.db import apply_search
 from project_helpers.dependencies import JwtRequired
 from modules.tournament.models.tournament_model import TournamentModel
 from modules.tournament.models.tournament_schemas import TournamentListResponse, TournamentListParams
+from constants.tournament_format_type import TournamentFormatType
 
 from .router import router
 
@@ -20,7 +21,7 @@ async def get_tournaments(
     query = apply_search(query, TournamentModel.name, params.search)
 
     if params.excludeNullFormat:
-        query = query.filter(TournamentModel.formatType.isnot(None))
+        query = query.filter(TournamentModel.formatType.notin_([None, TournamentFormatType.LEAGUE]))
 
     tournaments = params.apply(query).all()
 

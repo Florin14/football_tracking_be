@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 # from constants.citizen_status import CitizenStatusEnum
@@ -15,7 +15,7 @@ from .router import router
 
 
 @router.post("/login", response_model=LoginResponse, dependencies=[])
-def login(body: LoginBody, auth: AuthJWT = Depends(), db: Session = Depends(get_db)):
+def login(body: LoginBody, request: Request = None, auth: AuthJWT = Depends(), db: Session = Depends(get_db)):
     user = db.query(UserModel).filter(UserModel.email == body.email).first()
 
     if not user or not verify_password(user.password, body.password):
@@ -24,7 +24,12 @@ def login(body: LoginBody, auth: AuthJWT = Depends(), db: Session = Depends(get_
     if user.isAvailable is False:
         return ErrorResponse(Error.USER_ACCOUNT_IS_DEACTIVATED, statusCode=403)
 
-    accessToken = auth.create_access_token(user.email, user_claims=user.getClaims())
+    claims = user.getClaims()
+    tenant = getattr(request.state, "tenant", None) if request else None
+    if tenant:
+        claims["tenant_slug"] = tenant.slug
+
+    accessToken = auth.create_access_token(user.email, user_claims=claims)
     refreshToken = auth.create_refresh_token(user.email)
     # Set the JWT cookies in the response
     auth.set_access_cookies(accessToken)

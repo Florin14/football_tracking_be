@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{% if lang == 'en' %}Welcome to Base Camp!{% else %}Bine ai venit la Base Camp!{% endif %}</title>
+  <title>{% if lang == 'en' %}Welcome to {{ team_name | default('Base Camp') }}!{% else %}Bine ai venit la {{ team_name | default('Base Camp') }}!{% endif %}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#0B1121;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0B1121;">
@@ -15,7 +15,7 @@
           <tr>
             <td style="background:linear-gradient(135deg,#1A2744 0%,#0F1B30 100%);padding:40px 32px 28px;text-align:center;border-bottom:1px solid rgba(46,155,255,0.15);">
               {% if base_camp_logo %}
-              <img src="data:image/jpeg;base64,{{ base_camp_logo }}" alt="Base Camp" width="80" height="80" style="width:80px;height:80px;border-radius:20px;border:2px solid rgba(46,155,255,0.4);object-fit:cover;display:block;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,0,0,0.4);" />
+              <img src="data:image/jpeg;base64,{{ base_camp_logo }}" alt="{{ team_name | default('Team') }}" width="80" height="80" style="width:80px;height:80px;border-radius:20px;border:2px solid rgba(46,155,255,0.4);object-fit:cover;display:block;margin:0 auto 20px;box-shadow:0 8px 24px rgba(0,0,0,0.4);" />
               {% endif %}
               <h1 style="margin:0;color:#FFFFFF;font-size:24px;font-weight:700;letter-spacing:-0.02em;">
                 {% if lang == 'en' %}Welcome to the team!{% else %}Bine ai venit in echipa!{% endif %}
@@ -31,9 +31,9 @@
             <td style="background:#111B2E;padding:28px 32px 8px;text-align:center;">
               <p style="margin:0;color:#E8F4FD;font-size:16px;font-weight:400;line-height:1.6;">
                 {% if lang == 'en' %}
-                  Hi <strong style="color:#FFFFFF;">{{ player_name }}</strong>, welcome to <strong style="color:#2E9BFF;">Base Camp Football</strong>! Below you'll find your login credentials.
+                  Hi <strong style="color:#FFFFFF;">{{ player_name }}</strong>, welcome to <strong style="color:#2E9BFF;">{{ team_name | default('Base Camp') }} Football</strong>! Below you'll find your login credentials.
                 {% else %}
-                  Salut <strong style="color:#FFFFFF;">{{ player_name }}</strong>, bine ai venit la <strong style="color:#2E9BFF;">Base Camp Football</strong>! Mai jos gasesti datele tale de autentificare.
+                  Salut <strong style="color:#FFFFFF;">{{ player_name }}</strong>, bine ai venit la <strong style="color:#2E9BFF;">{{ team_name | default('Base Camp') }} Football</strong>! Mai jos gasesti datele tale de autentificare.
                 {% endif %}
               </p>
             </td>
@@ -124,7 +124,7 @@
               <p style="margin:0 0 6px;color:#6B8BB8;font-size:11px;">
                 {% if lang == 'en' %}This email was sent automatically by{% else %}Acest email a fost trimis automat de{% endif %}
               </p>
-              <p style="margin:0;color:#8DB4E8;font-size:12px;font-weight:600;">Base Camp Football</p>
+              <p style="margin:0;color:#8DB4E8;font-size:12px;font-weight:600;">{{ team_name | default('Base Camp') }} Football</p>
               {% if platform_url %}
               <p style="margin:8px 0 0;">
                 <a href="{{ platform_url }}" target="_blank" style="color:#2E9BFF;font-size:11px;text-decoration:none;">{{ platform_url }}</a>

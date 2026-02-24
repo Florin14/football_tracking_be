@@ -15,7 +15,7 @@
           <tr>
             <td style="background:linear-gradient(135deg,#1A2744 0%,#0F1B30 100%);padding:32px 32px 24px;text-align:center;border-bottom:1px solid rgba(46,155,255,0.15);">
               {% if base_camp_logo %}
-              <img src="data:image/jpeg;base64,{{ base_camp_logo }}" alt="Base Camp" width="72" height="72" style="width:72px;height:72px;border-radius:18px;border:2px solid rgba(46,155,255,0.4);object-fit:cover;display:block;margin:0 auto 16px;" />
+              <img src="data:image/jpeg;base64,{{ base_camp_logo }}" alt="{{ team_name | default('Team') }}" width="72" height="72" style="width:72px;height:72px;border-radius:18px;border:2px solid rgba(46,155,255,0.4);object-fit:cover;display:block;margin:0 auto 16px;" />
               {% endif %}
               <h1 style="margin:0;color:#FFFFFF;font-size:22px;font-weight:700;letter-spacing:-0.02em;">
                 {% if lang == 'en' %}New Match Scheduled{% else %}Meci Nou Programat{% endif %}
@@ -147,7 +147,7 @@
               <p style="margin:0 0 6px;color:#6B8BB8;font-size:11px;">
                 {% if lang == 'en' %}This email was sent automatically by{% else %}Acest email a fost trimis automat de{% endif %}
               </p>
-              <p style="margin:0;color:#8DB4E8;font-size:12px;font-weight:600;">Base Camp Football</p>
+              <p style="margin:0;color:#8DB4E8;font-size:12px;font-weight:600;">{{ team_name | default('Base Camp') }} Football</p>
               {% if platform_url %}
               <p style="margin:8px 0 0;">
                 <a href="{{ platform_url }}" target="_blank" style="color:#2E9BFF;font-size:11px;text-decoration:none;">{{ platform_url }}</a>

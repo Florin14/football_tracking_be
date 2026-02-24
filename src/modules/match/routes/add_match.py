@@ -134,7 +134,9 @@ async def add_match(
     ]
 
     admin_lang = get_admin_lang(db, request.state.user)
-    send_match_notification_emails(bg, db, match, recipients, lang=admin_lang)
+    tenant = getattr(request.state, "tenant", None)
+    tenant_name = tenant.name if tenant else None
+    send_match_notification_emails(bg, db, match, recipients, lang=admin_lang, tenant_name=tenant_name)
 
     # Create NEW_MATCH notifications for default team players
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()

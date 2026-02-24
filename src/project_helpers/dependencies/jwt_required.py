@@ -47,6 +47,16 @@ class JwtRequired:
                 message=f"User must have one of the following roles: {sorted(self.roles)}, but you have: {user.role}!",
             )
 
+        # Validate tenant consistency: JWT tenant must match request tenant
+        jwt_tenant = claims.get("tenant_slug")
+        request_tenant = getattr(getattr(request, "state", None), "tenant", None)
+        if jwt_tenant and request_tenant and jwt_tenant != request_tenant.slug:
+            raise ErrorException(
+                error=Error.INVALID_TOKEN,
+                statusCode=401,
+                message="Token tenant mismatch",
+            )
+
         # Handle token refresh if close to expiry
         exp_timestamp = claims.get("exp")
         if exp_timestamp:
@@ -54,7 +64,10 @@ class JwtRequired:
             seconds_until_expire = int((exp - datetime.now(timezone.utc)).total_seconds())
             if (TOKEN_EXPIRATION - seconds_until_expire) > IMPLICIT_REFRESH_THRESHOLD:
                 subject = user.email or user.id
-                new_token = auth.create_access_token(subject=subject, user_claims=user.getClaims())
+                refresh_claims = user.getClaims()
+                if jwt_tenant:
+                    refresh_claims["tenant_slug"] = jwt_tenant
+                new_token = auth.create_access_token(subject=subject, user_claims=refresh_claims)
                 auth.set_access_cookies(new_token, response)
 
         request.state.user = user

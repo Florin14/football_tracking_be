@@ -14,14 +14,14 @@ from .router import router
 from ..models.player_model import PlayerModel
 
 
-@router.post("/base-camp", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
-async def add_base_camp_player(
+@router.post("/default-team", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))])
+async def add_default_team_player(
     data: PlayerAdd,
     request: Request,
     bg: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    password = "BasecampPlayer123!"
+    password = "DefaultPlayer123!"
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if team is None:
         return ErrorException(error=Error.TEAM_INSTANCE_NOT_FOUND)
@@ -37,6 +37,19 @@ async def add_base_camp_player(
     db.refresh(player)
 
     admin_lang = get_admin_lang(db, request.state.user)
-    send_welcome_email(bg, db, player, password, lang=admin_lang)
+    tenant = getattr(request.state, "tenant", None)
+    tenant_name = tenant.name if tenant else None
+    send_welcome_email(bg, db, player, password, lang=admin_lang, tenant_name=tenant_name)
 
     return player
+
+
+# Backward compatibility alias
+@router.post("/base-camp", response_model=PlayerResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN]))], include_in_schema=False)
+async def add_base_camp_player_compat(
+    data: PlayerAdd,
+    request: Request,
+    bg: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    return await add_default_team_player(data=data, request=request, bg=bg, db=db)

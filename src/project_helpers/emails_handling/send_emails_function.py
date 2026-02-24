@@ -204,7 +204,7 @@ async def send_via_gmail_oauth2_safe(msg: EmailMessage):
 
 
 # ----------------- High-Level Helpers -----------------
-def _get_base_camp_logo(db) -> Optional[str]:
+def _get_default_team_logo(db) -> Optional[str]:
     from modules.team.models.team_model import TeamModel
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if default_team and default_team.logo:
@@ -221,7 +221,7 @@ def get_admin_lang(db, user) -> str:
     return "ro"
 
 
-def send_welcome_email(bg, db, player, password: str = "BasecampPlayer123!", lang: str = "ro"):
+def send_welcome_email(bg, db, player, password: str = "DefaultPlayer123!", lang: str = "ro", tenant_name: str = None):
     """Queue a welcome email for a player. Skips generated emails and missing config."""
     if not player.email or player.email.endswith("@generated.local"):
         return
@@ -232,22 +232,24 @@ def send_welcome_email(bg, db, player, password: str = "BasecampPlayer123!", lan
         logging.warning("Welcome email not sent for player %s: %s", player.id, exc)
         return
 
-    base_camp_logo = _get_base_camp_logo(db)
-    subject = "Welcome to Base Camp Football!" if lang == "en" else "Bine ai venit la Base Camp Football!"
+    team_name = tenant_name or "Base Camp"
+    default_team_logo = _get_default_team_logo(db)
+    subject = f"Welcome to {team_name} Football!" if lang == "en" else f"Bine ai venit la {team_name} Football!"
     template_data = {
         "lang": lang,
         "player_name": player.name,
         "email": player.email,
         "password": password,
         "platform_url": FRONTEND_URL,
-        "base_camp_logo": base_camp_logo,
+        "base_camp_logo": default_team_logo,
+        "team_name": team_name,
     }
     email_req = SendEmailRequest(to=[player.email], subject=subject)
     msg = build_message(email_req, template_data=template_data, template_name="welcome_player.html")
     bg.add_task(send_via_gmail_oauth2_safe, msg)
 
 
-def send_match_notification_emails(bg, db, match, recipients: List[str], lang: str = "ro"):
+def send_match_notification_emails(bg, db, match, recipients: List[str], lang: str = "ro", tenant_name: str = None):
     """Queue match notification emails in the given language. Skips if no recipients or missing config."""
     if not recipients:
         return
@@ -258,7 +260,8 @@ def send_match_notification_emails(bg, db, match, recipients: List[str], lang: s
         logging.warning("Email not sent for match %s: %s", match.id, exc)
         return
 
-    base_camp_logo = _get_base_camp_logo(db)
+    team_name = tenant_name or "Base Camp"
+    default_team_logo = _get_default_team_logo(db)
     team1_logo = base64.b64encode(match.team1.logo).decode("utf-8") if match.team1.logo else None
     team2_logo = base64.b64encode(match.team2.logo).decode("utf-8") if match.team2.logo else None
     match_url = f"{FRONTEND_URL}/matches/{match.id}"
@@ -285,8 +288,9 @@ def send_match_notification_emails(bg, db, match, recipients: List[str], lang: s
         "league_name": match.league.name if match.league else ("TBD" if lang == "en" else "De stabilit"),
         "round": match.round,
         "match_url": match_url,
-        "base_camp_logo": base_camp_logo,
+        "base_camp_logo": default_team_logo,
         "platform_url": FRONTEND_URL,
+        "team_name": team_name,
     }
     email_req = SendEmailRequest(to=sorted(recipients), subject=subject)
     msg = build_message(email_req, template_data=template_data)

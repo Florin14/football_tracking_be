@@ -22,7 +22,7 @@ from extensions.auth_jwt.exceptions import (
     CSRFError,
 )
 from extensions.sqlalchemy import init_db, DBSessionMiddleware, SessionLocal
-from modules import agentRouter, authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter, reportsRouter, matchPlanRouter
+from modules import agentRouter, authRouter, attendanceRouter, userRouter, matchRouter, adminRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, trainingRouter, reportsRouter, matchPlanRouter, tenantRouter
 from modules.attendance.events import backfill_attendance_for_existing_scopes
 from modules.user.models.user_model import UserModel
 from modules.admin.models.admin_model import AdminModel
@@ -126,6 +126,28 @@ def parse_allowed_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 
+def _is_tenant_origin(origin: str) -> bool:
+    """Check if origin matches a tenant subdomain pattern.
+
+    TENANT_BASE_DOMAIN env var defines the base (e.g. 'app.footballtracking.ro').
+    Any https://<slug>.app.footballtracking.ro is accepted.
+    """
+    base_domain = os.getenv("TENANT_BASE_DOMAIN", "").strip()
+    if not base_domain:
+        return False
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(origin)
+        host = parsed.hostname or ""
+        if not host.endswith(f".{base_domain}"):
+            return False
+        slug_part = host[: -(len(base_domain) + 1)]
+        # Must be a simple slug (no extra dots), e.g. "studentiicluj"
+        return "." not in slug_part and len(slug_part) > 0
+    except Exception:
+        return False
+
+
 def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
     def _parse_bool(value: str | None) -> bool | None:
         if value is None:
@@ -176,16 +198,33 @@ def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
 
 
 def _ensure_default_admin_user(db: SessionLocal) -> None:
-    default_email = "admin@fcbasecamp.ro"
+    default_email = os.getenv("DEFAULT_ADMIN_EMAIL", "admin@fcbasecamp.ro")
+    default_password = os.getenv("DEFAULT_ADMIN_PASSWORD", "BasecampAdmin123!")
     exists = db.query(UserModel).filter(UserModel.email == default_email).first()
     if exists:
         return
     admin = AdminModel(
         name="Administrator Platforma",
         email=default_email,
-        password="BasecampAdmin123!",
+        password=default_password,
     )
     db.add(admin)
+    db.commit()
+
+
+def _ensure_default_tenant(db: SessionLocal) -> None:
+    from modules.tenant.models.tenant_model import TenantModel
+    exists = db.query(TenantModel).filter(TenantModel.slug == "basecamp").first()
+    if exists:
+        return
+    tenant = TenantModel(
+        slug="basecamp",
+        name="FC Base Camp",
+        schema_name="public",
+        is_active=True,
+        config={},
+    )
+    db.add(tenant)
     db.commit()
 
 
@@ -193,9 +232,9 @@ def _ensure_default_admin_user(db: SessionLocal) -> None:
 async def lifespan(app: FastAPI):
     # Resolve Pydantic forward references now that all modules are loaded.
     from modules.player.models.player_schemas import PlayerResponse
-    from modules.team.models.team_schemas import TeamResponse, BaseCampTeamResponse
+    from modules.team.models.team_schemas import TeamResponse, DefaultTeamResponse
     TeamResponse.model_rebuild(_types_namespace={"PlayerResponse": PlayerResponse})
-    BaseCampTeamResponse.model_rebuild(_types_namespace={"PlayerResponse": PlayerResponse})
+    DefaultTeamResponse.model_rebuild(_types_namespace={"PlayerResponse": PlayerResponse})
 
     # startup logic
     logging.basicConfig(
@@ -209,6 +248,7 @@ async def lifespan(app: FastAPI):
     try:
         backfill_attendance_for_existing_scopes(db)
         _ensure_default_admin_user(db)
+        _ensure_default_tenant(db)
     finally:
         db.close()
     yield
@@ -238,7 +278,7 @@ async def force_cors_headers(request: Request, call_next):
     response = await call_next(request)
     origin = request.headers.get("origin")
     if origin:
-        if "*" in _allowed_origins or origin in _allowed_origins:
+        if "*" in _allowed_origins or origin in _allowed_origins or _is_tenant_origin(origin):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Vary"] = "Origin"
             response.headers["Access-Control-Allow-Credentials"] = "true"
@@ -250,12 +290,22 @@ api.add_middleware(DBSessionMiddleware)
 
 
 # â”€â”€â”€ 3) CORS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Build a regex for tenant subdomains so CORSMiddleware handles
+# OPTIONS preflight correctly without restarting the server.
+_tenant_base_domain = os.getenv(“TENANT_BASE_DOMAIN”, “”).strip()
+_tenant_origin_regex = None
+if _tenant_base_domain:
+    import re as _re_cors
+    escaped = _re_cors.escape(_tenant_base_domain)
+    _tenant_origin_regex = rf”https://[a-z][a-z0-9_]{{0,62}}\.{escaped}”
+
 api.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
+    allow_origin_regex=_tenant_origin_regex,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=[“*”],
+    allow_headers=[“*”],
 )
 
 @api.get("/health")
@@ -271,7 +321,7 @@ common_responses = {
     422: {"model": ErrorSchema},
     404: {"model": ErrorSchema},
 }
-for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter, reportsRouter, agentRouter, matchPlanRouter):
+for router in (userRouter, adminRouter, matchRouter, teamRouter, playerRouter, tournamentRouter, rankingRouter, emailRouter, notificationsRouter, attendanceRouter, trainingRouter, authRouter, reportsRouter, agentRouter, matchPlanRouter, tenantRouter):
     api.include_router(router, responses=common_responses)
 
 

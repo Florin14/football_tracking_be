@@ -8,8 +8,8 @@ from constants.platform_roles import PlatformRoles
 from .router import router
 
 
-@router.get("/base-camp", response_model=TeamResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN, PlatformRoles.PLAYER]))])
-async def get_base_camp_team(
+@router.get("/default", response_model=TeamResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN, PlatformRoles.PLAYER]))])
+async def get_default_team(
     db: Session = Depends(get_db),
 ):
     team = db.query(TeamModel).options(joinedload(TeamModel.players)).filter(
@@ -18,12 +18,20 @@ async def get_base_camp_team(
 
     if not team:
         team = TeamModel(
-            name="FC Base Camp",
-            description="The default team for the Base Camp football club",
-            isDefault=True  # Assuming you want to mark it as default
+            name="Default Team",
+            description="The default team",
+            isDefault=True,
         )
         db.add(team)
         db.commit()
         db.refresh(team)
 
     return team
+
+
+# Backward compatibility alias
+@router.get("/base-camp", response_model=TeamResponse, dependencies=[Depends(JwtRequired(roles=[PlatformRoles.ADMIN, PlatformRoles.PLAYER]))], include_in_schema=False)
+async def get_base_camp_team_compat(
+    db: Session = Depends(get_db),
+):
+    return await get_default_team(db=db)

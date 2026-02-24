@@ -1,11 +1,12 @@
 import logging
 import os
+import re
 from pathlib import Path
 
 from dotenv import load_dotenv
 
 from fastapi import Request
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -83,10 +84,34 @@ def get_db(request: Request):
     return request.state.db
 
 
+_SAFE_IDENTIFIER = re.compile(r"^[a-z][a-z0-9_]{0,62}$")
+
+
+def _resolve_tenant(db, tenant_slug: str):
+    """Lookup tenant by slug in public.tenants and return the row or None."""
+    from modules.tenant.models.tenant_model import TenantModel
+    return (
+        db.query(TenantModel)
+        .filter(TenantModel.slug == tenant_slug, TenantModel.is_active.is_(True))
+        .first()
+    )
+
+
 class DBSessionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         db = SessionLocal()
         request.state.db = db
+        request.state.tenant = None
+
+        tenant_slug = request.headers.get("x-tenant")
+        if tenant_slug and _SAFE_IDENTIFIER.match(tenant_slug):
+            tenant = _resolve_tenant(db, tenant_slug)
+            if tenant:
+                request.state.tenant = tenant
+                schema = tenant.schema_name
+                if _SAFE_IDENTIFIER.match(schema):
+                    db.execute(text(f'SET search_path TO "{schema}", public'))
+
         try:
             response = await call_next(request)
         except OperationalError:

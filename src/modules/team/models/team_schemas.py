@@ -101,7 +101,7 @@ class TeamResponse(BaseSchema):
         return value
 
 
-class BaseCampTeamResponse(BaseSchema):
+class DefaultTeamResponse(BaseSchema):
     id: int
     name: str
     description: Optional[str] = None
@@ -127,7 +127,7 @@ class PlayerStatItem(BaseSchema):
     value: int
 
 
-class BaseCampStatsResponse(BaseSchema):
+class DefaultTeamStatsResponse(BaseSchema):
     topScorer: Optional[PlayerStatItem] = None
     topAssists: Optional[PlayerStatItem] = None
     topAppearances: Optional[PlayerStatItem] = None

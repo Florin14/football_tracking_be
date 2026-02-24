@@ -43,7 +43,7 @@ class PlayerMatchHistoryItem(PydanticBaseModel):
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     isFinished: bool
-    baseCampSide: Optional[str] = None  # "team1" or "team2"
+    defaultTeamSide: Optional[str] = None  # "team1" or "team2"
     result: Optional[str] = None  # "W", "D", "L" or None
     leagueName: Optional[str] = None
     location: Optional[str] = None
@@ -173,7 +173,7 @@ async def get_player_match_history(id: int, db: Session = Depends(get_db)):
             scoreTeam1=m.scoreTeam1,
             scoreTeam2=m.scoreTeam2,
             isFinished=is_finished,
-            baseCampSide=bc_side,
+            defaultTeamSide=bc_side,
             result=result,
             leagueName=m.league.name if m.league else None,
             location=m.location,

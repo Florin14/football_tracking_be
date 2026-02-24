@@ -8,7 +8,7 @@ from constants.tournament_format_type import TournamentFormatType
 from extensions.sqlalchemy import get_db
 from project_helpers.dependencies import JwtRequired
 
-from modules.team.models import BaseCampStatsResponse, PlayerStatItem, TeamModel
+from modules.team.models import DefaultTeamStatsResponse, PlayerStatItem, TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.tournament_model import TournamentModel
 from .router import router
@@ -24,13 +24,13 @@ def _normal_league_tournament_filter():
     )
 
 
-@router.get("/base-camp/stats", response_model=BaseCampStatsResponse, dependencies=[Depends(JwtRequired())])
-async def get_base_camp_stats(
+@router.get("/default/stats", response_model=DefaultTeamStatsResponse, dependencies=[Depends(JwtRequired())])
+async def get_default_team_stats(
     db: Session = Depends(get_db),
 ):
     team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if not team:
-        return BaseCampStatsResponse()
+        return DefaultTeamStatsResponse()
     from modules.match.models.match_model import MatchModel
     from modules.match.models.goal_model import GoalModel
     from modules.player.models.player_model import PlayerModel
@@ -77,7 +77,7 @@ async def get_base_camp_stats(
     # Assists are not persisted in DB yet; keep placeholder until the model supports them.
     top_assists = None
 
-    return BaseCampStatsResponse(
+    return DefaultTeamStatsResponse(
         topScorer=PlayerStatItem(
             playerId=top_scorer.id,
             playerName=top_scorer.name,
@@ -94,3 +94,11 @@ async def get_base_camp_stats(
             value=int(top_appearances.value),
         ) if top_appearances else None,
     )
+
+
+# Backward compatibility alias
+@router.get("/base-camp/stats", response_model=DefaultTeamStatsResponse, dependencies=[Depends(JwtRequired())], include_in_schema=False)
+async def get_base_camp_stats_compat(
+    db: Session = Depends(get_db),
+):
+    return await get_default_team_stats(db=db)

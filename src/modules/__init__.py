@@ -8,6 +8,7 @@ from .player import *
 from .ranking import *
 from .reports import *
 from .team import *
+from .tenant import *
 from .tournament import *
 from .training import *
 from .match_plan import *

@@ -175,7 +175,7 @@ async def get_player_attendance_consolidated(
         .outerjoin(att_direct_tournament, AttendanceModel.tournamentId == att_direct_tournament.id)
         .filter(
             or_(
-                AttendanceModel.tournamentId.in_([None, TournamentFormatType.LEAGUE]),
+                AttendanceModel.tournamentId.in_([None, TournamentFormatType.LEAGUE.value]),
                 att_direct_tournament.formatType.isnot(None),
             )
         )

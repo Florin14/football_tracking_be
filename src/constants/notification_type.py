@@ -13,6 +13,7 @@ class NotificationType(Enum):
     YELLOW_CARD = "YELLOW_CARD"
     RED_CARD = "RED_CARD"
     MATCH_RESULT = "MATCH_RESULT"
+    MATCH_REMINDER = "MATCH_REMINDER"
 
     def __gt__(self, other):
         try:

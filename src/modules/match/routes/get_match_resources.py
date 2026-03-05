@@ -7,6 +7,7 @@ from project_helpers.dependencies import JwtRequired
 from modules.match.models import (
     MatchResourcesResponse
 )
+from modules.match.models.match_model import MatchModel
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from .router import router
@@ -23,10 +24,23 @@ def get_matches_resources(
         .all()
     )
 
+    # Get max round per league
+    max_rounds = dict(
+        db.query(MatchModel.leagueId, func.max(MatchModel.round))
+        .filter(MatchModel.leagueId.isnot(None), MatchModel.round.isnot(None))
+        .group_by(MatchModel.leagueId)
+        .all()
+    )
+
+    league_out = []
+    for league in leagues:
+        league.maxRound = max_rounds.get(league.id)
+        league_out.append(league)
+
     all_teams = (
         db.query(TeamModel)
         .order_by(func.lower(TeamModel.name))
         .all()
     )
 
-    return MatchResourcesResponse(leagues=leagues, allTeams=all_teams)
+    return MatchResourcesResponse(leagues=league_out, allTeams=all_teams)

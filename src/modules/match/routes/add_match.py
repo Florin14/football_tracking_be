@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -119,45 +121,49 @@ async def add_match(
         .first()
     )
 
-    recipient_rows = (
-        db.query(PlayerModel.email)
-        .filter(
-            PlayerModel.teamId.in_(team_ids),
-            PlayerModel.email.isnot(None),
-        )
-        .all()
-    )
+    # Only send notification + email if match is within 2 days
+    is_within_2_days = match.timestamp <= datetime.utcnow() + timedelta(days=2)
 
-    recipients = [
-        email for (email,) in recipient_rows
-        if email and not email.endswith("@generated.local")
-    ]
-
-    admin_lang = get_admin_lang(db, request.state.user)
-    send_match_notification_emails(bg, db, match, recipients, lang=admin_lang)
-
-    # Create NEW_MATCH notifications for default team players
-    default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
-    if default_team and default_team.id in team_ids:
-        default_player_ids = [
-            pid for (pid,) in db.query(PlayerModel.id)
-            .filter(PlayerModel.teamId == default_team.id)
+    if is_within_2_days:
+        recipient_rows = (
+            db.query(PlayerModel.email)
+            .filter(
+                PlayerModel.teamId.in_(team_ids),
+                PlayerModel.email.isnot(None),
+            )
             .all()
-        ]
-        create_player_notifications(
-            db,
-            default_player_ids,
-            "notification.newMatch",
-            "",
-            NotificationType.NEW_MATCH,
-            params={
-                "team1": match.team1.name,
-                "team2": match.team2.name,
-                "matchId": match.id,
-                "location": match.location or "",
-                "date": match.timestamp.strftime("%Y-%m-%d %H:%M"),
-            },
         )
-        db.commit()
+
+        recipients = [
+            email for (email,) in recipient_rows
+            if email and not email.endswith("@generated.local")
+        ]
+
+        admin_lang = get_admin_lang(db, request.state.user)
+        send_match_notification_emails(bg, db, match, recipients, lang=admin_lang)
+
+        # Create NEW_MATCH notifications for default team players
+        default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
+        if default_team and default_team.id in team_ids:
+            default_player_ids = [
+                pid for (pid,) in db.query(PlayerModel.id)
+                .filter(PlayerModel.teamId == default_team.id)
+                .all()
+            ]
+            create_player_notifications(
+                db,
+                default_player_ids,
+                "notification.newMatch",
+                "",
+                NotificationType.NEW_MATCH,
+                params={
+                    "team1": match.team1.name,
+                    "team2": match.team2.name,
+                    "matchId": match.id,
+                    "location": match.location or "",
+                    "date": match.timestamp.strftime("%Y-%m-%d %H:%M"),
+                },
+            )
+            db.commit()
 
     return match

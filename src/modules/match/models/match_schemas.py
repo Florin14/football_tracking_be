@@ -151,6 +151,7 @@ class LeagueOut(BaseSchema):
     name: str
     season: str
     teams: List[TeamOut] = []
+    maxRound: Optional[int] = None
 
     class Config:
         from_attributes = True

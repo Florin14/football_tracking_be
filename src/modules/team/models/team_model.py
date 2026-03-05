@@ -25,6 +25,10 @@ class TeamModel(BaseModel):
     def playerCount(self):
         return len(self.players) if self.players else 0
 
+    @property
+    def leagueCount(self):
+        return len(self.leagues) if self.leagues else 0
+
     def _get_ranking(self):
         return getattr(self, "_ranking", None)
 

@@ -59,3 +59,7 @@ class MatchModel(BaseModel):
     @property
     def leagueLogo(self):
         return self.league.logo if self.league else None
+
+    @property
+    def leagueRelevanceOrder(self):
+        return self.league.relevanceOrder if self.league else None

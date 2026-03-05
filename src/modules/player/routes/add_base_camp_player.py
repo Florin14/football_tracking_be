@@ -36,6 +36,11 @@ async def add_base_camp_player(
     db.commit()
     db.refresh(player)
 
+    # Create attendance records for all existing events
+    from modules.attendance.services.attendance_service import create_attendance_for_new_player
+    create_attendance_for_new_player(db, player)
+    db.commit()
+
     admin_lang = get_admin_lang(db, request.state.user)
     send_welcome_email(bg, db, player, password, lang=admin_lang)
 

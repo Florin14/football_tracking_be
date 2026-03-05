@@ -175,6 +175,23 @@ def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
     return config
 
 
+def _ensure_pg_enum_value(enum_name: str, value: str) -> None:
+    """Add a new value to an existing PostgreSQL enum type if it doesn't exist."""
+    from sqlalchemy import text
+    from extensions.sqlalchemy import engine
+    with engine.connect() as conn:
+        result = conn.execute(
+            text("SELECT 1 FROM pg_enum WHERE enumtypid = "
+                 "(SELECT oid FROM pg_type WHERE typname = :enum_name) "
+                 "AND enumlabel = :value"),
+            {"enum_name": enum_name, "value": value},
+        )
+        if not result.fetchone():
+            conn.execute(text(f"ALTER TYPE {enum_name} ADD VALUE '{value}'"))
+            conn.commit()
+            logging.info("Added '%s' to PostgreSQL enum '%s'.", value, enum_name)
+
+
 def _ensure_default_admin_user(db: SessionLocal) -> None:
     default_email = "admin@fcbasecamp.ro"
     exists = db.query(UserModel).filter(UserModel.email == default_email).first()
@@ -205,13 +222,30 @@ async def lifespan(app: FastAPI):
         handlers=[logging.StreamHandler(sys.stdout)],
     )
     init_db()
+
+    # Ensure MATCH_REMINDER enum value exists in PostgreSQL
+    _ensure_pg_enum_value("notificationtype", "MATCH_REMINDER")
+
     db = SessionLocal()
     try:
         backfill_attendance_for_existing_scopes(db)
         _ensure_default_admin_user(db)
     finally:
         db.close()
+
+    # Start APScheduler for match reminder job (runs every hour)
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from services.match_reminder_job import run_match_reminder_job
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(run_match_reminder_job, "interval", hours=1, id="match_reminder")
+    scheduler.start()
+    logging.info("Match reminder scheduler started (runs every hour).")
+
     yield
+
+    scheduler.shutdown(wait=False)
+    logging.info("Match reminder scheduler stopped.")
 
 
 # â”€â”€â”€ 1) Create the app â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

@@ -42,6 +42,13 @@ async def import_players(
     db.add_all(players)
     db.commit()
 
+    # Create attendance records for all existing events
+    from modules.attendance.services.attendance_service import create_attendance_for_new_player
+    for player in players:
+        db.refresh(player)
+        create_attendance_for_new_player(db, player)
+    db.commit()
+
     admin_lang = get_admin_lang(db, request.state.user)
     for player in players:
         send_welcome_email(bg, db, player, password, lang=admin_lang)

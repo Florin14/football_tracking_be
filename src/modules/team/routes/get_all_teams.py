@@ -25,10 +25,10 @@ async def get_teams(
                 (RankingModel.teamId == TeamModel.id)
                 & (RankingModel.leagueId == params.leagueId),
             )
-            .options(joinedload(TeamModel.players))
+            .options(joinedload(TeamModel.players), joinedload(TeamModel.leagues))
         )
     else:
-        query = db.query(TeamModel).options(joinedload(TeamModel.players))
+        query = db.query(TeamModel).options(joinedload(TeamModel.players), joinedload(TeamModel.leagues))
 
     query = apply_search(query, TeamModel.name, params.search)
     if params.leagueId or params.excludeLeagueId or params.tournamentId or params.excludeTournamentId:

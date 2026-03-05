@@ -86,6 +86,7 @@ class MatchItem(BaseSchema):
     state: str
     round: Optional[int] = None
     youtubeUrl: Optional[str] = None
+    leagueRelevanceOrder: Optional[int] = None
 
     @validator("team1Logo", "team2Logo", "leagueLogo", pre=False, always=True)
     def decode_logo_from_base64(cls, value):

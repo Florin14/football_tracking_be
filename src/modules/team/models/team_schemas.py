@@ -52,6 +52,7 @@ class TeamItem(BaseSchema):
     name: str
     description: Optional[str] = None
     playerCount: Optional[int] = 0
+    leagueCount: Optional[int] = 0
     logo: Optional[str] = Field(None, example="")
     points: Optional[int] = 0
     goalsFor: Optional[int] = 0

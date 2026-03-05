@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 
-from pydantic import AliasChoices, Field, validator
+from pydantic import AliasChoices, Field, model_validator, validator
 
 from project_helpers.schemas import BaseSchema, FilterSchema, PaginationParams
 from modules.match.models.goal_schemas import GoalResponse
@@ -32,6 +32,12 @@ class MatchAdd(BaseSchema):
     location: Optional[str] = Field(None, min_length=1, example="Stadium Arena")
     timestamp: datetime = Field(..., example="2024-12-25T15:00:00")
     youtubeUrl: Optional[str] = Field(None, example="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+
+    @model_validator(mode="after")
+    def round_required_for_league(self):
+        if not self.friendly and self.round is None:
+            raise ValueError("Round (etapa) is required for league matches")
+        return self
 
 class GoalAdd(BaseSchema):
     playerId: int = Field(..., example=1)

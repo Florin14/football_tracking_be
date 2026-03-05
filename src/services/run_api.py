@@ -2,6 +2,7 @@
 import os
 import sys
 from contextlib import asynccontextmanager
+from datetime import timedelta
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
@@ -172,6 +173,8 @@ def _get_jwt_config() -> list[tuple[str, str | list[str] | None]]:
         config.append(("AUTHJWT_COOKIE_DOMAIN", cookie_domain))
     if cookie_csrf_protect is not None:
         config.append(("AUTHJWT_COOKIE_CSRF_PROTECT", cookie_csrf_protect))
+    config.append(("AUTHJWT_ACCESS_TOKEN_EXPIRES", timedelta(hours=8)))
+    config.append(("AUTHJWT_REFRESH_TOKEN_EXPIRES", timedelta(hours=8)))
     return config
 
 

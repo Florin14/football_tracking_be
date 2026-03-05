@@ -1,4 +1,3 @@
-from datetime import datetime
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
@@ -39,19 +38,12 @@ async def get_matches(
             )
 
     query = query.order_by(
-        MatchModel.timestamp.is_(None),
-        MatchModel.timestamp,
-        MatchModel.id,
+        MatchModel.round.is_(None),
+        MatchModel.round.desc(),
+        MatchModel.timestamp.desc(),
+        MatchModel.id.desc(),
     )
 
     matches = params.apply(query).all()
-    matches = sorted(
-        matches,
-        key=lambda match: (
-            match.timestamp is None,
-            match.timestamp or datetime.max,
-            match.id or 0,
-        ),
-    )
 
     return MatchListResponse(data=matches)

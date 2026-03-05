@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import BackgroundTasks, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session, joinedload
 
+from constants.match_state import MatchState
 from constants.platform_roles import PlatformRoles
 from extensions.sqlalchemy import get_db
 from modules.match.models import (
@@ -97,6 +98,19 @@ async def add_match(
             detail="Round can only be set for league matches",
         )
 
+    # Determine forfeit scores
+    score_team1 = None
+    score_team2 = None
+    match_state = None
+    if data.forfeitTeamId is not None:
+        if data.forfeitTeamId == data.team1Id:
+            score_team1 = 3
+            score_team2 = 0
+        else:
+            score_team1 = 0
+            score_team2 = 3
+        match_state = MatchState.FINISHED
+
     match = MatchModel(
         team1Id=data.team1Id,
         team2Id=data.team2Id,
@@ -105,6 +119,9 @@ async def add_match(
         leagueId=league_id,
         round=data.round,
         youtubeUrl=data.youtubeUrl,
+        scoreTeam1=score_team1,
+        scoreTeam2=score_team2,
+        **({"state": match_state} if match_state else {}),
     )
 
     db.add(match)

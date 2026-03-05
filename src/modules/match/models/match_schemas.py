@@ -32,11 +32,18 @@ class MatchAdd(BaseSchema):
     location: Optional[str] = Field(None, min_length=1, example="Stadium Arena")
     timestamp: datetime = Field(..., example="2024-12-25T15:00:00")
     youtubeUrl: Optional[str] = Field(None, example="https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+    forfeitTeamId: Optional[int] = Field(None, description="Team that wins by forfeit (3-0)")
 
     @model_validator(mode="after")
     def round_required_for_league(self):
         if not self.friendly and self.round is None:
             raise ValueError("Round (etapa) is required for league matches")
+        return self
+
+    @model_validator(mode="after")
+    def forfeit_team_must_be_participant(self):
+        if self.forfeitTeamId is not None and self.forfeitTeamId not in (self.team1Id, self.team2Id):
+            raise ValueError("forfeitTeamId must be one of the two participating teams")
         return self
 
 class GoalAdd(BaseSchema):
@@ -152,6 +159,7 @@ class LeagueOut(BaseSchema):
     season: str
     teams: List[TeamOut] = []
     maxRound: Optional[int] = None
+    relevanceOrder: Optional[int] = None
 
     class Config:
         from_attributes = True

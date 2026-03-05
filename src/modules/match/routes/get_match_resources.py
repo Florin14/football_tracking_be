@@ -20,7 +20,7 @@ def get_matches_resources(
     leagues = (
         db.query(LeagueModel)
         .options(selectinload(LeagueModel.teams))
-        .order_by(func.lower(LeagueModel.name))
+        .order_by(LeagueModel.relevanceOrder.asc().nullslast(), func.lower(LeagueModel.name))
         .all()
     )
 

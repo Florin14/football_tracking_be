@@ -12,6 +12,7 @@ from modules.match.models import (
 from modules.team.models.team_model import TeamModel
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
+from modules.ranking.services import recalculate_match_rankings
 from project_helpers.emails_handling import send_match_notification_emails, get_admin_lang
 from constants.notification_type import NotificationType
 from modules.notifications.services.notification_service import create_player_notifications
@@ -125,6 +126,11 @@ async def add_match(
     )
 
     db.add(match)
+    db.flush()
+
+    if match.state == MatchState.FINISHED and match.scoreTeam1 is not None and match.scoreTeam2 is not None:
+        recalculate_match_rankings(db, match)
+
     db.commit()
 
     match = (

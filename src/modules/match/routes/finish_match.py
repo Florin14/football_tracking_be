@@ -79,6 +79,7 @@ async def finish_match(
             },
         )
 
+    db.flush()
     recalculate_match_rankings(db, match)
     auto_advance_knockout(db, match)
     try:

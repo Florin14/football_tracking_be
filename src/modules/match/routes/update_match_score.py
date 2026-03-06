@@ -140,6 +140,7 @@ async def update_match_score(
     if match.state == MatchState.SCHEDULED:
         match.state = MatchState.FINISHED
 
+    db.flush()
     recalculate_match_rankings(db, match)
     auto_advance_knockout(db, match)
     try:

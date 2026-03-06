@@ -154,6 +154,7 @@ async def update_match(
         ):
             match.state = MatchState.FINISHED
 
+    db.flush()
     recalculate_match_rankings(db, match)
     auto_advance_knockout(db, match)
     db.commit()

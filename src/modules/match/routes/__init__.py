@@ -14,3 +14,4 @@ from .send_match_notification import *
 from .get_all_attendance_matches import *
 from .add_card import *
 from .generate_return_leg import *
+from .import_matches import *

@@ -128,6 +128,10 @@ async def add_match(
     db.add(match)
     db.flush()
 
+    # Create attendance records for default team players
+    from modules.attendance.services.attendance_service import ensure_match_attendance_for_default_team
+    ensure_match_attendance_for_default_team(db, match)
+
     if match.state == MatchState.FINISHED and match.scoreTeam1 is not None and match.scoreTeam2 is not None:
         recalculate_match_rankings(db, match)
 

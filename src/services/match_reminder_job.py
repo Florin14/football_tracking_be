@@ -25,16 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 def _get_reminder_subject_and_datetime(match, lang: str):
-    if lang == "en":
-        fmt_datetime = match.timestamp.strftime("%A, %B %d, %Y at %H:%M")
-        subject = f"Reminder: {match.team1.name} vs {match.team2.name}"
-    else:
-        days_ro = ["Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata", "Duminica"]
-        months_ro = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
-                     "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"]
-        dt = match.timestamp
-        fmt_datetime = f"{days_ro[dt.weekday()]}, {dt.day} {months_ro[dt.month]} {dt.year}, ora {dt.strftime('%H:%M')}"
-        subject = f"Reminder: {match.team1.name} vs {match.team2.name}"
+    fmt_datetime = match.timestamp.strftime("%d.%m.%Y, %H:%M")
+    subject = f"Reminder: {match.team1.name} vs {match.team2.name}"
     return subject, fmt_datetime
 
 
@@ -167,7 +159,7 @@ def run_match_reminder_job():
                     "team2": match.team2.name,
                     "matchId": match.id,
                     "location": match.location or "",
-                    "date": match.timestamp.strftime("%Y-%m-%d %H:%M"),
+                    "date": match.timestamp.strftime("%d.%m.%Y %H:%M"),
                 },
             )
             db.commit()

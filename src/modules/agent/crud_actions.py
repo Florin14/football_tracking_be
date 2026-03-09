@@ -74,7 +74,7 @@ def _execute_create_match(db: Session, data: dict) -> dict:
 
     return {
         "success": True,
-        "message": f"Meciul {team1.name} vs {team2.name} a fost programat pe {timestamp.strftime('%d %b %Y, %H:%M')}.",
+        "message": f"Meciul {team1.name} vs {team2.name} a fost programat pe {timestamp.strftime('%d.%m.%Y, %H:%M')}.",
         "id": match.id,
     }
 

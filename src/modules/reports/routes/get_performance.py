@@ -107,7 +107,7 @@ async def get_performance_report(
             draws += 1
 
         trend.append(PerformanceTrendItem(
-            label=match.timestamp.strftime("%d %b"),
+            label=match.timestamp.strftime("%d.%m"),
             goalsFor=gf,
             goalsAgainst=ga,
         ))
@@ -280,7 +280,7 @@ async def get_performance_report(
     monthly_wins_items = [
         PerformanceMonthlyWins(
             month=month,
-            label=datetime.strptime(month, "%Y-%m").strftime("%b %y"),
+            label=datetime.strptime(month, "%Y-%m").strftime("%m.%Y"),
             wins=wins_count,
         )
         for month, wins_count in sorted(monthly_wins.items())

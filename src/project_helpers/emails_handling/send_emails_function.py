@@ -26,12 +26,14 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 GOOGLE_REFRESH_TOKEN = os.getenv("GOOGLE_REFRESH_TOKEN")
 
+GMAIL_APP_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
+
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
-def validate_config():
+def validate_oauth_config():
     if not all([GMAIL_SENDER, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN]):
         missing = [k for k, v in {
             "GMAIL_SENDER": GMAIL_SENDER,
@@ -40,6 +42,17 @@ def validate_config():
             "GOOGLE_REFRESH_TOKEN": GOOGLE_REFRESH_TOKEN,
         }.items() if not v]
         raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+
+def validate_app_password_config():
+    if not all([GMAIL_SENDER, GMAIL_APP_PASSWORD]):
+        missing = [k for k, v in {
+            "GMAIL_SENDER": GMAIL_SENDER,
+            "GMAIL_APP_PASSWORD": GMAIL_APP_PASSWORD,
+        }.items() if not v]
+        raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
+
+def validate_config():
+    validate_oauth_config()
     
 FROM_NAME = os.getenv("FROM_NAME", "Match Notifier")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -162,21 +175,17 @@ def get_access_token() -> str:
 
     return token
 
-# ----------------- SMTP Send (XOAUTH2) -----------------
+# ----------------- SMTP Send (OAuth2 / XOAUTH2) -----------------
 async def send_via_gmail_oauth2(msg: EmailMessage):
-    # Consolidate recipients (To, Cc, Bcc)
-    validate_config()
+    validate_oauth_config()
     recipients = []
     for key in ("To", "Cc", "Bcc"):
         if msg.get(key):
             recipients += [x.strip() for x in msg.get(key).split(",") if x.strip()]
-    # Bcc should not be transmitted as a header
     if "Bcc" in msg:
         del msg["Bcc"]
 
     access_token = get_access_token()
-
-    # Build the XOAUTH2 SASL string: user=<email>\x01auth=Bearer <token>\x01\x01
     xoauth2_string = f"user={GMAIL_SENDER}\x01auth=Bearer {access_token}\x01\x01"
     xoauth2_b64 = base64.b64encode(xoauth2_string.encode()).decode()
 
@@ -199,6 +208,38 @@ async def send_via_gmail_oauth2(msg: EmailMessage):
 async def send_via_gmail_oauth2_safe(msg: EmailMessage):
     try:
         await send_via_gmail_oauth2(msg)
+    except Exception as exc:
+        logging.exception("Email send failed (OAuth2): %s", exc)
+
+# ----------------- SMTP Send (App Password) -----------------
+async def send_via_gmail(msg: EmailMessage):
+    validate_app_password_config()
+    recipients = []
+    for key in ("To", "Cc", "Bcc"):
+        if msg.get(key):
+            recipients += [x.strip() for x in msg.get(key).split(",") if x.strip()]
+    if "Bcc" in msg:
+        del msg["Bcc"]
+
+    try:
+        smtp = aiosmtplib.SMTP(
+            hostname=SMTP_HOST,
+            port=SMTP_PORT,
+            start_tls=True,
+            timeout=30,
+        )
+        await smtp.connect()
+        await smtp.login(GMAIL_SENDER, GMAIL_APP_PASSWORD)
+        await smtp.send_message(msg)
+    except aiosmtplib.errors.SMTPResponseException as e:
+        detail = f"SMTP error {e.code}: {getattr(e, 'message', '')}"
+        raise HTTPException(status_code=502, detail=detail)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"SMTP failed: {e}")
+
+async def send_via_gmail_safe(msg: EmailMessage):
+    try:
+        await send_via_gmail(msg)
     except Exception as exc:
         logging.exception("Email send failed: %s", exc)
 
@@ -263,15 +304,10 @@ def send_match_notification_emails(bg, db, match, recipients: List[str], lang: s
     team2_logo = base64.b64encode(match.team2.logo).decode("utf-8") if match.team2.logo else None
     match_url = f"{FRONTEND_URL}/matches/{match.id}"
 
+    fmt_datetime = match.timestamp.strftime("%d.%m.%Y, %H:%M")
     if lang == "en":
-        fmt_datetime = match.timestamp.strftime("%A, %B %d, %Y at %H:%M")
         subject = f"New match: {match.team1.name} vs {match.team2.name}"
     else:
-        days_ro = ["Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata", "Duminica"]
-        months_ro = ["", "ianuarie", "februarie", "martie", "aprilie", "mai", "iunie",
-                     "iulie", "august", "septembrie", "octombrie", "noiembrie", "decembrie"]
-        dt = match.timestamp
-        fmt_datetime = f"{days_ro[dt.weekday()]}, {dt.day} {months_ro[dt.month]} {dt.year}, ora {dt.strftime('%H:%M')}"
         subject = f"Meci nou: {match.team1.name} vs {match.team2.name}"
 
     template_data = {

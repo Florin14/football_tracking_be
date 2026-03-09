@@ -116,7 +116,8 @@ async def get_player_attendance_consolidated(
         )
         .filter(
             or_(
-                tournament_alias.formatType.in_([None, TournamentFormatType.LEAGUE]),
+                tournament_alias.formatType.is_(None),
+                tournament_alias.formatType == TournamentFormatType.LEAGUE,
                 tournament_alias.formatType.notin_(
                     [TournamentFormatType.GROUPS, TournamentFormatType.GROUPS_KNOCKOUT]
                 ),

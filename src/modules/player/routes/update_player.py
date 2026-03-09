@@ -50,10 +50,6 @@ async def update_player(
     if data.shirtNumber is not None:
         player.shirtNumber = data.shirtNumber
 
-    # TEMP: ensure attendance records exist for this player
-    from modules.attendance.services.attendance_service import create_attendance_for_new_player
-    create_attendance_for_new_player(db, player)
-
     db.commit()
     db.refresh(player)
 

@@ -184,7 +184,7 @@ async def add_match(
                     "team2": match.team2.name,
                     "matchId": match.id,
                     "location": match.location or "",
-                    "date": match.timestamp.strftime("%Y-%m-%d %H:%M"),
+                    "date": match.timestamp.strftime("%d.%m.%Y %H:%M"),
                 },
             )
             db.commit()

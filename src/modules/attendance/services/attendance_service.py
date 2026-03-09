@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 
 from constants.attendance_scope import AttendanceScope
 from constants.attendance_status import AttendanceStatus
-from constants.match_state import MatchState
 from modules.attendance.models.attendance_model import AttendanceModel
 from modules.team.models import TeamModel
 
@@ -82,14 +81,13 @@ def create_attendance_for_new_player(db: Session, player: PlayerModel) -> None:
             db.bulk_save_objects(missing)
             created += len(missing)
 
-    # 3. Matches involving the player's team (SCHEDULED or ONGOING)
+    # 3. Matches involving the player's team (all states)
     default_team = db.query(TeamModel).filter(TeamModel.isDefault.is_(True)).first()
     if default_team and team_id == default_team.id:
         match_ids = [
             mid
             for (mid,) in db.query(MatchMdl.id)
             .filter(
-                MatchMdl.state.in_([MatchState.SCHEDULED, MatchState.ONGOING]),
                 (MatchMdl.team1Id == default_team.id) | (MatchMdl.team2Id == default_team.id),
             )
             .all()

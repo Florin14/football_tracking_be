@@ -14,6 +14,7 @@ class NotificationType(Enum):
     RED_CARD = "RED_CARD"
     MATCH_RESULT = "MATCH_RESULT"
     MATCH_REMINDER = "MATCH_REMINDER"
+    WELCOME = "WELCOME"
 
     def __gt__(self, other):
         try:

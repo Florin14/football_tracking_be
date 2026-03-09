@@ -6,6 +6,8 @@ from constants.platform_roles import PlatformRoles
 from modules.player.models.player_schemas import PlayerAdd
 from modules.team.models.team_model import TeamModel
 from modules.player.models.player_schemas import PlayerResponse
+from constants.notification_type import NotificationType
+from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import JwtRequired
 from project_helpers.emails_handling import send_welcome_email, get_admin_lang
 from project_helpers.error import Error
@@ -43,5 +45,15 @@ async def add_base_camp_player(
 
     admin_lang = get_admin_lang(db, request.state.user)
     send_welcome_email(bg, db, player, password, lang=admin_lang)
+
+    create_player_notifications(
+        db,
+        player_ids=[player.id],
+        name="notification.welcome",
+        description="Welcome to Base Camp!",
+        notification_type=NotificationType.WELCOME,
+        params={"playerName": player.name},
+    )
+    db.commit()
 
     return player

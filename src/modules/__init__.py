@@ -12,3 +12,4 @@ from .tournament import *
 from .training import *
 from .match_plan import *
 from .user import *
+from .dashboard import *

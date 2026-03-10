@@ -94,7 +94,8 @@ def get_players(
         DashboardPlayerItem(
             id=p.id, name=p.name, email=p.email,
             position=str(p.position), rating=p.rating,
-            shirtNumber=p.shirtNumber, teamId=p.teamId,
+            shirtNumber=p.shirtNumber, avatar=p.avatar,
+            teamId=p.teamId,
             teamName=p.team.name if p.team else None,
             goalsCount=p.goalsCount, assistsCount=p.assistsCount,
             yellowCardsCount=p.yellowCardsCount, redCardsCount=p.redCardsCount,
@@ -120,7 +121,7 @@ def get_teams(
     return [
         DashboardTeamItem(
             id=t.id, name=t.name, description=t.description,
-            playerCount=t.playerCount, isDefault=t.isDefault,
+            logo=t.logo, playerCount=t.playerCount, isDefault=t.isDefault,
         )
         for t in teams
     ]
@@ -137,7 +138,9 @@ def get_matches(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    q = db.query(MatchModel)
+    q = db.query(MatchModel).options(
+        joinedload(MatchModel.team1), joinedload(MatchModel.team2), joinedload(MatchModel.league)
+    )
     if teamId:
         from sqlalchemy import or_
         q = q.filter(or_(MatchModel.team1Id == teamId, MatchModel.team2Id == teamId))
@@ -150,10 +153,12 @@ def get_matches(
         DashboardMatchItem(
             id=m.id, team1Id=m.team1Id, team2Id=m.team2Id,
             team1Name=m.team1Name, team2Name=m.team2Name,
+            team1Logo=m.team1Logo, team2Logo=m.team2Logo,
             location=m.location, timestamp=m.timestamp,
             scoreTeam1=m.scoreTeam1, scoreTeam2=m.scoreTeam2,
-            state=str(m.state), leagueName=m.leagueName,
-            round=m.round,
+            state=str(m.state), leagueId=m.leagueId,
+            leagueName=m.leagueName,
+            leagueLogo=m.leagueLogo, round=m.round,
         )
         for m in matches
     ]
@@ -224,7 +229,8 @@ def get_leagues(
     leagues = q.order_by(LeagueModel.relevanceOrder).offset(offset).limit(limit).all()
     return [
         DashboardLeagueItem(
-            id=l.id, name=l.name, season=l.season,
+            id=l.id, name=l.name, logo=l.logo,
+            season=l.season,
             relevanceOrder=l.relevanceOrder, tournamentId=l.tournamentId,
             startDate=l.startDate, endDate=l.endDate,
         )
@@ -241,7 +247,7 @@ def get_rankings(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    q = db.query(RankingModel).options(joinedload(RankingModel.team))
+    q = db.query(RankingModel).options(joinedload(RankingModel.team), joinedload(RankingModel.league))
     if leagueId:
         q = q.filter(RankingModel.leagueId == leagueId)
     rankings = q.order_by(RankingModel.points.desc()).offset(offset).limit(limit).all()
@@ -249,7 +255,11 @@ def get_rankings(
         DashboardRankingItem(
             id=r.id, teamId=r.teamId,
             teamName=r.team.name if r.team else None,
-            leagueId=r.leagueId, points=r.points,
+            teamLogo=r.team.logo if r.team else None,
+            leagueId=r.leagueId,
+            leagueName=r.league.name if r.league else None,
+            leagueLogo=r.league.logo if r.league else None,
+            points=r.points,
             gamesPlayed=r.gamesPlayed, gamesWon=r.gamesWon,
             gamesLost=r.gamesLost, gamesTied=r.gamesTied,
             goalsScored=r.goalsScored, goalsConceded=r.goalsConceded,

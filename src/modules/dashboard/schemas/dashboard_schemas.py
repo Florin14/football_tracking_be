@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from typing import Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 
 # ── Reusable light items ─────────────────────────────────────────────
@@ -24,6 +24,7 @@ class DashboardPlayerItem(BaseModel):
     position: str
     rating: Optional[int] = None
     shirtNumber: Optional[int] = None
+    avatar: Optional[str] = Field(None, example="")
     teamId: int
     teamName: Optional[str] = None
     goalsCount: int = 0
@@ -31,6 +32,14 @@ class DashboardPlayerItem(BaseModel):
     yellowCardsCount: int = 0
     redCardsCount: int = 0
     appearancesCount: int = 0
+
+    @validator("avatar", pre=False, always=True)
+    def decode_avatar_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     class Config:
         from_attributes = True
@@ -40,8 +49,17 @@ class DashboardTeamItem(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
+    logo: Optional[str] = Field(None, example="")
     playerCount: int = 0
     isDefault: Optional[bool] = False
+
+    @validator("logo", pre=False, always=True)
+    def decode_logo_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     class Config:
         from_attributes = True
@@ -53,13 +71,25 @@ class DashboardMatchItem(BaseModel):
     team2Id: int
     team1Name: Optional[str] = None
     team2Name: Optional[str] = None
+    team1Logo: Optional[str] = Field(None, example="")
+    team2Logo: Optional[str] = Field(None, example="")
     location: Optional[str] = None
     timestamp: Optional[datetime] = None
     scoreTeam1: Optional[int] = None
     scoreTeam2: Optional[int] = None
     state: str
+    leagueId: Optional[int] = None
     leagueName: Optional[str] = None
+    leagueLogo: Optional[str] = Field(None, example="")
     round: Optional[int] = None
+
+    @validator("team1Logo", "team2Logo", "leagueLogo", pre=False, always=True)
+    def decode_logo_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     class Config:
         from_attributes = True
@@ -96,11 +126,20 @@ class DashboardTournamentItem(BaseModel):
 class DashboardLeagueItem(BaseModel):
     id: int
     name: str
+    logo: Optional[str] = Field(None, example="")
     season: Optional[str] = None
     relevanceOrder: Optional[int] = None
     tournamentId: int
     startDate: Optional[date] = None
     endDate: Optional[date] = None
+
+    @validator("logo", pre=False, always=True)
+    def decode_logo_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     class Config:
         from_attributes = True
@@ -110,7 +149,10 @@ class DashboardRankingItem(BaseModel):
     id: int
     teamId: int
     teamName: Optional[str] = None
+    teamLogo: Optional[str] = Field(None, example="")
     leagueId: Optional[int] = None
+    leagueName: Optional[str] = None
+    leagueLogo: Optional[str] = Field(None, example="")
     points: int = 0
     gamesPlayed: int = 0
     gamesWon: int = 0
@@ -118,6 +160,14 @@ class DashboardRankingItem(BaseModel):
     gamesTied: int = 0
     goalsScored: int = 0
     goalsConceded: int = 0
+
+    @validator("teamLogo", "leagueLogo", pre=False, always=True)
+    def decode_logo_from_base64(cls, value):
+        if value is None:
+            return None
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
 
     class Config:
         from_attributes = True

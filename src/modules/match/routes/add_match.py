@@ -17,6 +17,7 @@ from project_helpers.emails_handling import send_match_notification_emails, get_
 from constants.notification_type import NotificationType
 from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import JwtRequired
+from project_helpers.webhook.webhook_client import send_webhook_background
 from .router import router
 
 
@@ -136,6 +137,15 @@ async def add_match(
         recalculate_match_rankings(db, match)
 
     db.commit()
+
+    send_webhook_background("match.created", {
+        "id": match.id,
+        "team1Id": match.team1Id,
+        "team2Id": match.team2Id,
+        "timestamp": str(match.timestamp),
+        "state": match.state.value if match.state else "SCHEDULED",
+        "location": match.location,
+    })
 
     match = (
         db.query(MatchModel)

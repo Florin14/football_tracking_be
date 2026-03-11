@@ -12,6 +12,7 @@ from project_helpers.dependencies import JwtRequired
 from project_helpers.emails_handling import send_welcome_email, get_admin_lang
 from project_helpers.error import Error
 from project_helpers.exceptions import ErrorException
+from project_helpers.webhook.webhook_client import send_webhook_background
 from .router import router
 from ..models.player_model import PlayerModel
 
@@ -55,5 +56,13 @@ async def add_base_camp_player(
         params={"playerName": player.name},
     )
     db.commit()
+
+    send_webhook_background("player.created", {
+        "id": player.id,
+        "name": player.name,
+        "email": player.email,
+        "position": player.position.value if player.position else None,
+        "teamName": team.name if team else None,
+    })
 
     return player

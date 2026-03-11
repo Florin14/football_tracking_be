@@ -21,6 +21,7 @@ from constants.notification_type import NotificationType
 from modules.notifications.services.notification_service import create_player_notifications
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
 from project_helpers.responses import ConfirmationResponse
+from project_helpers.webhook.webhook_client import send_webhook_background
 from .router import router
 
 
@@ -183,6 +184,22 @@ async def update_match_score(
     except HTTPException:
         pass
     db.commit()
+
+    send_webhook_background("goal.scored", {
+        "matchId": match.id,
+        "team1Id": match.team1Id,
+        "team2Id": match.team2Id,
+        "scoreTeam1": match.scoreTeam1,
+        "scoreTeam2": match.scoreTeam2,
+        "goals": [
+            {
+                "playerId": g.playerId,
+                "teamId": g.teamId,
+                "minute": g.minute,
+            }
+            for g in data.goals
+        ],
+    })
 
     return ConfirmationResponse(
         success=True,

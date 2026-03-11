@@ -10,6 +10,7 @@ from modules.match.models.card_schemas import CardAdd, CardResponse
 from modules.notifications.services.notification_service import create_player_notifications
 from modules.team.models import TeamModel
 from project_helpers.dependencies import GetInstanceFromPath, JwtRequired
+from project_helpers.webhook.webhook_client import send_webhook_background
 from .router import router
 
 
@@ -82,5 +83,13 @@ async def add_card(
 
     db.commit()
     db.refresh(card)
+
+    send_webhook_background("card.issued", {
+        "matchId": card.matchId,
+        "playerName": player.name,
+        "cardType": card.cardType.value,
+        "teamName": team.name,
+        "minute": card.minute,
+    })
 
     return card

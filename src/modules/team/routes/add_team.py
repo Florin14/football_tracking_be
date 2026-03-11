@@ -8,6 +8,7 @@ from modules.team.models import TeamModel, TeamAdd, TeamResponse
 from modules.tournament.models.league_model import LeagueModel
 from modules.tournament.models.league_team_model import LeagueTeamModel
 from project_helpers.dependencies import JwtRequired
+from project_helpers.webhook.webhook_client import send_webhook_background
 from .router import router
 
 
@@ -38,5 +39,10 @@ async def add_team(
 
     db.commit()
     db.refresh(team)
+
+    send_webhook_background("team.created", {
+        "id": team.id,
+        "name": team.name,
+    })
 
     return team

@@ -18,6 +18,7 @@ class UserModel(BaseModel):
     role = Column(Enum(PlatformRoles), nullable=False, default=PlatformRoles.ADMIN)
     isDeleted = Column(Boolean, nullable=False, default=False)
     isAvailable = Column(Boolean, default=True, server_default="True", name="is_available")
+    canSendEmails = Column(Boolean, default=True, server_default="True", name="can_send_emails")
 
     __mapper_args__ = {"polymorphic_identity": "user", "polymorphic_on": "role"}
 

@@ -136,6 +136,7 @@ def run_match_reminder_job():
                 .filter(
                     PlayerModel.teamId == default_team.id,
                     PlayerModel.email.isnot(None),
+                    PlayerModel.canSendEmails.is_(True),
                     (PlayerPreferencesModel.receiveMatchReminders.is_(True) | PlayerPreferencesModel.id.is_(None)),
                 )
                 .all()

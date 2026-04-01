@@ -34,6 +34,7 @@ class PlayerUpdate(BaseSchema):
     position: Optional[str] = None
     rating: Optional[int] = Field(None, ge=0, le=100)
     shirtNumber: Optional[int] = Field(None, ge=0, le=999)
+    canSendEmails: Optional[bool] = None
     avatar: Optional[bytes] = Field(None)
 
     @validator("avatar", pre=False, always=True)
@@ -100,7 +101,7 @@ class PlayerItem(BaseSchema):
     assists: Optional[int] = 0
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
-    # teamName: Optional[str] = None
+    canSendEmails: bool = True
     avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)
@@ -138,6 +139,7 @@ class PlayerResponse(BaseSchema):
     appearances: Optional[int] = 0
     yellowCards: Optional[int] = 0
     redCards: Optional[int] = 0
+    canSendEmails: bool = True
     avatar: Optional[str] = Field(None, example="")
 
     @validator("avatar", pre=False, always=True)

@@ -50,6 +50,9 @@ async def update_player(
     if data.shirtNumber is not None:
         player.shirtNumber = data.shirtNumber
 
+    if data.canSendEmails is not None:
+        player.canSendEmails = data.canSendEmails
+
     db.commit()
     db.refresh(player)
 

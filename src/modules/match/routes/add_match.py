@@ -167,6 +167,7 @@ async def add_match(
             .filter(
                 PlayerModel.teamId.in_(team_ids),
                 PlayerModel.email.isnot(None),
+                PlayerModel.canSendEmails.is_(True),
             )
             .all()
         )

@@ -17,6 +17,7 @@ class UserItem(BaseSchema):
     name: str
     role: str
     email: str
+    canSendEmails: bool = True
 
 
 class UserFilter(FilterSchema):
@@ -32,6 +33,7 @@ class UserResponse(BaseSchema):
     name: str
     role: str
     email: str
+    canSendEmails: bool = True
 
 
 class UserListResponse(BaseSchema):
